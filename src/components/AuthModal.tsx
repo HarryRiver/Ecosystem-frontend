@@ -1,6 +1,8 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { findAdminAccount } from '../data/adminMock';
 
 export type AuthMode = 'login' | 'register';
 
@@ -40,6 +42,7 @@ export default function AuthModal({
   onModeChange,
   onSuccess,
 }: AuthModalProps) {
+  const router = useRouter();
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [registerName, setRegisterName] = useState('');
@@ -81,6 +84,14 @@ export default function AuthModal({
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 900));
     setIsSubmitting(false);
+
+    const matchedAdmin = findAdminAccount(loginEmail, loginPassword);
+    if (matchedAdmin) {
+      onClose();
+      router.push('/admin');
+      return;
+    }
+
     onSuccess({
       name: loginEmail.split('@')[0].replace(/[._-]/g, ' ') || 'Khách EcoCollect',
       email: loginEmail.trim(),

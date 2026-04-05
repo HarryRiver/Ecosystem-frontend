@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
-export type AuthMode = 'login' | 'register';
-
-export interface AuthUser {
-  name: string;
-  email: string;
-  phone: string;
-}
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  hasRegisteredAuthUser,
+  loginAuthUser,
+  registerAuthUser,
+  type AuthMode,
+  type AuthUser,
+} from '@/lib/auth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -18,20 +18,28 @@ interface AuthModalProps {
   onSuccess: (user: AuthUser) => void;
 }
 
-const benefitCards = [
-  {
-    title: 'Voucher thành viên',
-    description: 'Đăng ký để nhận ưu đãi 10% cho lần đặt tiếp theo và các mã giảm giá theo chiến dịch.',
-  },
-  {
-    title: 'Lưu địa chỉ và lịch sử đơn',
-    description: 'Tự động điền lại thông tin đã dùng trước đó, đặt lịch nhanh hơn cho các lần sau.',
-  },
-  {
-    title: 'Theo dõi đơn thuận tiện',
-    description: 'Xem tiến độ, email xác nhận và các khuyến mãi cá nhân hóa trong cùng một tài khoản.',
-  },
-];
+interface AuthFormState {
+  name: string;
+  phone: string;
+  email: string;
+  password: string;
+  acceptPolicy: boolean;
+}
+
+const initialFormState: AuthFormState = {
+  name: '',
+  phone: '',
+  email: '',
+  password: '',
+  acceptPolicy: true,
+};
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const phonePattern = /^(0|\+84)\d{9,10}$/;
+
+function normalizePhone(phone: string) {
+  return phone.replace(/\s+/g, '').trim();
+}
 
 export default function AuthModal({
   isOpen,
@@ -40,86 +48,158 @@ export default function AuthModal({
   onModeChange,
   onSuccess,
 }: AuthModalProps) {
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [registerName, setRegisterName] = useState('');
-  const [registerPhone, setRegisterPhone] = useState('');
-  const [registerEmail, setRegisterEmail] = useState('');
-  const [registerPassword, setRegisterPassword] = useState('');
-  const [acceptPolicy, setAcceptPolicy] = useState(true);
+  const { t } = useTranslation();
+  const [form, setForm] = useState<AuthFormState>(initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  const benefitCards = [
+    {
+      title: t('auth.benefits.voucher.title'),
+      description: t('auth.benefits.voucher.desc'),
+    },
+    {
+      title: t('auth.benefits.history.title'),
+      description: t('auth.benefits.history.desc'),
+    },
+    {
+      title: t('auth.benefits.tracking.title'),
+      description: t('auth.benefits.tracking.desc'),
+    },
+  ];
+
+  function getAuthValidationMessage(mode: AuthMode) {
+    return mode === 'login'
+      ? t('common.error') // Use generic or add specific keys if needed
+      : t('common.error');
+  }
 
   useEffect(() => {
     if (!isOpen) {
       setErrorMessage('');
       setIsSubmitting(false);
+      setForm((currentForm) => ({
+        ...currentForm,
+        password: '',
+      }));
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    setErrorMessage('');
+  }, [isOpen, mode]);
+
+  const isEmailValid = emailPattern.test(form.email.trim());
+  const isPasswordValid = form.password.trim().length >= 6;
+  const isNameValid = form.name.trim().length >= 2;
+  const isPhoneValid = phonePattern.test(normalizePhone(form.phone));
+  const isFormValid =
+    mode === 'login'
+      ? isEmailValid && isPasswordValid
+      : isNameValid && isPhoneValid && isEmailValid && isPasswordValid && form.acceptPolicy;
+
+  const handleFieldChange = (field: keyof AuthFormState) => (event: ChangeEvent<HTMLInputElement>) => {
+    const nextValue = field === 'acceptPolicy' ? event.target.checked : event.target.value;
+
+    setForm((currentForm) => ({
+      ...currentForm,
+      [field]: nextValue,
+    }));
+
+    if (errorMessage !== '') {
+      setErrorMessage('');
+    }
+  };
+
+  const handleModeSwitch = (nextMode: AuthMode) => {
+    if (nextMode === mode) {
+      return;
+    }
+
+    setErrorMessage('');
+    onModeChange(nextMode);
+  };
+
+  const resetForm = () => {
+    setForm(initialFormState);
+    setErrorMessage('');
+    setIsSubmitting(false);
+  };
+
+  const handleForgotPassword = () => {
+    if (!isEmailValid) {
+      setErrorMessage(mode === 'login' ? 'Nhập email tài khoản trước' : '');
+      return;
+    }
+
+    if (!hasRegisteredAuthUser(form.email)) {
+      setErrorMessage('Email chưa được đăng ký');
+      return;
+    }
+
+    setErrorMessage(
+      'Bản demo hiện chưa kết nối email reset mật khẩu.',
+    );
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!isFormValid) {
+      setErrorMessage(getAuthValidationMessage(mode));
+      return;
+    }
+
+    setErrorMessage('');
+    setIsSubmitting(true);
+
+    await new Promise((resolve) => setTimeout(resolve, mode === 'login' ? 700 : 900));
+
+    const result =
+      mode === 'login'
+        ? loginAuthUser({
+            email: form.email,
+            password: form.password,
+          })
+        : registerAuthUser({
+            name: form.name,
+            email: form.email,
+            phone: form.phone,
+            password: form.password,
+            acceptMarketing: form.acceptPolicy,
+          });
+
+    if (!result.ok) {
+      setIsSubmitting(false);
+      setErrorMessage(result.error);
+      return;
+    }
+
+    setIsSubmitting(false);
+    resetForm();
+    onSuccess(result.user);
+  };
 
   if (!isOpen) {
     return null;
   }
-
-  const isLoginValid =
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmail.trim()) && loginPassword.trim().length >= 6;
-  const isRegisterPhoneValid = /^(0|\+84)\d{9,10}$/.test(registerPhone.replace(/\s+/g, ''));
-  const isRegisterValid =
-    registerName.trim().length >= 2 &&
-    isRegisterPhoneValid &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerEmail.trim()) &&
-    registerPassword.trim().length >= 6 &&
-    acceptPolicy;
-
-  const handleLogin = async () => {
-    if (!isLoginValid) {
-      setErrorMessage('Vui lòng nhập email hợp lệ và mật khẩu tối thiểu 6 ký tự.');
-      return;
-    }
-
-    setErrorMessage('');
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    setIsSubmitting(false);
-    onSuccess({
-      name: loginEmail.split('@')[0].replace(/[._-]/g, ' ') || 'Khách EcoCollect',
-      email: loginEmail.trim(),
-      phone: '',
-    });
-  };
-
-  const handleRegister = async () => {
-    if (!isRegisterValid) {
-      setErrorMessage('Vui lòng điền đủ họ tên, số điện thoại, email và mật khẩu hợp lệ.');
-      return;
-    }
-
-    setErrorMessage('');
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1100));
-    setIsSubmitting(false);
-    onSuccess({
-      name: registerName.trim(),
-      email: registerEmail.trim(),
-      phone: registerPhone.trim(),
-    });
-  };
 
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#08110D]/72 p-4 backdrop-blur-md">
       <div className="grid w-full max-w-5xl overflow-hidden rounded-[32px] bg-white shadow-[0_32px_120px_rgba(0,0,0,0.28)] lg:grid-cols-[0.94fr_1.06fr]">
         <aside className="bg-[linear-gradient(155deg,_#0F3D2E_0%,_#134B38_52%,_#1E6B4E_100%)] p-7 text-white">
           <div className="inline-flex items-center rounded-full border border-white/12 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#B7F7C8]">
-            EcoCollect member access
+            {t('auth.badge')}
           </div>
           <h2 className="mt-5 text-3xl font-bold leading-tight">
-            Đặt lịch không cần tài khoản,
-            <br />
-            nhưng có account sẽ tiện hơn nhiều
+            {t('auth.sidebarTitle')}
           </h2>
           <p className="mt-4 text-sm leading-7 text-white/76">
-            Khách vẫn có thể đặt lịch như bình thường. Tài khoản chỉ là lớp trải nghiệm cộng thêm:
-            lưu thông tin, nhận voucher và theo dõi đơn thuận tiện hơn.
+            {t('auth.sidebarSubtitle')}
           </p>
 
           <div className="mt-7 space-y-3">
@@ -132,8 +212,7 @@ export default function AuthModal({
           </div>
 
           <div className="mt-7 rounded-[24px] border border-[#8DE0A6]/20 bg-[#D9FCE6]/10 p-4 text-sm leading-6 text-white/82">
-            Gợi ý nghiệp vụ hiện tại: khách đăng ký tài khoản sau lần đặt đầu tiên sẽ nhận voucher cho
-            lần kế tiếp thay vì giảm ngay tại checkout để hạn chế abuse.
+            {t('auth.suggestion')}
           </div>
         </aside>
 
@@ -144,7 +223,7 @@ export default function AuthModal({
                 Account UI
               </p>
               <h3 className="mt-2 text-3xl font-bold text-[#103B2D]">
-                {mode === 'login' ? 'Đăng nhập tài khoản' : 'Tạo tài khoản EcoCollect'}
+                {mode === 'login' ? t('auth.login.title') : t('auth.register.title')}
               </h3>
             </div>
             <button
@@ -160,13 +239,13 @@ export default function AuthModal({
 
           <div className="mt-6 inline-flex rounded-full bg-[#F3F8F4] p-1">
             {[
-              { key: 'login' as const, label: 'Đăng nhập' },
-              { key: 'register' as const, label: 'Đăng ký' },
+              { key: 'login' as const, label: t('header.login') },
+              { key: 'register' as const, label: t('header.register') },
             ].map((item) => (
               <button
                 key={item.key}
                 type="button"
-                onClick={() => onModeChange(item.key)}
+                onClick={() => handleModeSwitch(item.key)}
                 className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
                   mode === item.key ? 'bg-[#103B2D] text-white' : 'text-[#476458]'
                 }`}
@@ -176,130 +255,150 @@ export default function AuthModal({
             ))}
           </div>
 
-          {mode === 'login' ? (
-            <div className="mt-7 space-y-5">
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#24483A]">Email tài khoản</label>
-                <input
-                  type="email"
-                  value={loginEmail}
-                  onChange={(event) => setLoginEmail(event.target.value)}
-                  placeholder="ban@company.com"
-                  className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E]"
-                />
-              </div>
-              <div>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <label className="text-sm font-semibold text-[#24483A]">Mật khẩu</label>
-                  <button type="button" className="text-sm font-medium text-[#2F855A]">
-                    Quên mật khẩu?
-                  </button>
-                </div>
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={(event) => setLoginPassword(event.target.value)}
-                  placeholder="Tối thiểu 6 ký tự"
-                  className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E]"
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="mt-7 space-y-5">
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#24483A]">Họ và tên</label>
-                <input
-                  type="text"
-                  value={registerName}
-                  onChange={(event) => setRegisterName(event.target.value)}
-                  placeholder="Ví dụ: Nguyễn Văn A"
-                  className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E]"
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+          <form className="mt-7" onSubmit={handleSubmit} noValidate>
+            {mode === 'login' ? (
+              <div className="space-y-5">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#24483A]">Số điện thoại</label>
-                  <input
-                    type="tel"
-                    value={registerPhone}
-                    onChange={(event) => setRegisterPhone(event.target.value)}
-                    placeholder="0901234567"
-                    className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E]"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#24483A]">Email</label>
+                  <label className="mb-2 block text-sm font-semibold text-[#24483A]">{t('auth.login.emailLabel')}</label>
                   <input
                     type="email"
-                    value={registerEmail}
-                    onChange={(event) => setRegisterEmail(event.target.value)}
+                    value={form.email}
+                    onChange={handleFieldChange('email')}
                     placeholder="ban@company.com"
-                    className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E]"
+                    autoComplete="email"
+                    disabled={isSubmitting}
+                    className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
+                  />
+                </div>
+                <div>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <label className="text-sm font-semibold text-[#24483A]">{t('auth.login.passwordLabel')}</label>
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-sm font-medium text-[#2F855A]"
+                    >
+                      {t('auth.login.forgotPassword')}
+                    </button>
+                  </div>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={handleFieldChange('password')}
+                    placeholder="......"
+                    autoComplete="current-password"
+                    disabled={isSubmitting}
+                    className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
                   />
                 </div>
               </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#24483A]">Mật khẩu</label>
-                <input
-                  type="password"
-                  value={registerPassword}
-                  onChange={(event) => setRegisterPassword(event.target.value)}
-                  placeholder="Tối thiểu 6 ký tự"
-                  className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E]"
-                />
+            ) : (
+              <div className="space-y-5">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#24483A]">{t('auth.register.nameLabel')}</label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={handleFieldChange('name')}
+                    placeholder="Name"
+                    autoComplete="name"
+                    disabled={isSubmitting}
+                    className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-[#24483A]">{t('auth.register.phoneLabel')}</label>
+                    <input
+                      type="tel"
+                      value={form.phone}
+                      onChange={handleFieldChange('phone')}
+                      placeholder="0901234567"
+                      autoComplete="tel"
+                      disabled={isSubmitting}
+                      className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-[#24483A]">{t('auth.register.emailLabel')}</label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={handleFieldChange('email')}
+                      placeholder="ban@company.com"
+                      autoComplete="email"
+                      disabled={isSubmitting}
+                      className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#24483A]">{t('auth.register.passwordLabel')}</label>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={handleFieldChange('password')}
+                    placeholder="......"
+                    autoComplete="new-password"
+                    disabled={isSubmitting}
+                    className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
+                  />
+                </div>
+                <label className="flex items-start gap-3 rounded-[24px] border border-[#D6EEDD] bg-[#F9FCFA] p-4 text-sm text-[#476458]">
+                  <input
+                    type="checkbox"
+                    checked={form.acceptPolicy}
+                    onChange={handleFieldChange('acceptPolicy')}
+                    className="mt-1"
+                    disabled={isSubmitting}
+                  />
+                  <span>
+                    {t('auth.register.policy')}
+                  </span>
+                </label>
               </div>
-              <label className="flex items-start gap-3 rounded-[24px] border border-[#D6EEDD] bg-[#F9FCFA] p-4 text-sm text-[#476458]">
-                <input
-                  type="checkbox"
-                  checked={acceptPolicy}
-                  onChange={(event) => setAcceptPolicy(event.target.checked)}
-                  className="mt-1"
-                />
-                <span>
-                  Tôi đồng ý nhận email xác nhận đơn, voucher thành viên và thông tin ưu đãi phù hợp với
-                  nhu cầu thu gom.
-                </span>
-              </label>
-            </div>
-          )}
+            )}
 
-          {errorMessage !== '' && (
-            <div className="mt-5 rounded-[20px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-              {errorMessage}
-            </div>
-          )}
-
-          <div className="mt-7 rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] p-4 text-sm text-[#476458]">
-            {mode === 'login'
-              ? 'Đăng nhập để tự động điền lại email và dùng voucher thành viên ở các lần đặt sau.'
-              : 'Đăng ký không bắt buộc cho đơn hiện tại. Khách vẫn có thể đặt lịch như guest nếu muốn thao tác nhanh.'}
-          </div>
-
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-[#789185]">
-              {mode === 'login' ? 'Chưa có tài khoản?' : 'Đã có tài khoản rồi?'}
-              <button
-                type="button"
-                onClick={() => onModeChange(mode === 'login' ? 'register' : 'login')}
-                className="ml-2 font-semibold text-[#2F855A]"
+            {errorMessage !== '' && (
+              <div
+                className="mt-5 rounded-[20px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+                aria-live="polite"
               >
-                {mode === 'login' ? 'Tạo tài khoản' : 'Đăng nhập'}
-              </button>
-            </p>
+                {errorMessage}
+              </div>
+            )}
 
-            <button
-              type="button"
-              onClick={mode === 'login' ? handleLogin : handleRegister}
-              disabled={isSubmitting}
-              className="rounded-full bg-[#103B2D] px-7 py-3 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#95B0A1]"
-            >
-              {isSubmitting
-                ? 'Đang xử lý...'
-                : mode === 'login'
-                  ? 'Đăng nhập'
-                  : 'Tạo tài khoản và nhận ưu đãi'}
-            </button>
-          </div>
+            <div className="mt-7 rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] p-4 text-sm text-[#476458]">
+              {mode === 'login'
+                ? t('auth.login.footer')
+                : t('auth.register.footer')}
+            </div>
+
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-[#789185]">
+                {mode === 'login' ? t('auth.login.switch').split('?')[0] + '?' : t('auth.register.switch').split('?')[0] + '?'}
+                <button
+                  type="button"
+                  onClick={() => handleModeSwitch(mode === 'login' ? 'register' : 'login')}
+                  className="ml-2 font-semibold text-[#2F855A]"
+                >
+                  {mode === 'login' ? t('auth.login.switch').split('?')[1] : t('auth.register.switch').split('?')[1]}
+                </button>
+              </p>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="rounded-full bg-[#103B2D] px-7 py-3 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#95B0A1]"
+              >
+                {isSubmitting
+                  ? t('common.loading')
+                  : mode === 'login'
+                    ? t('auth.login.submit')
+                    : t('auth.register.submit')}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

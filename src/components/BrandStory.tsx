@@ -1,47 +1,50 @@
+'use client';
+
+import { useTranslation } from 'react-i18next';
+
 interface BrandStoryProps {
   onBookingClick: () => void;
 }
 
-const storyBlocks = [
-  {
-    eyebrow: 'Về chúng tôi',
-    title: 'Nền tảng thu gom rác theo hướng eco-tech cho đô thị hiện đại',
-    description:
-      'EcoCollect giúp khách hàng đặt lịch thu gom nhanh, minh bạch giá và theo dõi toàn bộ vòng đời xử lý rác từ lúc nhận đơn đến tái chế.',
-  },
-  {
-    eyebrow: 'Sứ mệnh',
-    title: 'Giảm rác chôn lấp, tăng tái sử dụng',
-    description:
-      'Mỗi đơn hàng đều được định tuyến để ưu tiên phân loại, tái chế và tái sử dụng thay vì chỉ vận chuyển đi đổ bỏ.',
-  },
-  {
-    eyebrow: 'Điểm khác biệt',
-    title: 'Đặt lịch dễ, báo giá rõ, trạng thái minh bạch',
-    description:
-      'Khách hàng biết mình đang trả tiền cho gì, nhân viên biết cần xử lý món gì, và admin có dữ liệu để tối ưu vận hành.',
-  },
-];
-
-const uspCards = [
-  {
-    icon: '♻️',
-    title: 'Xử lý xanh',
-    text: 'Phân tuyến theo nhóm rác để tăng khả năng tái chế và giảm chôn lấp.',
-  },
-  {
-    icon: '⚙️',
-    title: 'Vận hành thông minh',
-    text: 'Giá được ước tính theo loại rác, kích thước, đơn vị tính và độ phức tạp.',
-  },
-  {
-    icon: '🔎',
-    title: 'Minh bạch end-to-end',
-    text: 'Khách hàng theo dõi được trạng thái từ đặt lịch, thu gom, xử lý đến hoàn tất.',
-  },
-];
-
 export default function BrandStory({ onBookingClick }: BrandStoryProps) {
+  const { t } = useTranslation();
+
+  const storyBlocks = [
+    {
+      eyebrow: t('brandStory.about.eyebrow'),
+      title: t('brandStory.about.title'),
+      description: t('brandStory.about.desc'),
+    },
+    {
+      eyebrow: t('brandStory.mission.eyebrow'),
+      title: t('brandStory.mission.title'),
+      description: t('brandStory.mission.desc'),
+    },
+    {
+      eyebrow: t('brandStory.difference.eyebrow'),
+      title: t('brandStory.difference.title'),
+      description: t('brandStory.difference.desc'),
+    },
+  ];
+
+  const uspCards = [
+    {
+      icon: '♻️',
+      title: t('brandStory.usp.handling.title'),
+      text: t('brandStory.usp.handling.text'),
+    },
+    {
+      icon: '⚙️',
+      title: t('brandStory.usp.operation.title'),
+      text: t('brandStory.usp.operation.text'),
+    },
+    {
+      icon: '🔎',
+      title: t('brandStory.usp.transparency.title'),
+      text: t('brandStory.usp.transparency.text'),
+    },
+  ];
+
   return (
     <section id="about" className="bg-[#F5FBF6] py-20">
       <div className="container mx-auto px-4">
@@ -71,7 +74,7 @@ export default function BrandStory({ onBookingClick }: BrandStoryProps) {
                 Why EcoCollect
               </p>
               <h3 className="text-3xl font-bold leading-tight">
-                Một thương hiệu xanh nhưng vẫn mang cảm giác công nghệ và đáng tin.
+                {t('brandStory.sidebarTitle')}
               </h3>
             </div>
 
@@ -94,7 +97,7 @@ export default function BrandStory({ onBookingClick }: BrandStoryProps) {
               onClick={onBookingClick}
               className="mt-8 w-full rounded-full bg-[#8DE0A6] px-6 py-4 text-sm font-bold text-[#103B2D] transition-transform duration-300 hover:-translate-y-0.5"
             >
-              Đặt lịch trải nghiệm flow mới
+              {t('brandStory.cta')}
             </button>
           </aside>
         </div>

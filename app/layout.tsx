@@ -4,7 +4,7 @@ import "../src/index.css";
 
 export const metadata: Metadata = {
   title: "EcoCollect",
-  description: "Dich vu thu gom rac va do cu nhanh chong, tien loi, than thien voi moi truong.",
+  description: "Dich vu thu gom do cu nhanh chong, tien loi, than thien voi moi truong.",
 };
 
 export default function RootLayout({

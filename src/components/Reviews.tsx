@@ -1,53 +1,89 @@
-export default function Reviews() {
-  const reviews = [
-    {
-      name: 'Nguyễn Minh Anh',
-      avatar: '👩',
-      rating: 5,
-      comment: 'Dịch vụ tuyệt vời! Đội ngũ đến đúng giờ, làm việc chuyên nghiệp. Giá cả hợp lý so với chất lượng dịch vụ.',
-      date: '2 ngày trước',
-      service: 'Thu gom sofa cũ'
-    },
-    {
-      name: 'Trần Văn Hùng',
-      avatar: '👨',
-      rating: 5,
-      comment: 'Rất tiện lợi! Chỉ cần đặt lịch online, không cần gọi điện hay chờ đợi. Highly recommended!',
-      date: '1 tuần trước',
-      service: 'Thu gom tủ lạnh & máy giặt'
-    },
-    {
-      name: 'Lê Thị Hương',
-      avatar: '👩',
-      rating: 5,
-      comment: 'Tôi đã dọn nhà và có rất nhiều đồ cần bỏ. EcoCollect giúp tôi xử lý tất cả chỉ trong 1 ngày. Cảm ơn!',
-      date: '2 tuần trước',
-      service: 'Thu gom nhiều loại đồ'
-    },
-    {
-      name: 'Phạm Quốc Bảo',
-      avatar: '👨',
-      rating: 4,
-      comment: 'Nhân viên thân thiện, giá cả minh bạch. Đã giới thiệu cho bạn bè và gia đình.',
-      date: '3 tuần trước',
-      service: 'Thu gom giường cũ'
-    },
-    {
-      name: 'Hoàng Mai Linh',
-      avatar: '👩',
-      rating: 5,
-      comment: 'App dễ sử dụng, đặt lịch nhanh chóng. Đội ngũ rất chuyên nghiệp và nhiệt tình.',
-      date: '1 tháng trước',
-      service: 'Thu gom đồ điện tử'
-    },
-    {
-      name: 'Đỗ Thanh Tùng',
-      avatar: '👨',
-      rating: 5,
-      comment: 'Lần đầu sử dụng dịch vụ và rất hài lòng. Giá công khai ngay từ đầu, không phát sinh thêm.',
-      date: '1 tháng trước',
-      service: 'Thu gom bàn ghế văn phòng'
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { type AuthUser } from '@/lib/auth';
+
+interface ReviewItem {
+  id?: string;
+  name: string;
+  avatar: string;
+  rating: number;
+  comment: string;
+  date: string;
+  service: string;
+  isCustom?: boolean;
+}
+
+interface ReviewsProps {
+  currentUser: AuthUser | null;
+}
+
+export default function Reviews({ currentUser }: ReviewsProps) {
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language;
+
+  // State for all reviews
+  const [allReviews, setAllReviews] = useState<ReviewItem[]>([]);
+  
+  // State for new review form
+  const [newRating, setNewRating] = useState(5);
+  const [newComment, setNewComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  // Initialize reviews from translations and localStorage
+  useEffect(() => {
+    const defaultReviews = t('reviews.items', { returnObjects: true }) as ReviewItem[];
+    const savedReviews = localStorage.getItem('ecocollect_user_reviews');
+    
+    if (savedReviews) {
+      try {
+        const parsed = JSON.parse(savedReviews);
+        setAllReviews([...parsed, ...defaultReviews]);
+      } catch (e) {
+        setAllReviews(defaultReviews);
+      }
+    } else {
+      setAllReviews(defaultReviews);
     }
+  }, [t]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser || !newComment.trim()) return;
+
+    setIsSubmitting(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    const newReview: ReviewItem = {
+      id: `rev-${Date.now()}`,
+      name: currentUser.name,
+      avatar: currentUser.name.charAt(0).toUpperCase(),
+      rating: newRating,
+      comment: newComment,
+      date: currentLang === 'vi' ? 'Vừa xong' : (currentLang === 'sv' ? 'Alldeles nyss' : 'Just now'),
+      service: currentLang === 'vi' ? 'Khách hàng thành viên' : 'Member customer',
+      isCustom: true
+    };
+
+    const updatedUserReviews = [newReview, ...allReviews.filter(r => r.isCustom)];
+    localStorage.setItem('ecocollect_user_reviews', JSON.stringify(updatedUserReviews));
+    
+    setAllReviews(prev => [newReview, ...prev]);
+    setNewComment('');
+    setNewRating(5);
+    setIsSubmitting(false);
+    setShowForm(false);
+  };
+
+  const steps = [
+    t('reviews.steps.book'),
+    t('reviews.steps.confirm'),
+    t('reviews.steps.collect'),
+    t('reviews.steps.done'),
   ];
 
   return (
@@ -56,58 +92,146 @@ export default function Reviews() {
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
           <span className="inline-block bg-[#2F855A]/10 text-[#2F855A] px-4 py-1.5 rounded-full text-sm font-semibold mb-4">
-            Customer experience
+            {t('reviews.badge')}
           </span>
           <h2 className="text-3xl md:text-4xl font-bold text-[#303030] mb-4">
-            Đánh giá từ khách hàng
+            {t('reviews.title')}
           </h2>
-          <p className="text-gray-600 text-lg">
-            Social proof và câu chuyện hoàn tất đơn hàng giúp khách tin vào toàn bộ flow, không chỉ riêng bước đặt lịch.
-          </p>
         </div>
 
-        <div className="mb-10 grid gap-4 rounded-[28px] border border-[#D6EEDD] bg-white p-6 shadow-[0_16px_40px_rgba(15,61,46,0.06)] md:grid-cols-4">
-          {[
-            'Đặt lịch trong 60 giây',
-            'Nhận xác nhận và lịch hẹn',
-            'Staff thu gom và phân loại',
-            'Hoàn tất, đánh giá, tái chế',
-          ].map((step, index) => (
-            <div key={step} className="rounded-2xl bg-[#F7FCF8] p-4">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#2F855A]">
-                Step {index + 1}
+        {/* Review Action (Only for logged in users) */}
+        {currentUser && (
+          <div className="max-w-6xl mx-auto mb-12">
+            {!showForm ? (
+              <div className="bg-white/50 backdrop-blur-md border border-[#2F855A]/10 rounded-3xl p-8 text-center animate-fadeIn">
+                <h3 className="text-xl font-bold text-[#103B2D] mb-2">{t('reviews.shareExperience')}</h3>
+                <p className="text-gray-500 mb-6">{t('reviews.shareSubtitle')}</p>
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="bg-[#2F855A] text-white px-8 py-3.5 rounded-full font-semibold hover:bg-[#236746] transition-all hover:shadow-lg active:scale-95"
+                >
+                  {t('reviews.writeBtn')}
+                </button>
               </div>
-              <p className="text-sm font-medium text-[#103B2D]">{step}</p>
-            </div>
-          ))}
-        </div>
+            ) : (
+              <form 
+                onSubmit={handleSubmitReview}
+                className="bg-white rounded-[40px] p-10 shadow-[0_30px_100px_rgba(16,59,45,0.12)] border border-[#2F855A]/5 animate-fadeInUp relative overflow-hidden"
+              >
+                {/* Decorative background element */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#2F855A]/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
+
+                <div className="relative flex items-center justify-between mb-10">
+                  <div>
+                    <h3 className="text-2xl font-bold text-[#103B2D] tracking-tight">{t('reviews.yourReview')}</h3>
+                    <div className="h-1 w-8 bg-[#2F855A] rounded-full mt-1.5 opacity-60"></div>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowForm(false)}
+                    className="group flex items-center gap-2 text-gray-400 hover:text-red-500 transition-all font-bold text-sm uppercase tracking-widest"
+                  >
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">✕</span>
+                    {t('common.cancel')}
+                  </button>
+                </div>
+
+                <div className="relative grid lg:grid-cols-12 gap-12">
+                  {/* Left: Star Rating */}
+                  <div className="lg:col-span-5 space-y-6">
+                    <label className="block text-[11px] font-bold text-[#103B2D]/60 uppercase tracking-[0.15em] font-sans">{t('reviews.selectRating')}</label>
+                    <div className="bg-[#F7FCF8] rounded-[32px] p-8 border border-[#D6EEDD]/50 flex flex-col items-center justify-center space-y-4 shadow-inner">
+                      <div className="flex gap-3">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setNewRating(star)}
+                            onMouseEnter={() => !isSubmitting && setNewRating(star)}
+                            className="text-4xl transition-all hover:scale-125 focus:outline-none filter drop-shadow-sm"
+                          >
+                            <span className={star <= newRating ? 'text-yellow-400' : 'text-gray-200'}>
+                              ★
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-sm font-bold text-[#2F855A] animate-fadeIn min-h-[1.25rem]">
+                        {newRating === 5 ? t('reviews.rating5') : (newRating >= 4 ? t('reviews.rating4') : t('reviews.ratingLow'))}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Comment */}
+                  <div className="lg:col-span-7 space-y-6">
+                    <label className="block text-[11px] font-bold text-[#103B2D]/60 uppercase tracking-[0.15em] font-sans">{t('reviews.commentLabel')}</label>
+                    <div className="relative group">
+                      <textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder={t('reviews.placeholder')}
+                        className="w-full h-44 bg-[#F7FCF8] border-2 border-[#D6EEDD]/50 rounded-[32px] p-6 text-[#103B2D] font-medium placeholder:text-gray-300 outline-none focus:border-[#2F855A] focus:bg-white focus:shadow-[0_15px_40px_rgba(47,133,90,0.1)] transition-all resize-none leading-relaxed"
+                        required
+                      />
+                      <div className="absolute bottom-4 right-6 text-[10px] font-black text-gray-300 uppercase tracking-widest pointer-events-none">
+                        {newComment.length} chars
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative mt-12 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !newComment.trim()}
+                    className="relative group bg-[#103B2D] text-white px-14 py-4.5 rounded-full font-bold uppercase tracking-[0.1em] text-sm shadow-[0_15px_35px_rgba(16,59,45,0.15)] hover:bg-[#18543F] hover:shadow-[0_20px_45px_rgba(16,59,45,0.25)] transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-30 disabled:translate-y-0 disabled:shadow-none flex items-center gap-3 overflow-hidden"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                        <span>{t('common.loading')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="relative z-10">{t('reviews.submitBtn')}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
 
         {/* Reviews Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {reviews.map((review, index) => (
+          {Array.isArray(allReviews) && allReviews.map((review, index) => (
             <div
-              key={index}
-              className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              key={review.id || index}
+              className={`bg-white rounded-[28px] p-7 shadow-[0_10px_30px_rgba(47,133,90,0.08)] border border-[#2F855A]/5 hover:shadow-[0_20px_50px_rgba(47,133,90,0.12)] transition-all duration-500 hover:-translate-y-2 group ${review.isCustom ? 'ring-2 ring-[#2F855A]/20 bg-gradient-to-b from-white to-[#F7FCF8]' : ''}`}
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#2F855A] to-[#8DE0A6] rounded-full flex items-center justify-center text-2xl">
+                <div className="flex items-center space-x-4">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-inner ${review.isCustom ? 'bg-[#103B2D] text-white' : 'bg-[#EAF8EE] text-[#2F855A]'}`}>
                     {review.avatar}
                   </div>
                   <div>
-                    <h4 className="font-semibold text-[#303030]">{review.name}</h4>
-                    <p className="text-xs text-gray-500">{review.date}</p>
+                    <h4 className="font-bold text-[#103B2D] group-hover:text-[#2F855A] transition-colors">{review.name}</h4>
+                    <p className="text-xs text-gray-400 font-medium">{review.date}</p>
                   </div>
                 </div>
+                {review.isCustom && (
+                  <span className="bg-[#2F855A] text-white text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-tighter shadow-sm">Your feedback</span>
+                )}
               </div>
 
               {/* Rating */}
-              <div className="flex items-center space-x-1 mb-3">
+              <div className="flex items-center space-x-1 mb-4">
                 {[...Array(5)].map((_, i) => (
                   <span
                     key={i}
-                    className={`text-lg ${i < review.rating ? 'text-[#2F855A]' : 'text-gray-300'}`}
+                    className={`text-xl transition-transform hover:scale-110 ${i < review.rating ? 'text-yellow-400' : 'text-gray-100'}`}
                   >
                     ★
                   </span>
@@ -115,11 +239,11 @@ export default function Reviews() {
               </div>
 
               {/* Comment */}
-              <p className="text-gray-600 mb-4">"{review.comment}"</p>
+              <p className="text-[#303030]/80 leading-relaxed mb-6 italic min-h-[4.5rem]">"{review.comment}"</p>
 
               {/* Service Tag */}
-              <div className="inline-block bg-[#2F855A]/10 text-[#2F855A] px-3 py-1 rounded-full text-xs font-medium">
-                {review.service}
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${review.isCustom ? 'bg-[#103B2D] text-white' : 'bg-[#2F855A]/8 text-[#2F855A]'}`}>
+                <span className="opacity-70">📦</span> {review.service}
               </div>
             </div>
           ))}
@@ -131,28 +255,28 @@ export default function Reviews() {
             <span className="text-2xl">⭐</span>
             <div>
               <div className="font-bold text-[#303030]">4.9/5</div>
-              <div className="text-xs">Điểm đánh giá</div>
+              <div className="text-xs">{t('reviews.ratingLabel')}</div>
             </div>
           </div>
           <div className="flex items-center space-x-2 text-gray-500">
             <span className="text-2xl">🏆</span>
             <div>
               <div className="font-bold text-[#303030]">Top 1</div>
-              <div className="text-xs">Dịch vụ thu gom</div>
+              <div className="text-xs">{t('reviews.topService')}</div>
             </div>
           </div>
           <div className="flex items-center space-x-2 text-gray-500">
             <span className="text-2xl">✅</span>
             <div>
               <div className="font-bold text-[#303030]">Verified</div>
-              <div className="text-xs">Doanh nghiệp xanh</div>
+              <div className="text-xs">{t('reviews.greenBiz')}</div>
             </div>
           </div>
           <div className="flex items-center space-x-2 text-gray-500">
             <span className="text-2xl">🔒</span>
             <div>
               <div className="font-bold text-[#303030]">Secure</div>
-              <div className="text-xs">Thanh toán an toàn</div>
+              <div className="text-xs">{t('reviews.securePay')}</div>
             </div>
           </div>
         </div>

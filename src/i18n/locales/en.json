@@ -12,9 +12,9 @@
     "bookNow": "Book now"
   },
   "hero": {
-    "title": "Smart collection of old items,",
-    "titleHighlight": "green solutions for modern cities",
-    "subtitle": "Book in 60 seconds, get transparent pricing by type, size and unit. Every order is tracked from collection to processing.",
+    "title": "Book junk removal",
+    "titleHighlight": "in 60 seconds",
+    "subtitle": "Get transparent pricing based on waste type, size, and unit. Every order is tracked using modern routing systems.",
     "badge": "Eco-tech platform for scrap collection, sorting and processing",
     "ctaBook": "Book Now",
     "ctaRegister": "Create account for offers",
@@ -150,20 +150,24 @@
       "button": "Send Special Request"
     },
     "types": {
-      "sofa": "Sofa & Chairs",
-      "cabinet": "Cabinets & Shelves",
+      "furniture": "Furniture",
       "electronics": "Electronics",
-      "construction": "Construction Waste",
-      "table": "Tables & Wooden Items",
-      "other": "Items Not on List"
+      "metals": "Scrap Metals",
+      "plastics": "Plastics",
+      "paper": "Paper & Carton",
+      "clothes": "Old Clothes",
+      "vehicles": "Old Vehicles",
+      "other": "Other / Construction"
     },
     "items": {
-      "sofa": ["2-3 Seat Sofa", "Armchair", "Gaming Chair", "Office Chair"],
-      "cabinet": ["Wardrobe", "Kitchen Cabinet", "Bookshelf", "Shoe Cabinet"],
-      "electronics": ["TV & Monitor", "Computer", "Fridge", "Washing Machine"],
-      "construction": ["Debris", "Broken Bricks", "Cement", "Ceiling Panels"],
-      "table": ["Dining Table", "Desk", "Coffee Table", "TV Stand"],
-      "other": ["Dining Table", "Crib", "Electric Scooter", "Billboard"]
+      "furniture": ["Sofa", "Cabinet", "Bed", "Desk / Chair"],
+      "electronics": ["TV", "Fridge", "Washing Machine", "AC Unit"],
+      "metals": ["Copper", "Brass", "Aluminum", "Stainless Steel", "Scrap Iron"],
+      "plastics": ["PET Bottles", "Hard Plastics", "Soft Plastics"],
+      "paper": ["Carton", "White Paper", "Newspaper"],
+      "clothes": ["Normal Clothes", "Premium Clothes", "Fabric Scraps"],
+      "vehicles": ["Broken Moto", "Bicycle", "Machinery"],
+      "other": ["Debris", "Broken Bricks", "Custom Quote"]
     }
   },
   "booking": {
@@ -181,6 +185,11 @@
     "categories": {
       "furniture": "Furniture",
       "electronics": "Electronics",
+      "metals": "Metals",
+      "plastics": "Plastics",
+      "paper": "Paper",
+      "clothes": "Old Clothes",
+      "vehicles": "Old Vehicles",
       "other": "Other"
     },
     "services": {
@@ -237,6 +246,74 @@
         "name": "Construction Waste",
         "desc": "This category is entered directly in kg instead of by item.",
         "note": "User enters actual weight in kg for the system to calculate estimated cost."
+      },
+      "red-copper": {
+        "name": "Red Copper",
+        "desc": "Pure copper, burnt core wire rolls."
+      },
+      "yellow-copper": {
+        "name": "Yellow Copper / Brass",
+        "desc": "Machine parts, brass equipment, old copper pipes."
+      },
+      "aluminum": {
+        "name": "Aluminum",
+        "desc": "Aluminum beams, sheets, cans, aluminum frames."
+      },
+      "stainless-steel": {
+        "name": "Stainless Steel",
+        "desc": "Sinks, stainless steel shelves, rust-resistant steel."
+      },
+      "iron": {
+        "name": "Scrap Iron",
+        "desc": "Construction iron, purlins, broken iron doors, iron cabinets."
+      },
+      "plastic-pet": {
+        "name": "PET Plastic (Bottles)",
+        "desc": "Clear plastic mineral water bottles, soda bottles."
+      },
+      "plastic-hard": {
+        "name": "Hard Plastic (HDPE, PP)",
+        "desc": "Plastic chairs, large plastic jugs, buckets, basins."
+      },
+      "plastic-soft": {
+        "name": "Soft Plastic",
+        "desc": "Thick plastic bags, pallet wraps, soft packaging."
+      },
+      "paper-carton": {
+        "name": "Carton Boxes",
+        "desc": "All types of carton boxes from appliances or goods."
+      },
+      "paper-white": {
+        "name": "White Paper",
+        "desc": "Shredded documents, office A4, school notebooks."
+      },
+      "paper-news": {
+        "name": "Newspaper",
+        "desc": "Old newspapers, magazines, advertising flyers."
+      },
+      "clothes-normal": {
+        "name": "Normal Clothes",
+        "desc": "Everyday wear, regular old clothes, charged per kg."
+      },
+      "clothes-premium": {
+        "name": "Premium / Second-hand",
+        "desc": "Good condition clothes, branded items, charged per item."
+      },
+      "clothes-scraps": {
+        "name": "Fabric Scraps",
+        "desc": "Torn fabrics unsuitable for wearing, meant for recycling."
+      },
+      "vehicle-motorcycle": {
+        "name": "Broken Motorcycle",
+        "desc": "Old or broken motorcycles, severely damaged vehicles."
+      },
+      "vehicle-bicycle": {
+        "name": "Bicycle",
+        "desc": "Regular or electric bicycles in poor condition."
+      },
+      "vehicle-machinery": {
+        "name": "Machinery",
+        "desc": "Charged per kg or custom quoted per full unit."
       },
       "custom": {
         "name": "Other Items",

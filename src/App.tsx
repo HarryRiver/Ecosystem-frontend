@@ -4,7 +4,18 @@ import './i18n/config';
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { clearAuthSession, restoreAuthSession, persistAuthSession, type AuthMode, type AuthUser } from '@/lib/auth';
+import { clearAuthSession, restoreAuthSession, updateAccount, type AuthMode, type AuthUser } from '@/lib/auth';
+import {
+  readHistory,
+  appendHistory,
+  readOrders,
+  appendOrder,
+  writeOrders,
+  STORAGE_KEYS,
+  useSyncStore,
+  type HistoryItem,
+  type Order,
+} from '@/lib/store';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import BrandStory from './components/BrandStory';
@@ -16,11 +27,12 @@ import Footer from './components/Footer';
 import BookingModal, { type BookingSubmissionPayload, type BookingSubmissionItem } from './components/BookingModal';
 import AuthModal from './components/AuthModal';
 import ProfileModal from './components/ProfileModal';
-import HistoryModal, { type HistoryItem } from './components/HistoryModal';
+import HistoryModal from './components/HistoryModal';
+import AdminDashboard from './components/AdminDashboard';
 
 interface BookingPrefill {
   address?: string;
-  handlingGoal?: string;
+  /** Task 3: lang-agnostic service key (e.g. 'furniture') instead of translated label */
   selectedWaste?: string;
 }
 
@@ -33,78 +45,26 @@ function App() {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [bookingPrefill, setBookingPrefill] = useState<BookingPrefill | null>(null);
-  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
 
-  // Persistence logic for history
-  useEffect(() => {
-    const savedHistory = localStorage.getItem('ecocollect_history');
-    const mockHistory: HistoryItem[] = [
-      {
-        id: 'EC-9482',
-        date: '03/04/2026',
-        status: 'completed',
-        customerName: 'Hà Đức Lâm',
-        phone: '0784514373',
-        email: 'haduclam2005@gmail.com',
-        address: 'Số 9 An Thượng 5, Quận Ngũ Hành Sơn, Đà Nẵng',
-        timeSlot: 'Th 2, 13 thg 4 • 12:00 - 14:00',
-        handlingMode: 'Vào tận nhà bê đồ',
-        items: [
-          { name: 'Sofa đơn', quantity: 2, price: 300000 },
-          { name: 'Tủ quần áo', quantity: 1, price: 180000 },
-        ],
-        total: 780000,
-      },
-      {
-        id: 'EC-8551',
-        date: '01/04/2026',
-        status: 'completed',
-        customerName: 'Hà Đức Lâm',
-        phone: '0784514373',
-        email: 'haduclam2005@gmail.com',
-        address: 'Số 9 An Thượng 5, Quận Ngũ Hành Sơn, Đà Nẵng',
-        timeSlot: 'Th 6, 10 thg 4 • 08:00 - 10:00',
-        handlingMode: 'Để ngoài cửa',
-        items: [
-          { name: 'Máy giặt', quantity: 1, price: 150000 },
-          { name: 'Tủ bếp', quantity: 1, price: 120000 },
-        ],
-        total: 270000,
-      },
-    ];
+  // History state lives in store — App only needs to write, HistoryModal reads
+  const [, setHistoryItems] = useSyncStore<HistoryItem[]>(
+    STORAGE_KEYS.history,
+    readHistory(),
+  );
 
-    if (savedHistory) {
-      try {
-        const parsed = JSON.parse(savedHistory);
-        // Merge saved items with mock items, avoiding duplicates by ID
-        const combined = [...parsed];
-        mockHistory.forEach(mock => {
-          if (!combined.find(item => item.id === mock.id)) {
-            combined.push(mock);
-          }
-        });
-        setHistoryItems(combined);
-      } catch (e) {
-        setHistoryItems(mockHistory);
-      }
-    } else {
-      setHistoryItems(mockHistory);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (historyItems.length > 0) {
-      localStorage.setItem('ecocollect_history', JSON.stringify(historyItems));
-    }
-  }, [historyItems]);
+  // Orders store — Admin reads this via useSyncStore too
+  const [, setOrders] = useSyncStore<Order[]>(
+    STORAGE_KEYS.orders,
+    readOrders(),
+  );
 
   useEffect(() => {
     document.documentElement.lang = i18n.language;
   }, [i18n.language]);
 
   useEffect(() => {
-    document.body.style.overflow = isBookingOpen || isAuthOpen || isProfileOpen || isHistoryOpen ? 'hidden' : 'auto';
-
+    document.body.style.overflow =
+      isBookingOpen || isAuthOpen || isProfileOpen || isHistoryOpen ? 'hidden' : 'auto';
     return () => {
       document.body.style.overflow = 'auto';
     };
@@ -125,27 +85,24 @@ function App() {
     setIsBookingOpen(true);
   };
 
-  const closeBooking = () => {
-    setIsBookingOpen(false);
-  };
+  const closeBooking = () => setIsBookingOpen(false);
 
   const openAuth = (mode: AuthMode = 'login') => {
     setAuthMode(mode);
     setIsAuthOpen(true);
   };
 
-  const closeAuth = () => {
-    setIsAuthOpen(false);
-  };
+  const closeAuth = () => setIsAuthOpen(false);
 
   const handleAuthSuccess = (user: AuthUser) => {
     setCurrentUser(user);
     setIsAuthOpen(false);
+    // Admin: show admin dashboard (rendered conditionally below)
   };
 
   const handleUpdateUser = (user: AuthUser) => {
     setCurrentUser(user);
-    persistAuthSession(user);
+    updateAccount(user);
   };
 
   const handleLogout = () => {
@@ -161,12 +118,19 @@ function App() {
       console.info('Booking payload ready for integration:', payload);
     }
 
-    // Add to local history for session tracking
+    // Shared ID — dùng cho cả HistoryItem lẫn Order để 2 bên liên kết được
     const today = new Date();
-    const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
-    
-    const newItem: HistoryItem = {
-      id: `EC-${Math.floor(Math.random() * 9000) + 1000}`,
+    const randomSuffix = Math.floor(Math.random() * 9000) + 1000;
+    const sharedId = `EC-${randomSuffix}`;
+    const sharedCode = `EC${today.getFullYear().toString().slice(-2)}${(today.getMonth() + 1)
+      .toString().padStart(2, '0')}${randomSuffix}`;
+    const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1)
+      .toString().padStart(2, '0')}/${today.getFullYear()}`;
+    const isoNow = today.toISOString();
+
+    // 1) Ghi vào STORAGE_KEYS.history — HistoryModal của user đọc từ đây
+    const newHistoryItem: HistoryItem = {
+      id: sharedId,
       date: formattedDate,
       status: 'in_progress',
       customerName: payload.customer.name,
@@ -178,13 +142,70 @@ function App() {
       items: payload.services.items.map((item: BookingSubmissionItem) => ({
         name: item.name,
         quantity: item.quantity,
-        price: item.estimatedLineTotal ?? 0
+        price: item.estimatedLineTotal ?? 0,
       })),
       total: payload.services.total,
     };
+    setHistoryItems((prev) => appendHistory(prev, newHistoryItem));
 
-    setHistoryItems(prev => [newItem, ...prev]);
+    // 2) Ghi vào STORAGE_KEYS.orders — Admin Dashboard đọc từ đây
+    const newOrder: Order = {
+      id: sharedId,
+      code: sharedCode,
+      customerId: currentUser?.email ?? payload.customer.email,
+      status: 'processing',
+      items: payload.services.items.map((item: BookingSubmissionItem) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.estimatedLineTotal ?? 0,
+      })),
+      schedule: {
+        date: payload.schedule.date,
+        timeSlot: payload.schedule.timeSlot,
+      },
+      pricing: {
+        subtotal: payload.services.subtotal,
+        handlingFee: payload.services.handlingFee,
+        total: payload.services.total,
+        hasQuoteItems: payload.services.hasQuoteItems,
+      },
+      finalAmount: payload.services.total,
+      notes: payload.customer.notes,
+      attachments: {
+        imageFileName: payload.attachments.imageFileName,
+        imageFileSize: payload.attachments.imageFileSize,
+        imageFileType: payload.attachments.imageFileType,
+      },
+      itemSummary: payload.services.items.map((i) => i.name).join(', '),
+      paymentMethod: payload.payment.method === 'transfer' ? 'online' : 'cash',
+      assignedStaff: 'Chưa phân công',
+      selfAssessment: 'Khách chưa cung cấp.',
+      priceAdjustment: 'Giữ nguyên giá',
+      createdAt: isoNow,
+      updatedAt: isoNow,
+    };
+    setOrders((prev) => {
+      const next = appendOrder(prev, newOrder);
+      writeOrders(next);
+      return next;
+    });
   };
+
+  // Admin guard — render admin dashboard instead of landing page
+  if (currentUser?.role === 'admin') {
+    return (
+      <>
+        <AdminDashboard currentUser={currentUser} onLogout={handleLogout} />
+        <AuthModal
+          isOpen={isAuthOpen}
+          mode={authMode}
+          onClose={closeAuth}
+          onModeChange={setAuthMode}
+          onSuccess={handleAuthSuccess}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -228,7 +249,6 @@ function App() {
         currentUser={currentUser}
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
-        historyItems={historyItems}
       />
       {/* Floating Book Button */}
       <button

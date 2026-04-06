@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState, useMemo, useCallback, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type AuthMode, type AuthUser } from '@/lib/auth';
+import { HERO_OPTION_TO_CATEGORY, isHeroQuickOption, useSyncStore, STORAGE_KEYS, defaultPricing } from '@/lib/store';
 
 interface BookingPrefill {
   address?: string;
-  handlingGoal?: string;
   selectedWaste?: string;
 }
 
@@ -120,6 +120,7 @@ interface WasteService {
   category: string;
   pricingMode: PricingMode;
   basePrice?: number;
+  maxPrice?: number;
   unitLabel?: string;
   options?: ServiceOption[];
   note?: string;
@@ -199,6 +200,23 @@ const wasteServiceDefs = [
   { id: 'office-furniture', icon: '🪑', categoryKey: 'other', pricingMode: 'fixed' as const,    basePrice: 100000, unitLabelKey: 'perItem' },
   { id: 'household-bag',    icon: '🗑️', categoryKey: 'other', pricingMode: 'fixed' as const,    basePrice: 60000,  unitLabelKey: 'perBag'  },
   { id: 'construction',     icon: '🧱', categoryKey: 'other', pricingMode: 'estimate' as const, basePrice: 7000,   unitLabelKey: 'perKg'  },
+  { id: 'red-copper',       icon: '🔴', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 150000, maxPrice: 200000, unitLabelKey: 'perKg' },
+  { id: 'yellow-copper',    icon: '🟡', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 90000, maxPrice: 140000, unitLabelKey: 'perKg' },
+  { id: 'aluminum',         icon: '⚪', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 25000, maxPrice: 45000, unitLabelKey: 'perKg' },
+  { id: 'stainless-steel',  icon: '🔩', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 15000, maxPrice: 30000, unitLabelKey: 'perKg' },
+  { id: 'iron',             icon: '⬛', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 8000, maxPrice: 15000, unitLabelKey: 'perKg' },
+  { id: 'plastic-pet',      icon: '🍾', categoryKey: 'plastics', pricingMode: 'estimate' as const, basePrice: 8000, maxPrice: 15000, unitLabelKey: 'perKg' },
+  { id: 'plastic-hard',     icon: '🪣', categoryKey: 'plastics', pricingMode: 'estimate' as const, basePrice: 10000, maxPrice: 25000, unitLabelKey: 'perKg' },
+  { id: 'plastic-soft',     icon: '🛍️', categoryKey: 'plastics', pricingMode: 'estimate' as const, basePrice: 5000, maxPrice: 12000, unitLabelKey: 'perKg' },
+  { id: 'paper-carton',     icon: '📦', categoryKey: 'paper', pricingMode: 'estimate' as const, basePrice: 3000, maxPrice: 6000, unitLabelKey: 'perKg' },
+  { id: 'paper-white',      icon: '📄', categoryKey: 'paper', pricingMode: 'estimate' as const, basePrice: 5000, maxPrice: 8000, unitLabelKey: 'perKg' },
+  { id: 'paper-news',       icon: '📰', categoryKey: 'paper', pricingMode: 'estimate' as const, basePrice: 4000, maxPrice: 7000, unitLabelKey: 'perKg' },
+  { id: 'clothes-normal',   icon: '👕', categoryKey: 'clothes', pricingMode: 'estimate' as const, basePrice: 5000, maxPrice: 20000, unitLabelKey: 'perKg' },
+  { id: 'clothes-premium',  icon: '👗', categoryKey: 'clothes', pricingMode: 'estimate' as const, basePrice: 50000, maxPrice: 200000, unitLabelKey: 'perItem' },
+  { id: 'clothes-scraps',   icon: '🧵', categoryKey: 'clothes', pricingMode: 'estimate' as const, basePrice: 3000, maxPrice: 10000, unitLabelKey: 'perKg' },
+  { id: 'vehicle-motorcycle', icon: '🛵', categoryKey: 'vehicles', pricingMode: 'estimate' as const, basePrice: 1000000, maxPrice: 5000000, unitLabelKey: 'perItem' },
+  { id: 'vehicle-bicycle',    icon: '🚲', categoryKey: 'vehicles', pricingMode: 'estimate' as const, basePrice: 100000, maxPrice: 500000, unitLabelKey: 'perItem' },
+  { id: 'vehicle-machinery',  icon: '⚙️', categoryKey: 'vehicles', pricingMode: 'quote' as const },
   { id: 'custom',           icon: '✨', categoryKey: 'other', pricingMode: 'quote' as const },
 ];
 
@@ -258,21 +276,25 @@ const swedenLocationData = {
   }
 };
 
-function getCategoryFromPrefill(selectedWaste?: string) {
-  if (!selectedWaste) {
-    return 'all';
-  }
 
+/**
+ * Task 3: Map lang-agnostic hero option key → BookingModal category.
+ * Nếu Hero truyền đúng key ('furniture', 'electronics'...) → dùng map trong store.
+ * Fallback: dùng chính giá trị đó nếu nó đã là category id hợp lệ.
+ */
+function getCategoryFromPrefill(selectedWaste?: string): string {
+  if (!selectedWaste) return 'all';
+  const validCategories = ['furniture', 'electronics', 'metals', 'plastics', 'paper', 'clothes', 'vehicles', 'other'];
+  if (validCategories.includes(selectedWaste)) {
+    return selectedWaste;
+  }
+  if (isHeroQuickOption(selectedWaste)) {
+    return HERO_OPTION_TO_CATEGORY[selectedWaste];
+  }
+  // Legacy fallback: nếu vẫn còn code cũ truyền Vietnamese text
   const waste = selectedWaste.toLowerCase();
-  
-  if (waste.includes('nội thất')) {
-    return 'furniture';
-  }
-
-  if (waste.includes('điện tử')) {
-    return 'electronics';
-  }
-
+  if (waste.includes('nội thất')) return 'furniture';
+  if (waste.includes('điện tử')) return 'electronics';
   return 'other';
 }
 
@@ -286,6 +308,11 @@ function getDisplayPrice(service: WasteService, lang: string, t: any) {
   }
 
   const price = service.options?.[0]?.price ?? service.basePrice ?? 0;
+  
+  if (service.maxPrice) {
+    return `${formatPrice(price, lang)} - ${formatPrice(service.maxPrice, lang)}${service.unitLabel ?? ''}`;
+  }
+
   if (service.unitLabel === '/kg') {
     return `${formatPrice(price, lang)}/kg`;
   }
@@ -357,19 +384,22 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose, onSubmit, prefill }: BookingModalProps) {
+export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuthClick, onClose, onSubmit, prefill }: BookingModalProps) {
   const { t, i18n } = useTranslation();
   const currentLang = i18n.language;
   const contentRef = useRef<HTMLDivElement | null>(null);
 
+  const [livePricing] = useSyncStore(STORAGE_KEYS.pricing, defaultPricing);
+
   const wasteServices = useMemo<WasteService[]>(() => {
     return wasteServiceDefs.map((def) => {
+      const livePriceRec = livePricing.find(p => p.id === def.id);
       const svcT = t(`booking.services.${def.id}`, { returnObjects: true }) as Record<string, any>;
       const unitLabel = def.unitLabelKey ? t(`booking.unitLabels.${def.unitLabelKey}`) : '';
       const options = def.optionDefs?.map((opt) => ({
         id: opt.id,
         label: t(`booking.services.wardrobe.options.${opt.id}`, opt.id),
-        price: opt.price,
+        price: opt.price, // We could also sync option prices if needed later
         unitLabel: t(`booking.unitLabels.${opt.unitLabelKey}`),
       }));
       return {
@@ -379,18 +409,24 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
         description: svcT?.desc ?? '',
         category: def.categoryKey,
         pricingMode: def.pricingMode,
-        basePrice: def.basePrice,
+        basePrice: livePriceRec?.price ?? def.basePrice,
+        maxPrice: (def as any).maxPrice,
         unitLabel,
         options,
         note: svcT?.note,
       };
     });
-  }, [t]);
+  }, [t, livePricing]);
 
   const categories = useMemo(() => [
     { key: 'all',         label: t('booking.categoryAll') },
     { key: 'furniture',   label: t('booking.categories.furniture') },
     { key: 'electronics', label: t('booking.categories.electronics') },
+    { key: 'metals',      label: t('booking.categories.metals') },
+    { key: 'plastics',    label: t('booking.categories.plastics') },
+    { key: 'paper',       label: t('booking.categories.paper') },
+    { key: 'clothes',     label: t('booking.categories.clothes') },
+    { key: 'vehicles',    label: t('booking.categories.vehicles') },
     { key: 'other',       label: t('booking.categories.other') },
   ], [t]);
 
@@ -415,7 +451,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
   const [notes, setNotes] = useState('');
   const [handlingMode, setHandlingMode] = useState<HandlingMode>('inside');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const [stairsFloors, setStairsFloors] = useState(2);
+  const [stairsFloors, _setStairsFloors] = useState(2);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -858,19 +894,23 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
       if (prefill.selectedWaste) {
         const category = getCategoryFromPrefill(prefill.selectedWaste);
         setActiveCategory(category);
+        // Task 3: chỉ set search query nếu selectedWaste là service ID cụ thể,
+        // không phải category-level option (hero quick options luôn là category-level)
+        const isQuickOption = isHeroQuickOption(prefill.selectedWaste);
+        const validCategories = ['furniture', 'electronics', 'metals', 'plastics', 'paper', 'clothes', 'vehicles', 'other'];
+        const isCategoryKey = validCategories.includes(prefill.selectedWaste);
 
-        const waste = prefill.selectedWaste.toLowerCase();
-        const isGeneric = waste.includes('nội thất') || waste.includes('điện tử') || waste.includes('món khác');
-        
-        if (!isGeneric) {
-          setSearchQuery(prefill.selectedWaste);
+        if (!isQuickOption && !isCategoryKey) {
+          // service id cụ thể: tìm và pre-select
+          const targetService = wasteServices.find((s) => s.id === prefill.selectedWaste);
+          if (targetService) {
+            setSelectedItems([createSelectedItem(targetService)]);
+          } else {
+            setSearchQuery(prefill.selectedWaste);
+          }
         } else {
+          // category-level quick option: chỉ set category, clear search
           setSearchQuery('');
-        }
-        
-        const targetService = wasteServices.find((s) => s.id === prefill.selectedWaste);
-        if (targetService) {
-          setSelectedItems([createSelectedItem(targetService)]);
         }
       }
 
@@ -880,9 +920,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
         setDistrict('');
       }
 
-      if (prefill.handlingGoal) {
-        setNotes(`Yêu cầu từ form nhanh: ${prefill.handlingGoal}.`);
-      }
+
       
       hasPrefilled.current = true;
     }
@@ -1016,34 +1054,105 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
           className="flex-1 overflow-y-auto overflow-x-hidden p-6 [scrollbar-gutter:stable] [scroll-behavior:auto] [-webkit-overflow-scrolling:touch] [contain:content] transform-gpu"
         >
           {isSuccess ? (
-            <div className="py-10 text-center">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#EAF8EE]">
-                <span className="text-4xl">✅</span>
-              </div>
-              <h3 className="mb-2 text-3xl font-bold text-[#103B2D]">{t('booking.success.title')}</h3>
-              <p className="mx-auto mb-8 max-w-xl text-gray-600">
-                {t('booking.success.desc', { email })}
-              </p>
-              <div className="mx-auto mb-8 max-w-2xl rounded-[28px] bg-[#F5FBF6] p-5 text-left">
-                <h4 className="mb-4 font-semibold text-[#103B2D]">{t('booking.summary.title')}</h4>
-                <div className="space-y-2 text-sm text-[#476458]">
-                  <p>👤 {customerName}</p>
-                  <p>📞 {phone}</p>
-                  <p>📧 {email}</p>
-                  <p>📍 {fullAddress}</p>
-                  <p>📅 {selectedDateLabel} • {selectedTime}</p>
-                  <p>🚚 {handlingLabel}</p>
-                  <p>💳 {paymentMethod === 'cash' ? (t('booking.payment.cash') === 'booking.payment.cash' ? 'Tiền mặt' : t('booking.payment.cash')) : (t('booking.payment.transfer') === 'booking.payment.transfer' ? 'Chuyển khoản' : t('booking.payment.transfer'))}</p>
-                  <p>💰 {getTotalLabel()}</p>
+            <div className="py-8 px-2">
+              {/* ── Animated success badge ── */}
+              <div className="flex flex-col items-center text-center">
+                <div className="relative mb-6">
+                  <div className="h-24 w-24 rounded-full bg-[#EAF8EE] flex items-center justify-center shadow-[0_0_0_8px_rgba(47,133,90,0.08)]">
+                    <svg className="h-12 w-12 text-[#2F855A]" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="absolute -right-1 -top-1 text-2xl">🎉</span>
+                </div>
+
+                <h3 className="text-3xl font-bold text-[#103B2D]">{t('booking.success.title')}</h3>
+                <p className="mt-2 max-w-md text-[#5D776A]">
+                  {t('booking.success.desc', { email })}
+                </p>
+
+                {/* Order code pill */}
+                <div className="mt-4 flex items-center gap-2 rounded-full border border-[#C3E5CE] bg-[#F3FBF5] px-5 py-2">
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#6D877A]">Mã đơn hàng</span>
+                  <span className="font-mono text-lg font-bold text-[#103B2D]">
+                    EC-{Math.random().toString(36).slice(2, 8).toUpperCase()}
+                  </span>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                className="rounded-full bg-[#103B2D] px-8 py-3 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5"
-              >
-                {t('common.close')}
-              </button>
+
+              {/* ── Order summary card ── */}
+              <div className="mt-8 rounded-[28px] border border-[#D7ECDD] bg-[#F9FCF9] p-6 space-y-5">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8AA89A]">Chi tiết đơn hàng</p>
+
+                {/* Items */}
+                <div className="space-y-2">
+                  {selectedItems.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between rounded-[18px] bg-white px-4 py-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{item.icon}</span>
+                        <div>
+                          <p className="font-semibold text-[#103B2D] text-sm">{item.name}</p>
+                          <p className="text-xs text-[#8AA89A]">×{item.quantity}</p>
+                        </div>
+                      </div>
+                      <p className="font-semibold text-[#2F855A] text-sm">
+                        {item.pricingMode === 'quote'
+                          ? 'Báo giá'
+                          : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(
+                              item.basePrice * getBillingAmount(item)
+                            )}
+                      </p>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between rounded-[18px] bg-[#103B2D] px-4 py-3">
+                    <p className="text-sm font-bold text-[#A7E8B6]">Tổng cộng</p>
+                    <p className="text-lg font-bold text-white">{getTotalLabel()}</p>
+                  </div>
+                </div>
+
+                {/* Info grid */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    { icon: '👤', label: 'Khách hàng', value: customerName },
+                    { icon: '📞', label: 'Số điện thoại', value: phone },
+                    { icon: '📧', label: 'Email', value: email },
+                    { icon: '📅', label: 'Lịch hẹn', value: `${selectedDateLabel} • ${selectedTime}` },
+                    { icon: '📍', label: 'Địa chỉ', value: fullAddress },
+                    { icon: '🚚', label: 'Hình thức', value: handlingLabel },
+                    {
+                      icon: '💳',
+                      label: 'Thanh toán',
+                      value: paymentMethod === 'cash' ? 'Thanh toán khi thu gom' : 'Chuyển khoản ngân hàng',
+                    },
+                  ].map(({ icon, label, value }) => (
+                    <div key={label} className="rounded-[18px] bg-white px-4 py-3 shadow-sm">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#8AA89A]">{label}</p>
+                      <p className="mt-1 flex items-start gap-2 text-sm font-semibold text-[#103B2D]">
+                        <span>{icon}</span>
+                        <span>{value || '—'}</span>
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── CTA buttons ── */}
+              <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                <button
+                  onClick={onClose}
+                  className="rounded-full bg-[#103B2D] px-10 py-3.5 font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(16,59,45,0.25)]"
+                >
+                  Về trang chủ
+                </button>
+                <button
+                  onClick={() => { resetForm(); setStep(1); }}
+                  className="rounded-full border border-[#C3E5CE] bg-white px-10 py-3.5 font-semibold text-[#2F855A] transition-all hover:bg-[#F3FBF5]"
+                >
+                  Đặt thêm đơn
+                </button>
+              </div>
             </div>
+
           ) : (
             <>
               {step === 1 && (
@@ -1059,14 +1168,19 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                         </div>
                       </div>
 
-                      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
-                        <input
-                          type="text"
-                          value={searchQuery}
-                          onChange={(event) => setSearchQuery(event.target.value)}
-                          placeholder={t('booking.searchPlaceholder')}
-                          className="w-full rounded-2xl border border-[#D6EEDD] bg-white px-4 py-3 text-sm outline-none transition-colors placeholder:text-[#789185] focus:border-[#22C55E]"
-                        />
+                      <div className="mt-4 flex flex-col gap-4">
+                        <div className="relative">
+                          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#789185]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(event) => setSearchQuery(event.target.value)}
+                            placeholder={t('booking.searchPlaceholder')}
+                            className="w-full rounded-2xl border border-[#D6EEDD] bg-white pl-11 pr-4 py-3.5 text-sm outline-none transition-colors placeholder:text-[#789185] hover:border-[#22C55E]/50 focus:border-[#22C55E] focus:ring-4 focus:ring-[#22C55E]/10"
+                          />
+                        </div>
                         <div className="flex flex-wrap gap-2">
                           {categories.map((cat) => (
                             <button
@@ -1111,22 +1225,15 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                                       : 'border-[#E3ECE6] bg-white hover:border-[#A7E8B6] hover:shadow-[0_12px_30px_rgba(15,61,46,0.05)]'
                                   }`}
                                 >
-                                  <div className="mb-4 flex items-start justify-between gap-3">
-                                    <div className="flex items-start gap-3">
-                                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F7FCF8] text-3xl">
-                                        {service.icon}
-                                      </div>
-                                      <div>
-                                        <div className="flex items-center gap-2">
-                                          <h5 className="text-lg font-semibold text-[#103B2D]">{service.name}</h5>
-                                        </div>
-                                        <p className="mt-1 text-sm leading-6 text-[#476458]">
-                                          {service.description}
-                                        </p>
-                                      </div>
+                                  <div className="mb-3 flex items-start gap-3">
+                                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#F7FCF8] text-3xl">
+                                      {service.icon}
                                     </div>
-                                    <div className="rounded-full bg-[#F7FCF8] px-3 py-1 text-xs font-semibold text-[#2F855A]">
-                                      {getDisplayPrice(service, currentLang, t)}
+                                    <div className="flex min-h-14 flex-col justify-center gap-1">
+                                      <h5 className="text-lg font-semibold leading-tight text-[#103B2D]">{service.name}</h5>
+                                      <div className="w-fit rounded-full border border-[#D6EEDD] bg-[#F7FCF8] px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[#2F855A]">
+                                        {getDisplayPrice(service, currentLang, t)}
+                                      </div>
                                     </div>
                                   </div>
 
@@ -1292,15 +1399,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                       )}
                     </div>
 
-                    <div className="rounded-[28px] border border-[#D6EEDD] bg-[#F5FBF6] p-5">
-                      <button
-                        type="button"
-                        onClick={handleNext}
-                        className="flex w-full items-center justify-center gap-2 rounded-full bg-[#103B2D] px-6 py-4 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5"
-                      >
-                        <span>{t('booking.next')}</span>
-                      </button>
-                    </div>
+
                   </aside>
                 </div>
               )}
@@ -1459,13 +1558,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleNext}
-                      className="flex w-full items-center justify-center gap-2 rounded-full bg-[#103B2D] px-6 py-4 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5"
-                    >
-                      <span>{t('booking.next')}</span>
-                    </button>
+
                   </div>
                 </div>
               )}
@@ -1515,13 +1608,6 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="mt-10 flex w-full items-center justify-center gap-2 rounded-full bg-[#103B2D] px-6 py-4 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5"
-                  >
-                    <span>{t('booking.next')}</span>
-                  </button>
                 </div>
               )}
 

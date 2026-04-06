@@ -1,56 +1,61 @@
 'use client';
 
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { type AuthUser } from '@/lib/auth';
+import {
+  readHistory,
+  writeHistory,
+  useSyncStore,
+  STORAGE_KEYS,
+  type HistoryItem,
+} from '@/lib/store';
 
-export interface HistoryItem {
-  id: string;
-  date: string;
-  status: 'completed' | 'in_progress' | 'cancelled';
-  items: Array<{
-    name: string;
-    quantity: number;
-    price: number;
-  }>;
-  total: number;
-  address: string;
-  customerName: string;
-  phone: string;
-  email: string;
-  timeSlot: string;
-  handlingMode: string;
-  rating?: number;
-}
+// Re-export so App.tsx and other importers have zero breaking changes
+export type { HistoryItem };
 
 interface HistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: AuthUser | null;
-  historyItems: HistoryItem[];
 }
 
-export default function HistoryModal({ isOpen, onClose, currentUser, historyItems }: HistoryModalProps) {
+export default function HistoryModal({ isOpen, onClose, currentUser }: HistoryModalProps) {
   const { i18n } = useTranslation();
   const currentLang = i18n.language;
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [hoverRating, setHoverRating] = useState<number>(0);
 
+  // Task 1: đọc thẳng từ store (Task 4: multi-tab sync tự động)
+  const [historyItems, setHistoryItems] = useSyncStore<HistoryItem[]>(
+    STORAGE_KEYS.history,
+    readHistory(),
+  );
+
+  // Lazy-seed: nếu store trống, điền seed data
+  useEffect(() => {
+    if (historyItems.length === 0) {
+      const seeded = readHistory();
+      if (seeded.length > 0) setHistoryItems(seeded);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleRateOrder = (orderId: string, rating: number) => {
-    // In a real app, this would call an API
-    console.log(`Rated order ${orderId} with ${rating} stars`);
-    // For demo, we just update the local item if possible (though historyItems is a prop)
-    // We'll just show the visual change for now
+    const updated = historyItems.map((item) =>
+      item.id === orderId ? { ...item, rating } : item,
+    );
+    setHistoryItems(updated);
+    writeHistory(updated);
   };
 
   const getStatusLabel = (status: HistoryItem['status']) => {
     switch (status) {
       case 'completed':
-        return currentLang === 'vi' ? 'Đã hoàn thành' : (currentLang === 'sv' ? 'Slutförd' : 'Completed');
+        return currentLang === 'vi' ? 'Đã hoàn thành' : currentLang === 'sv' ? 'Slutförd' : 'Completed';
       case 'in_progress':
-        return currentLang === 'vi' ? 'Đang xử lý' : (currentLang === 'sv' ? 'Pågår' : 'In Progress');
+        return currentLang === 'vi' ? 'Đang xử lý' : currentLang === 'sv' ? 'Pågår' : 'In Progress';
       case 'cancelled':
-        return currentLang === 'vi' ? 'Đã hủy' : (currentLang === 'sv' ? 'Avbruten' : 'Cancelled');
+        return currentLang === 'vi' ? 'Đã hủy' : currentLang === 'sv' ? 'Avbruten' : 'Cancelled';
       default:
         return status;
     }
@@ -58,30 +63,32 @@ export default function HistoryModal({ isOpen, onClose, currentUser, historyItem
 
   const getStatusColor = (status: HistoryItem['status']) => {
     switch (status) {
-      case 'completed': return 'bg-[#22C55E]/10 text-[#22C55E]';
+      case 'completed':  return 'bg-[#22C55E]/10 text-[#22C55E]';
       case 'in_progress': return 'bg-[#F59E0B]/10 text-[#F59E0B]';
-      case 'cancelled': return 'bg-red-500/10 text-red-500';
-      default: return 'bg-gray-100 text-gray-500';
+      case 'cancelled':  return 'bg-red-500/10 text-red-500';
+      default:           return 'bg-gray-100 text-gray-500';
     }
   };
 
-  const formatPrice = (amount: number) => {
-    return new Intl.NumberFormat(currentLang === 'vi' ? 'vi-VN' : (currentLang === 'sv' ? 'sv-SE' : 'en-US'), {
-      style: 'currency',
-      currency: currentLang === 'vi' ? 'VND' : (currentLang === 'sv' ? 'SEK' : 'USD'),
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const formatPrice = (amount: number) =>
+    new Intl.NumberFormat(
+      currentLang === 'vi' ? 'vi-VN' : currentLang === 'sv' ? 'sv-SE' : 'en-US',
+      {
+        style: 'currency',
+        currency: currentLang === 'vi' ? 'VND' : currentLang === 'sv' ? 'SEK' : 'USD',
+        maximumFractionDigits: 0,
+      },
+    ).format(amount);
 
   if (!isOpen || !currentUser) return null;
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-[#0B1511]/60 backdrop-blur-md transition-opacity duration-300" 
+      <div
+        className="absolute inset-0 bg-[#0B1511]/60 backdrop-blur-md transition-opacity duration-300"
         onClick={onClose}
       />
-      
+
       <div className="relative w-full max-w-2xl overflow-hidden rounded-[32px] bg-white shadow-[0_20px_80px_rgba(0,0,0,0.25)] animate-fadeInUp flex flex-col transform-gpu">
         {/* Header */}
         <div className="shrink-0 bg-[linear-gradient(135deg,#103B2D_0%,#18543F_55%,#1D6B4E_100%)] p-6 text-white text-left">
@@ -90,13 +97,14 @@ export default function HistoryModal({ isOpen, onClose, currentUser, historyItem
               <span className="text-3xl">{selectedOrderId ? '📄' : '📋'}</span>
               <div className="text-left">
                 <h2 className="text-xl font-bold">
-                  {selectedOrderId 
-                    ? (currentLang === 'vi' ? 'Chi tiết đơn hàng' : 'Order Details')
-                    : (currentLang === 'vi' ? 'Lịch sử thu gom' : 'Booking History')
-                  }
+                  {selectedOrderId
+                    ? currentLang === 'vi' ? 'Chi tiết đơn hàng' : 'Order Details'
+                    : currentLang === 'vi' ? 'Lịch sử thu gom' : 'Booking History'}
                 </h2>
                 <p className="text-xs text-[#A7E8B6] uppercase tracking-widest">
-                  {selectedOrderId ? `#${selectedOrderId}` : `${historyItems.length} ${currentLang === 'vi' ? 'yêu cầu đã thực hiện' : 'requests made'}`}
+                  {selectedOrderId
+                    ? `#${selectedOrderId}`
+                    : `${historyItems.length} ${currentLang === 'vi' ? 'yêu cầu đã thực hiện' : 'requests made'}`}
                 </p>
               </div>
             </div>
@@ -133,7 +141,7 @@ export default function HistoryModal({ isOpen, onClose, currentUser, historyItem
           ) : selectedOrderId ? (
             // Detailed View
             <div className="animate-fadeIn space-y-6">
-              {historyItems.filter(item => item.id === selectedOrderId).map(item => (
+              {historyItems.filter((item) => item.id === selectedOrderId).map((item) => (
                 <div key={item.id} className="space-y-6">
                   <div className="rounded-3xl bg-[#F7FCF8] p-6 border border-[#D6EEDD]">
                     <h3 className="mb-4 text-base font-bold text-[#103B2D]">
@@ -198,8 +206,8 @@ export default function HistoryModal({ isOpen, onClose, currentUser, historyItem
                         </div>
                         {(hoverRating || item.rating || 0) > 0 && (
                           <p className="mt-3 text-sm font-bold text-[#22C55E] animate-fadeIn">
-                            {(hoverRating || item.rating) === 5 ? '⭐⭐⭐⭐⭐ Tuyệt vời!' : 
-                             (hoverRating || item.rating) === 4 ? '⭐⭐⭐⭐ Rất tốt' : 
+                            {(hoverRating || item.rating) === 5 ? '⭐⭐⭐⭐⭐ Tuyệt vời!' :
+                             (hoverRating || item.rating) === 4 ? '⭐⭐⭐⭐ Rất tốt' :
                              (hoverRating || item.rating) === 3 ? '⭐⭐⭐ Hài lòng' : 'Cảm ơn bạn!'}
                           </p>
                         )}
@@ -227,8 +235,8 @@ export default function HistoryModal({ isOpen, onClose, currentUser, historyItem
             // List View
             <div className="space-y-4">
               {historyItems.map((item) => (
-                <button 
-                  key={item.id} 
+                <button
+                  key={item.id}
                   onClick={() => setSelectedOrderId(item.id)}
                   className="w-full text-left group rounded-3xl border border-[#D6EEDD] bg-[#F7FCF8] p-5 transition-all hover:border-[#22C55E] hover:bg-white hover:shadow-xl active:scale-[0.98]"
                 >
@@ -258,7 +266,7 @@ export default function HistoryModal({ isOpen, onClose, currentUser, historyItem
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-bold text-[#24483A]/30 uppercase tracking-widest">
-                         {currentLang === 'vi' ? 'Tổng chi phí' : 'Total cost'}
+                        {currentLang === 'vi' ? 'Tổng chi phí' : 'Total cost'}
                       </p>
                       <p className="text-lg font-bold text-[#22C55E]">{formatPrice(item.total)}</p>
                     </div>
@@ -268,7 +276,7 @@ export default function HistoryModal({ isOpen, onClose, currentUser, historyItem
             </div>
           )}
         </div>
-        
+
         <div className="border-t border-[#D6EEDD]/30 p-6 bg-[#F7FCF8]/50">
           <p className="text-center text-[10px] font-bold text-[#24483A]/40 uppercase tracking-[0.2em]">
             Hệ thống quản lý rác thải thông minh EcoCollect

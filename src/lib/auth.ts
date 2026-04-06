@@ -1,9 +1,12 @@
+import { findAdminAccount } from '../data/adminMock';
+
 export type AuthMode = 'login' | 'register';
 
 export interface AuthUser {
   name: string;
   email: string;
   phone: string;
+  role?: string;
   streetAddress?: string;
   district?: string;
   city?: string;
@@ -83,11 +86,16 @@ function isStoredAuthAccount(value: unknown): value is StoredAuthAccount {
   );
 }
 
+/** Chuyển StoredAuthAccount → AuthUser (preserve role, address fields) */
 function toAuthUser(account: StoredAuthAccount): AuthUser {
   return {
     name: account.name,
     email: account.email,
     phone: account.phone,
+    role: account.role,
+    streetAddress: account.streetAddress,
+    district: account.district,
+    city: account.city,
   };
 }
 
@@ -227,6 +235,21 @@ export function registerAuthUser(input: RegisterAuthUserInput): AuthActionResult
 
 export function loginAuthUser(input: LoginAuthUserInput): AuthActionResult {
   const normalizedEmail = normalizeEmail(input.email);
+
+  // First, check if it's an admin account from mock data
+  const adminAccount = findAdminAccount(input.email, input.password);
+
+  if (adminAccount) {
+    const user: AuthUser = {
+      name: adminAccount.name,
+      email: adminAccount.email,
+      phone: '0000000000',
+      role: 'admin',
+    };
+    persistAuthSession(user);
+    return { ok: true, user };
+  }
+
   const matchedAccount = readAccounts().find((account) => normalizeEmail(account.email) === normalizedEmail);
 
   if (!matchedAccount) {
@@ -250,4 +273,40 @@ export function loginAuthUser(input: LoginAuthUserInput): AuthActionResult {
     ok: true,
     user,
   };
+}
+
+/**
+ * Cập nhật thông tin tài khoản (name, phone, address).
+ * Ghi vào danh sách accounts và cập nhật session.
+ */
+export function updateAccount(updatedUser: AuthUser): AuthActionResult {
+  const accounts = readAccounts();
+  const normalizedEmail = normalizeEmail(updatedUser.email);
+  const idx = accounts.findIndex((a) => normalizeEmail(a.email) === normalizedEmail);
+
+  if (idx === -1) {
+    // Nếu là admin hoặc tài khoản không có trong storage thì chỉ cập nhật session
+    persistAuthSession(updatedUser);
+    return { ok: true, user: updatedUser };
+  }
+
+  const now = new Date().toISOString();
+  const updatedAccount: StoredAuthAccount = {
+    ...accounts[idx],
+    name: updatedUser.name,
+    phone: updatedUser.phone,
+    streetAddress: updatedUser.streetAddress,
+    district: updatedUser.district,
+    city: updatedUser.city,
+    updatedAt: now,
+  };
+
+  const nextAccounts = [...accounts];
+  nextAccounts[idx] = updatedAccount;
+  writeAccounts(nextAccounts);
+
+  const user = toAuthUser(updatedAccount);
+  persistAuthSession(user);
+
+  return { ok: true, user };
 }

@@ -1,0 +1,33 @@
+﻿
+> ecocollect-next@0.0.0 build
+> next build
+
+   Γû▓ Next.js 15.5.14
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 2.1s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/8) ...
+   Generating static pages (2/8) 
+   Generating static pages (4/8) 
+   Generating static pages (6/8) 
+ Γ£ô Generating static pages (8/8)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+Γöî Γùï /                                    60.3 kB         177 kB
+Γö£ Γùï /_not-found                            994 B         103 kB
+Γö£ Γùï /admin                                 123 B         102 kB
+Γö£ Γùï /admin/orders                         4.4 kB         118 kB
+Γö£ Γùï /admin/pricing                       2.19 kB         108 kB
+Γöö Γùï /admin/users                         2.96 kB         116 kB
++ First Load JS shared by all             102 kB
+  Γö£ chunks/255-38b49df12a94ee57.js         46 kB
+  Γö£ chunks/4bd1b696-c023c6e3521b1417.js  54.2 kB
+  Γöö other shared chunks (total)          1.99 kB
+
+
+Γùï  (Static)  prerendered as static content
+

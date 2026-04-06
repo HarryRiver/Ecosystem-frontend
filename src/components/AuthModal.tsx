@@ -181,6 +181,7 @@ export default function AuthModal({
 
     setIsSubmitting(false);
     resetForm();
+    // onSuccess handles both admin redirect and regular user login
     onSuccess(result.user);
   };
 
@@ -269,6 +270,9 @@ export default function AuthModal({
                     disabled={isSubmitting}
                     className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
                   />
+                  <p className="mt-2 text-xs text-[#5D776A]">
+                    Gợi ý: Dùng <code className="font-semibold text-[#103B2D]">admin@ecocollect.vn</code> (pass: admin123) để vào trang quản trị.
+                  </p>
                 </div>
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-3">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type AuthUser } from '@/lib/auth';
+import { readHistory, type HistoryItem } from '@/lib/store';
 
 interface ReviewItem {
   id?: string;
@@ -12,6 +13,7 @@ interface ReviewItem {
   comment: string;
   date: string;
   service: string;
+  orderId?: string;    // Task 5: gắn vào completed order
   isCustom?: boolean;
 }
 
@@ -25,66 +27,108 @@ export default function Reviews({ currentUser }: ReviewsProps) {
 
   // State for all reviews
   const [allReviews, setAllReviews] = useState<ReviewItem[]>([]);
-  
-  // State for new review form
+
+  // Task 5: new review form — chỉ hiện cho user có completed order chưa đánh giá
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  // Task 5: completed order cần review
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [pendingOrderLabel, setPendingOrderLabel] = useState<string | null>(null);
 
-  // Initialize reviews from translations and localStorage
+  // Initialize reviews from translations + Task 5: from completed orders
   useEffect(() => {
     const defaultReviews = t('reviews.items', { returnObjects: true }) as ReviewItem[];
     const savedReviews = localStorage.getItem('ecocollect_user_reviews');
-    
+
+    let userReviews: ReviewItem[] = [];
     if (savedReviews) {
       try {
-        const parsed = JSON.parse(savedReviews);
-        setAllReviews([...parsed, ...defaultReviews]);
-      } catch (e) {
-        setAllReviews(defaultReviews);
+        userReviews = JSON.parse(savedReviews);
+      } catch {
+        userReviews = [];
       }
-    } else {
-      setAllReviews(defaultReviews);
     }
-  }, [t]);
+
+    // Task 5: Pull completed orders từ history của user hiện tại
+    // và tự động tạo review nếu user đã rate trong HistoryModal
+    if (currentUser) {
+      const historyItems: HistoryItem[] = readHistory();
+      const ratedCompletedOrders = historyItems.filter(
+        (item) => item.status === 'completed' && item.rating && item.rating > 0,
+      );
+
+      const autoReviews: ReviewItem[] = ratedCompletedOrders
+        .filter((order) => !userReviews.find((r) => r.orderId === order.id))
+        .map((order) => ({
+          id: `auto-${order.id}`,
+          orderId: order.id,
+          name: order.customerName,
+          avatar: order.customerName.charAt(0).toUpperCase(),
+          rating: order.rating!,
+          comment: currentLang === 'vi'
+            ? `Đơn hàng #${order.id} đã được xử lý tốt. Rất hài lòng với dịch vụ!`
+            : `Order #${order.id} was handled well. Very satisfied with the service!`,
+          date: order.date,
+          service: currentLang === 'vi' ? 'Khách hàng thành viên' : 'Member customer',
+          isCustom: true,
+        }));
+
+      userReviews = [...autoReviews, ...userReviews];
+
+      // Task 5: Tìm completed order chưa được review → hiện prompt
+      const unreviewed = historyItems.find(
+        (item) =>
+          item.status === 'completed' &&
+          !item.rating &&
+          !userReviews.find((r) => r.orderId === item.id),
+      );
+      if (unreviewed) {
+        setPendingOrderId(unreviewed.id);
+        const label = unreviewed.items.map((i) => i.name).join(', ').slice(0, 40);
+        setPendingOrderLabel(label || unreviewed.id);
+      }
+    }
+
+    setAllReviews([...userReviews, ...defaultReviews]);
+  }, [t, currentUser, currentLang]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser || !newComment.trim()) return;
 
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     const newReview: ReviewItem = {
       id: `rev-${Date.now()}`,
+      orderId: pendingOrderId ?? undefined,
       name: currentUser.name,
       avatar: currentUser.name.charAt(0).toUpperCase(),
       rating: newRating,
       comment: newComment,
-      date: currentLang === 'vi' ? 'Vừa xong' : (currentLang === 'sv' ? 'Alldeles nyss' : 'Just now'),
+      date: currentLang === 'vi' ? 'Vừa xong' : currentLang === 'sv' ? 'Alldeles nyss' : 'Just now',
       service: currentLang === 'vi' ? 'Khách hàng thành viên' : 'Member customer',
-      isCustom: true
+      isCustom: true,
     };
 
-    const updatedUserReviews = [newReview, ...allReviews.filter(r => r.isCustom)];
+    const savedReviews = localStorage.getItem('ecocollect_user_reviews');
+    let existingUserReviews: ReviewItem[] = [];
+    if (savedReviews) {
+      try { existingUserReviews = JSON.parse(savedReviews); } catch { /* ignore */ }
+    }
+    const updatedUserReviews = [newReview, ...existingUserReviews];
     localStorage.setItem('ecocollect_user_reviews', JSON.stringify(updatedUserReviews));
-    
-    setAllReviews(prev => [newReview, ...prev]);
+
+    setAllReviews((prev) => [newReview, ...prev]);
     setNewComment('');
     setNewRating(5);
     setIsSubmitting(false);
     setShowForm(false);
+    setPendingOrderId(null);
+    setPendingOrderLabel(null);
   };
-
-  const steps = [
-    t('reviews.steps.book'),
-    t('reviews.steps.confirm'),
-    t('reviews.steps.collect'),
-    t('reviews.steps.done'),
-  ];
 
   return (
     <section id="reviews" className="py-20 bg-[#F5FBF6]">
@@ -99,13 +143,19 @@ export default function Reviews({ currentUser }: ReviewsProps) {
           </h2>
         </div>
 
-        {/* Review Action (Only for logged in users) */}
-        {currentUser && (
+        {/* Task 5: Review prompt chỉ hiện khi có completed order chưa đánh giá */}
+        {currentUser && pendingOrderId && (
           <div className="max-w-6xl mx-auto mb-12">
             {!showForm ? (
               <div className="bg-white/50 backdrop-blur-md border border-[#2F855A]/10 rounded-3xl p-8 text-center animate-fadeIn">
                 <h3 className="text-xl font-bold text-[#103B2D] mb-2">{t('reviews.shareExperience')}</h3>
-                <p className="text-gray-500 mb-6">{t('reviews.shareSubtitle')}</p>
+                <p className="text-gray-500 mb-2">{t('reviews.shareSubtitle')}</p>
+                {pendingOrderLabel && (
+                  <p className="text-sm text-[#2F855A] font-semibold mb-6">
+                    {currentLang === 'vi' ? 'Đánh giá đơn hàng: ' : 'Rate order: '}
+                    <span className="font-bold">{pendingOrderLabel}</span>
+                  </p>
+                )}
                 <button
                   onClick={() => setShowForm(true)}
                   className="bg-[#2F855A] text-white px-8 py-3.5 rounded-full font-semibold hover:bg-[#236746] transition-all hover:shadow-lg active:scale-95"
@@ -114,20 +164,19 @@ export default function Reviews({ currentUser }: ReviewsProps) {
                 </button>
               </div>
             ) : (
-              <form 
+              <form
                 onSubmit={handleSubmitReview}
                 className="bg-white rounded-[40px] p-10 shadow-[0_30px_100px_rgba(16,59,45,0.12)] border border-[#2F855A]/5 animate-fadeInUp relative overflow-hidden"
               >
-                {/* Decorative background element */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-[#2F855A]/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#2F855A]/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
 
                 <div className="relative flex items-center justify-between mb-10">
                   <div>
                     <h3 className="text-2xl font-bold text-[#103B2D] tracking-tight">{t('reviews.yourReview')}</h3>
-                    <div className="h-1 w-8 bg-[#2F855A] rounded-full mt-1.5 opacity-60"></div>
+                    <div className="h-1 w-8 bg-[#2F855A] rounded-full mt-1.5 opacity-60" />
                   </div>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setShowForm(false)}
                     className="group flex items-center gap-2 text-gray-400 hover:text-red-500 transition-all font-bold text-sm uppercase tracking-widest"
                   >
@@ -150,14 +199,12 @@ export default function Reviews({ currentUser }: ReviewsProps) {
                             onMouseEnter={() => !isSubmitting && setNewRating(star)}
                             className="text-4xl transition-all hover:scale-125 focus:outline-none filter drop-shadow-sm"
                           >
-                            <span className={star <= newRating ? 'text-yellow-400' : 'text-gray-200'}>
-                              ★
-                            </span>
+                            <span className={star <= newRating ? 'text-yellow-400' : 'text-gray-200'}>★</span>
                           </button>
                         ))}
                       </div>
                       <p className="text-sm font-bold text-[#2F855A] animate-fadeIn min-h-[1.25rem]">
-                        {newRating === 5 ? t('reviews.rating5') : (newRating >= 4 ? t('reviews.rating4') : t('reviews.ratingLow'))}
+                        {newRating === 5 ? t('reviews.rating5') : newRating >= 4 ? t('reviews.rating4') : t('reviews.ratingLow')}
                       </p>
                     </div>
                   </div>
@@ -184,17 +231,15 @@ export default function Reviews({ currentUser }: ReviewsProps) {
                   <button
                     type="submit"
                     disabled={isSubmitting || !newComment.trim()}
-                    className="relative group bg-[#103B2D] text-white px-14 py-4.5 rounded-full font-bold uppercase tracking-[0.1em] text-sm shadow-[0_15px_35px_rgba(16,59,45,0.15)] hover:bg-[#18543F] hover:shadow-[0_20px_45px_rgba(16,59,45,0.25)] transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-30 disabled:translate-y-0 disabled:shadow-none flex items-center gap-3 overflow-hidden"
+                    className="relative group bg-[#103B2D] text-white px-14 py-4 rounded-full font-bold uppercase tracking-[0.1em] text-sm shadow-[0_15px_35px_rgba(16,59,45,0.15)] hover:bg-[#18543F] hover:shadow-[0_20px_45px_rgba(16,59,45,0.25)] transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-30 disabled:translate-y-0 disabled:shadow-none flex items-center gap-3 overflow-hidden"
                   >
                     {isSubmitting ? (
                       <>
-                        <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                        <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                         <span>{t('common.loading')}</span>
                       </>
                     ) : (
-                      <>
-                        <span className="relative z-10">{t('reviews.submitBtn')}</span>
-                      </>
+                      <span className="relative z-10">{t('reviews.submitBtn')}</span>
                     )}
                   </button>
                 </div>
@@ -229,12 +274,7 @@ export default function Reviews({ currentUser }: ReviewsProps) {
               {/* Rating */}
               <div className="flex items-center space-x-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <span
-                    key={i}
-                    className={`text-xl transition-transform hover:scale-110 ${i < review.rating ? 'text-yellow-400' : 'text-gray-100'}`}
-                  >
-                    ★
-                  </span>
+                  <span key={i} className={`text-xl transition-transform hover:scale-110 ${i < review.rating ? 'text-yellow-400' : 'text-gray-100'}`}>★</span>
                 ))}
               </div>
 

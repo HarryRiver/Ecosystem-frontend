@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { useState, useRef, useEffect } from 'react';
 
 const languages = [
-  { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
-  { code: 'en', name: 'English', flag: '🇺🇸' },
-  { code: 'sv', name: 'Svenska', flag: '🇸🇪' },
+  { code: 'vi', name: 'Tiếng Việt', flagUrl: 'https://flagcdn.com/w40/vn.png' },
+  { code: 'en', name: 'English', flagUrl: 'https://flagcdn.com/w40/gb.png' },
+  { code: 'sv', name: 'Svenska', flagUrl: 'https://flagcdn.com/w40/se.png' },
 ];
 
 export default function LanguageSwitcher() {
@@ -38,8 +38,12 @@ export default function LanguageSwitcher() {
         className="flex items-center gap-2 rounded-full border border-white/14 bg-white/8 px-3 py-1.5 text-sm font-medium text-white transition-all hover:bg-white/14"
         aria-label="Chọn ngôn ngữ"
       >
-        <span className="text-lg">{currentLanguage.flag}</span>
-        <span className="hidden sm:inline-block uppercase tracking-wider text-[10px]">
+        <img
+          src={currentLanguage.flagUrl}
+          alt={currentLanguage.code}
+          className="w-5 block object-contain rounded-[2px] shadow-sm"
+        />
+        <span className="hidden sm:flex items-center uppercase tracking-wider text-[10px] leading-none mt-px">
           {currentLanguage.code}
         </span>
         <svg
@@ -65,8 +69,14 @@ export default function LanguageSwitcher() {
                     : 'text-white hover:bg-white/10'
                 }`}
               >
-                <span className="text-lg">{lang.flag}</span>
-                <span>{lang.name}</span>
+                <span className="w-6 shrink-0 flex items-center justify-center">
+                  <img
+                    src={lang.flagUrl}
+                    alt={lang.code}
+                    className="w-5 block object-contain rounded-[2px]"
+                  />
+                </span>
+                <span className="leading-none mt-px">{lang.name}</span>
               </button>
             ))}
           </div>

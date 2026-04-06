@@ -12,9 +12,9 @@
     "bookNow": "Đặt lịch ngay"
   },
   "hero": {
-    "title": "Thu gom đồ cũ thông minh,",
-    "titleHighlight": "xử lý xanh cho đô thị hiện đại",
-    "subtitle": "Đặt lịch trong 60 giây, nhận báo giá minh bạch theo loại đồ cũ, kích thước và đơn vị tính. Mọi đơn hàng đều được theo dõi từ thu gom đến xử lý.",
+    "title": "Đặt lịch thu gom đồ cũ",
+    "titleHighlight": "trong 60 giây",
+    "subtitle": "Nhận báo giá minh bạch theo loại đồ cũ, kích thước và đơn vị tính. Mọi đơn hàng đều được theo dõi bằng hệ thống định tuyến hiện đại.",
     "badge": "Eco-tech platform cho thu gom, phân loại và xử lý phế liệu",
     "ctaBook": "Đặt lịch ngay",
     "ctaRegister": "Tạo tài khoản nhận ưu đãi",
@@ -150,20 +150,24 @@
       "button": "Gửi yêu cầu đặc biệt"
     },
     "types": {
-      "sofa": "Sofa & Ghế",
-      "cabinet": "Tủ & Kệ",
+      "furniture": "Nội thất",
       "electronics": "Đồ điện tử",
-      "construction": "Phế thải xây dựng",
-      "table": "Bàn & Đồ gỗ",
-      "other": "Món ngoài danh sách"
+      "metals": "Phế liệu Kim loại",
+      "plastics": "Các loại Nhựa",
+      "paper": "Giấy vụn & Carton",
+      "clothes": "Quần áo cũ",
+      "vehicles": "Xe & Máy móc cũ",
+      "other": "Khác & Xây dựng"
     },
     "items": {
-      "sofa": ["Sofa 2-3 chỗ", "Ghế bành", "Ghế gaming", "Ghế văn phòng"],
-      "cabinet": ["Tủ quần áo", "Tủ bếp", "Kệ sách", "Tủ giày"],
-      "electronics": ["TV & Màn hình", "Máy tính", "Tủ lạnh", "Máy giặt"],
-      "construction": ["Xà bần", "Gạch vỡ", "Xi măng", "Tấm trần"],
-      "table": ["Bàn ăn", "Bàn làm việc", "Bàn coffee", "Tủ TV"],
-      "other": ["Bàn ăn", "Cũi trẻ em", "Xe máy điện", "Biển quảng cáo"]
+      "furniture": ["Sofa", "Tủ", "Giường", "Bàn / ghế"],
+      "electronics": ["Tivi", "Tủ lạnh", "Máy giặt", "Máy lạnh cũ"],
+      "metals": ["Đồng đỏ", "Đồng vàng", "Nhôm", "Inox", "Sắt vụn"],
+      "plastics": ["Nhựa PET", "Nhựa cứng", "Nhựa dẻo"],
+      "paper": ["Carton", "Giấy trắng", "Giấy báo"],
+      "clothes": ["Quần áo thường", "Đồ đẹp tốt", "Vải vụn"],
+      "vehicles": ["Xe máy hỏng", "Xe đạp", "Máy móc"],
+      "other": ["Xà bần", "Gạch vỡ", "Báo giá riêng"]
     }
   },
   "booking": {
@@ -181,6 +185,11 @@
     "categories": {
       "furniture": "Nội thất",
       "electronics": "Điện tử",
+      "metals": "Kim loại",
+      "plastics": "Nhựa",
+      "paper": "Giấy",
+      "clothes": "Quần áo cũ",
+      "vehicles": "Xe cũ",
       "other": "Khác"
     },
     "services": {
@@ -237,6 +246,74 @@
         "name": "Phế thải xây dựng",
         "desc": "Hạng mục này nhập trực tiếp theo kg thay vì theo món.",
         "note": "Người dùng nhập khối lượng thực tế theo kg để hệ thống tạm tính chi phí."
+      },
+      "red-copper": {
+        "name": "Đồng đỏ",
+        "desc": "Đồng nguyên chất, dây điện lõi cuộn chập cháy."
+      },
+      "yellow-copper": {
+        "name": "Đồng vàng",
+        "desc": "Chi tiết máy, thiết bị đồng, ống nước đồng cũ."
+      },
+      "aluminum": {
+        "name": "Nhôm",
+        "desc": "Nhôm đà, nhôm tấm, vỏ lon, khung nhôm các loại."
+      },
+      "stainless-steel": {
+        "name": "Inox",
+        "desc": "Bồn rửa chén, kệ tủ inox, các loại thép không gỉ."
+      },
+      "iron": {
+        "name": "Sắt vụn",
+        "desc": "Sắt công trình, xà gồ, cửa sắt hỏng, tủ sắt."
+      },
+      "plastic-pet": {
+        "name": "Nhựa PET (chai nước)",
+        "desc": "Các loại chai nước khoáng, nước ngọt bằng nhựa trong."
+      },
+      "plastic-hard": {
+        "name": "Nhựa cứng (HDPE, PP)",
+        "desc": "Bàn ghế nhựa, vỏ can nhựa, chai lọ lớn, thau chậu."
+      },
+      "plastic-soft": {
+        "name": "Nhựa dẻo",
+        "desc": "Túi nilon dày, màng bọc hàng hóa, nhựa bao bì mềm."
+      },
+      "paper-carton": {
+        "name": "Carton",
+        "desc": "Thùng carton các loại từ thiết bị hoặc hàng hóa."
+      },
+      "paper-white": {
+        "name": "Giấy trắng",
+        "desc": "Giấy hủy tài liệu, A4 văn phòng, vở học sinh."
+      },
+      "paper-news": {
+        "name": "Giấy báo",
+        "desc": "Báo cũ, tạp chí, tờ rơi quảng cáo."
+      },
+      "clothes-normal": {
+        "name": "Quần áo thường",
+        "desc": "Đồ mặc nhà, đồ cũ thông thường, tính theo kg."
+      },
+      "clothes-premium": {
+        "name": "Đồ đẹp (second-hand)",
+        "desc": "Quần áo form dáng tốt, hàng hiệu thanh lý, tính theo cái."
+      },
+      "clothes-scraps": {
+        "name": "Vải vụn",
+        "desc": "Các loại vải rách vụn không thể mặc, dùng tái chế."
+      },
+      "vehicle-motorcycle": {
+        "name": "Xe máy hỏng",
+        "desc": "Xe gắn máy cũ rớt đời, xe tai nạn, hỏng nặng."
+      },
+      "vehicle-bicycle": {
+        "name": "Xe đạp",
+        "desc": "Xe đạp điện cũ, xe đạp thường hỏng."
+      },
+      "vehicle-machinery": {
+        "name": "Máy móc",
+        "desc": "Nhập kho theo kg hoặc thỏa thuận mua nguyên kiện."
       },
       "custom": {
         "name": "Hạng mục khác",

@@ -12,9 +12,9 @@
     "bookNow": "Boka nu"
   },
   "hero": {
-    "title": "Smart insamling av gamla föremål,",
-    "titleHighlight": "gröna lösningar för moderna städer",
-    "subtitle": "Boka på 60 sekunder, få transparent prissättning efter typ, storlek och enhet. Varje beställning spåras från insamling till bearbetning.",
+    "title": "Boka hämtning av skräp",
+    "titleHighlight": "på 60 sekunder",
+    "subtitle": "Få transparent prissättning baserad på typ, storlek och enhet. Varje beställning spåras via moderna ruttplaneringssystem.",
     "badge": "Eko-teknisk plattform för insamling, sortering och bearbetning av skrot",
     "ctaBook": "Boka nu",
     "ctaRegister": "Skapa konto för erbjudanden",
@@ -150,20 +150,24 @@
       "button": "Skicka specialförfrågan"
     },
     "types": {
-      "sofa": "Sofa & Stolar",
-      "cabinet": "Skåp & Hyllor",
+      "furniture": "Möbler",
       "electronics": "Elektronik",
-      "construction": "Byggavfall",
-      "table": "Bord & Träföremål",
-      "other": "Föremål som inte finns i listan"
+      "metals": "Metallskrot",
+      "plastics": "Plast",
+      "paper": "Papper & Kartong",
+      "clothes": "Gamla Kläder",
+      "vehicles": "Gamla Fordon",
+      "other": "Annat / Bygg"
     },
     "items": {
-      "sofa": ["2-3-sits soffa", "Fåtölj", "Gamingstol", "Kontorsstol"],
-      "cabinet": ["Garderob", "Köksskåp", "Bokhylla", "Skohylla"],
-      "electronics": ["TV & Skärm", "Dator", "Kylskåp", "Tvättmaskin"],
-      "construction": ["Bråte", " Trasigt tegel", "Cement", "Takpaneler"],
-      "table": ["Matbord", "Skrivbord", "Soffbord", "TV-bänk"],
-      "other": ["Matbord", "Spjälsäng", "Elsparkcykel", "Anslagstavla"]
+      "furniture": ["Soffa", "Skåp", "Säng", "Skrivbord"],
+      "electronics": ["TV", "Kylskåp", "Tvättmaskin", "AC"],
+      "metals": ["Koppar", "Mässing", "Aluminium", "Rostfritt", "Skrotjärn"],
+      "plastics": ["PET-flaskor", "Hårdplast", "Mjukplast"],
+      "paper": ["Kartong", "Vitt papper", "Tidningspapper"],
+      "clothes": ["Vanliga kläder", "Märkeskläder", "Tygrester"],
+      "vehicles": ["Trasig hoj", "Cykel", "Maskineri"],
+      "other": ["Bråte", "Trasigt tegel", "Annat"]
     }
   },
   "booking": {
@@ -181,6 +185,11 @@
     "categories": {
       "furniture": "Möbler",
       "electronics": "Elektronik",
+      "metals": "Metaller",
+      "plastics": "Plast",
+      "paper": "Papper",
+      "clothes": "Gamla kläder",
+      "vehicles": "Gamla fordon",
       "other": "Annat"
     },
     "services": {
@@ -238,6 +247,74 @@
         "desc": "Denna kategori anges direkt i kg istället för per styck.",
         "note": "Användaren anger faktisk vikt i kg för att systemet ska beräkna uppskattad kostnad."
       },
+      "red-copper": {
+        "name": "Röd koppar",
+        "desc": "Ren koppar, brända koppartrådar."
+      },
+      "yellow-copper": {
+        "name": "Mässing / Gul koppar",
+        "desc": "Maskindelar, mässingsutrustning, gamla kopparrör."
+      },
+      "aluminum": {
+        "name": "Aluminium",
+        "desc": "Aluminiumbalkar, plåtar, burkar, aluminiumramar."
+      },
+      "stainless-steel": {
+        "name": "Rostfritt stål",
+        "desc": "Diskbänkar, rostfria hyllor, rostbeständigt stål."
+      },
+      "iron": {
+        "name": "Skrotjärn",
+        "desc": "Byggjärn, plåtar, trasiga järndörrar, plåtskåp."
+      },
+      "plastic-pet": {
+        "name": "PET-plast (flaskor)",
+        "desc": "Genomskinliga mineralvattenflaskor, läskflaskor."
+      },
+      "plastic-hard": {
+        "name": "Hårdplast (HDPE, PP)",
+        "desc": "Plaststolar, stora plastdunkar, hinkar, baljor."
+      },
+      "plastic-soft": {
+        "name": "Mjukplast",
+        "desc": "Tjocka plastpåsar, pallplast, mjuk förpackning."
+      },
+      "paper-carton": {
+        "name": "Kartong",
+        "desc": "Kartonglådor och wellpapp från varor."
+      },
+      "paper-white": {
+        "name": "Vitt Papper",
+        "desc": "Dokument, kontorspapper A4, skolböcker."
+      },
+      "paper-news": {
+        "name": "Tidningspapper",
+        "desc": "Gamla tidningar, magasin, reklamblad."
+      },
+      "clothes-normal": {
+        "name": "Vanliga kläder",
+        "desc": "Vardagskläder, vanliga gamla kläder, debiteras per kg."
+      },
+      "clothes-premium": {
+        "name": "Märkeskläder / Second-hand",
+        "desc": "Kläder i bra skick, märkesvaror, debiteras per styck."
+      },
+      "clothes-scraps": {
+        "name": "Tygrester",
+        "desc": "Trasiga tyger olämpliga att bära, för återvinning."
+      },
+      "vehicle-motorcycle": {
+        "name": "Trasig Motorcykel",
+        "desc": "Gammal eller trasig motorcykel, svårt skadat fordon."
+      },
+      "vehicle-bicycle": {
+        "name": "Cykel",
+        "desc": "Vanlig eller elektrisk cykel i dåligt skick."
+      },
+      "vehicle-machinery": {
+        "name": "Maskineri",
+        "desc": "Debiteras per kg eller enligt specialoffert."
+      },
       "custom": {
         "name": "Andra föremål",
         "desc": "Använd när kunden vill lägga till ett föremål som inte finns på listan.",
@@ -269,6 +346,14 @@
       "time": "Välj tidsfönster",
       "photo": "Bifoga referensbild",
       "photoDesc": "Hjälper oss att ge en mer exakt offert för specialartiklar."
+    },
+    "errors": {
+      "name": "Hela namnet är för kort (minst 2 tecken)",
+      "email": "Ogiltig e-postadress",
+      "phone": "Ogiltigt telefonnummer",
+      "street": "Gatuadressen är för kort (minst 5 tecken)",
+      "district": "Vänligen välj ett distrikt",
+      "city": "Vänligen välj en stad"
     },
     "handling": {
       "inside": "Hämtning i hemmet",

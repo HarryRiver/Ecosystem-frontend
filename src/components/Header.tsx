@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type AuthMode, type AuthUser } from '@/lib/auth';
 import LanguageSwitcher from './LanguageSwitcher';
+import Link from 'next/link';
 
 interface HeaderProps {
   currentUser: AuthUser | null;
@@ -52,23 +53,23 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-8">
-            <a href="#home" className="text-white hover:text-[#8DE0A6] transition-colors font-medium">
+          <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6">
+            <a href="#home" className="whitespace-nowrap text-sm font-medium text-white transition-colors hover:text-[#8DE0A6]">
               {t('header.home')}
             </a>
-            <a href="#how-it-works" className="text-white hover:text-[#8DE0A6] transition-colors font-medium">
+            <a href="#how-it-works" className="whitespace-nowrap text-sm font-medium text-white transition-colors hover:text-[#8DE0A6]">
               {t('header.howItWorks')}
             </a>
-            <a href="#waste-types" className="text-white hover:text-[#8DE0A6] transition-colors font-medium">
+            <a href="#waste-types" className="whitespace-nowrap text-sm font-medium text-white transition-colors hover:text-[#8DE0A6]">
               {t('header.wasteTypes')}
             </a>
-            <a href="#about" className="text-white hover:text-[#8DE0A6] transition-colors font-medium">
+            <a href="#about" className="whitespace-nowrap text-sm font-medium text-white transition-colors hover:text-[#8DE0A6]">
               {t('header.about')}
             </a>
-            <a href="#pricing" className="text-white hover:text-[#8DE0A6] transition-colors font-medium">
+            <a href="#pricing" className="whitespace-nowrap text-sm font-medium text-white transition-colors hover:text-[#8DE0A6]">
               {t('header.pricing')}
             </a>
-            <a href="#reviews" className="text-white hover:text-[#8DE0A6] transition-colors font-medium">
+            <a href="#reviews" className="whitespace-nowrap text-sm font-medium text-white transition-colors hover:text-[#8DE0A6]">
               {t('header.reviews')}
             </a>
           </nav>
@@ -159,6 +160,32 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
                     </div>
                     
                     <div className="my-1.5 h-px bg-white/5 mx-2"></div>
+
+                    {currentUser.role === 'admin' && (
+                      <>
+                        <Link 
+                          href="/admin"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="group flex w-full items-center gap-3.5 rounded-[20px] px-4 py-3 text-left transition-all duration-300 hover:bg-[#8DE0A6]/10 active:scale-[0.98]"
+                        >
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#8DE0A6]/5 text-lg transition-transform group-hover:scale-110 group-hover:bg-[#8DE0A6]/20">
+                            ⚙️
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-bold text-[#8DE0A6] leading-none">
+                              {currentLang === 'vi' ? 'Quản trị' : 'Admin Panel'}
+                            </p>
+                            <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8DE0A6]/40">
+                              {currentLang === 'vi' ? 'Bảng điều khiển' : 'Dashboard'}
+                            </p>
+                          </div>
+                          <svg className="h-4 w-4 text-[#8DE0A6]/20 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </Link>
+                        <div className="my-1.5 h-px bg-white/5 mx-2"></div>
+                      </>
+                    )}
                     
                     <button 
                       onClick={() => {

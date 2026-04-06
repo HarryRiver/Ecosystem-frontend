@@ -3,54 +3,81 @@
 import { useTranslation } from 'react-i18next';
 
 interface WasteTypesProps {
-  onBookingClick: () => void;
+  onBookingClick: (prefill?: { selectedWaste?: string }) => void;
 }
 
 export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
   const { t } = useTranslation();
 
+  const getArray = (key: string) => {
+    const val = t(key, { returnObjects: true });
+    return Array.isArray(val) ? val : [];
+  };
+
   const wasteTypes = [
     {
+      id: 'furniture',
       icon: '🛋️',
-      name: t('wasteTypes.types.sofa'),
-      description: t('hero.quickOptions.furniture'),
-      price: 'Từ 150.000đ / món',
-      items: (t('wasteTypes.items.sofa', { returnObjects: true }) as string[]) || []
+      name: t('wasteTypes.types.furniture'),
+      description: t('booking.categories.furniture'),
+      price: 'Từ 100.000đ / món',
+      items: getArray('wasteTypes.items.furniture')
     },
     {
-      icon: '🗄️',
-      name: t('wasteTypes.types.cabinet'),
-      description: t('hero.quickOptions.furniture'),
-      price: 'Từ 180.000đ / món',
-      items: (t('wasteTypes.items.cabinet', { returnObjects: true }) as string[]) || []
-    },
-    {
+      id: 'electronics',
       icon: '📺',
       name: t('wasteTypes.types.electronics'),
-      description: t('hero.quickOptions.electronics'),
+      description: t('booking.categories.electronics'),
+      price: 'Từ 80.000đ / món',
+      items: getArray('wasteTypes.items.electronics')
+    },
+    {
+      id: 'metals',
+      icon: '🔩',
+      name: t('wasteTypes.types.metals'),
+      description: t('booking.categories.metals'),
+      price: 'Từ 8.000đ / kg',
+      items: getArray('wasteTypes.items.metals')
+    },
+    {
+      id: 'plastics',
+      icon: '🪣',
+      name: t('wasteTypes.types.plastics'),
+      description: t('booking.categories.plastics'),
+      price: 'Từ 5.000đ / kg',
+      items: getArray('wasteTypes.items.plastics')
+    },
+    {
+      id: 'paper',
+      icon: '📦',
+      name: t('wasteTypes.types.paper'),
+      description: t('booking.categories.paper'),
+      price: 'Từ 3.000đ / kg',
+      items: getArray('wasteTypes.items.paper')
+    },
+    {
+      id: 'clothes',
+      icon: '👕',
+      name: t('wasteTypes.types.clothes'),
+      description: t('booking.categories.clothes'),
+      price: 'Từ 3.000đ / kg',
+      items: getArray('wasteTypes.items.clothes')
+    },
+    {
+      id: 'vehicles',
+      icon: '🛵',
+      name: t('wasteTypes.types.vehicles'),
+      description: t('booking.categories.vehicles'),
       price: 'Từ 100.000đ / món',
-      items: (t('wasteTypes.items.electronics', { returnObjects: true }) as string[]) || []
+      items: getArray('wasteTypes.items.vehicles')
     },
     {
+      id: 'other',
       icon: '🧱',
-      name: t('wasteTypes.types.construction'),
-      description: t('hero.quickOptions.construction'),
-      price: 'Từ 80.000đ / bao',
-      items: (t('wasteTypes.items.construction', { returnObjects: true }) as string[]) || []
-    },
-    {
-      icon: '🪑',
-      name: t('wasteTypes.types.table'),
-      description: t('hero.quickOptions.furniture'),
-      price: 'Từ 120.000đ / món',
-      items: (t('wasteTypes.items.table', { returnObjects: true }) as string[]) || []
-    },
-    {
-      icon: '✨',
       name: t('wasteTypes.types.other'),
-      description: t('hero.quickOptions.other'),
+      description: t('booking.categories.other'),
       price: t('booking.quoteLabel'),
-      items: (t('wasteTypes.items.other', { returnObjects: true }) as string[]) || []
+      items: getArray('wasteTypes.items.other')
     }
   ];
 
@@ -69,12 +96,12 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
         </div>
 
         {/* Waste Types Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {wasteTypes.map((type, index) => (
             <div
               key={index}
               className="group cursor-pointer rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-[#2F855A] hover:shadow-[0_18px_45px_rgba(16,59,45,0.08)]"
-              onClick={onBookingClick}
+              onClick={() => onBookingClick({ selectedWaste: type.id })}
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-3xl shadow-sm transition-transform duration-300 group-hover:scale-110">
@@ -85,10 +112,10 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
                 </span>
               </div>
 
-              <h3 className="mb-2 text-xl font-bold text-[#103B2D]">
+              <h3 className="mb-2 mt-4 text-xl font-bold text-[#103B2D]">
                 {type.name}
               </h3>
-              <p className="mb-4 text-gray-600">
+              <p className="mb-4 text-sm text-gray-600 font-medium tracking-wide">
                 {type.description}
               </p>
 
@@ -126,7 +153,7 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
               </p>
             </div>
             <button
-              onClick={onBookingClick}
+              onClick={() => onBookingClick({ selectedWaste: 'custom' })}
               className="rounded-full bg-[#8DE0A6] px-6 py-3 font-semibold text-[#103B2D]"
             >
               {t('wasteTypes.specialCase.button')}

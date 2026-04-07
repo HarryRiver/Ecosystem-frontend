@@ -11,7 +11,6 @@ import {
   statusFilters,
   type OrderRecord,
   readOrders,
-  writeOrders,
   readPricing,
   writePricing,
   readCustomers,
@@ -24,6 +23,8 @@ import {
   type ServicePriceRecord,
   type HistoryItem,
 } from '../lib/store';
+// ─── API Layer ────────────────────────────────────────────────────────────────────────────────
+import { updateAdminOrder, markOrderNoShow } from '../services/admin.service';
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 type Tab = 'overview' | 'users' | 'pricing' | 'orders';
@@ -120,18 +121,20 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
     return servicePricing.filter(s => s.category === selectedPricingCategory);
   }, [servicePricing, selectedPricingCategory]);
 
-  /* ── Business logic ── */
+  /**
+   * Cập nhật trạng thái đơn: optimistic update cục bộ ngay lập tức,
+   * sau đó gọi API BE để đồng bộ.
+   */
   const updateOrderStatusSync = (orderId: string, nextStatus: OrderStatus) => {
-    // Ghi vào STORAGE_KEYS.orders (Admin thấy ngay)
+    // 1) Optimistic: cập nhật store cục bộ ngay
     setOrders((cur: OrderRecord[]) => {
       const next = cur.map((o: OrderRecord) => o.id === orderId ? {
         ...o, status: nextStatus, updatedAt: new Date().toISOString()
       } : o);
-      writeOrders(next);
       return next;
     });
 
-    // Ghi ngược vào STORAGE_KEYS.history (HistoryModal của user thấy ngay)
+    // Cập nhật history cục bộ
     const historyStatusMap: Record<OrderStatus, 'in_progress' | 'completed' | 'cancelled'> = {
       processing: 'in_progress',
       delivering: 'in_progress',
@@ -146,6 +149,19 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
         : h
     );
     writeHistory(updatedHistory);
+
+    // 2) Gọi API thật (fire-and-forget: lỗi chỉ log, không cần rollback)
+    if (nextStatus === 'no_show') {
+      markOrderNoShow(orderId).catch((err: unknown) => {
+        console.error('[Admin] markOrderNoShow failed:', err);
+      });
+    } else {
+      // Cast sang OrderStatus của api.ts (no_show đã xử lý riêng ở trên)
+      type ApiOrderStatus = import('../types/api').OrderStatus;
+      updateAdminOrder(orderId, { status: nextStatus as ApiOrderStatus }).catch((err: unknown) => {
+        console.error('[Admin] updateAdminOrder failed:', err);
+      });
+    }
   };
 
   const adjustServicePrice = (serviceId: string, delta: number) => {

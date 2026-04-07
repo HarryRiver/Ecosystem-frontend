@@ -2,13 +2,9 @@
 
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  hasRegisteredAuthUser,
-  loginAuthUser,
-  registerAuthUser,
-  type AuthMode,
-  type AuthUser,
-} from '@/lib/auth';
+import { type AuthMode, type AuthUser } from '@/lib/auth';
+import { login as apiLogin, register as apiRegister } from '@/services/auth.service';
+import { ApiError } from '@/lib/apiClient';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -135,15 +131,7 @@ export default function AuthModal({
       setErrorMessage(mode === 'login' ? 'Nhập email tài khoản trước' : '');
       return;
     }
-
-    if (!hasRegisteredAuthUser(form.email)) {
-      setErrorMessage('Email chưa được đăng ký');
-      return;
-    }
-
-    setErrorMessage(
-      'Bản demo hiện chưa kết nối email reset mật khẩu.',
-    );
+    setErrorMessage('Tính năng quên mật khẩu đang được phát triển.');
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -157,32 +145,46 @@ export default function AuthModal({
     setErrorMessage('');
     setIsSubmitting(true);
 
-    await new Promise((resolve) => setTimeout(resolve, mode === 'login' ? 700 : 900));
-
-    const result =
-      mode === 'login'
-        ? loginAuthUser({
-            email: form.email,
-            password: form.password,
-          })
-        : registerAuthUser({
-            name: form.name,
-            email: form.email,
-            phone: form.phone,
-            password: form.password,
-            acceptMarketing: form.acceptPolicy,
-          });
-
-    if (!result.ok) {
+    try {
+      if (mode === 'login') {
+        const payload = await apiLogin({
+          identity: form.email,
+          password: form.password,
+        });
+        // Map ApiUser → AuthUser shape còn dùng trong App cũ
+        const user: AuthUser = {
+          name: payload.user.full_name,
+          email: payload.user.email,
+          phone: payload.user.phone,
+          role: payload.user.role,
+        };
+        resetForm();
+        onSuccess(user);
+      } else {
+        const payload = await apiRegister({
+          full_name: form.name,
+          email: form.email,
+          phone: form.phone,
+          password: form.password,
+        });
+        const user: AuthUser = {
+          name: payload.user.full_name,
+          email: payload.user.email,
+          phone: payload.user.phone,
+          role: payload.user.role,
+        };
+        resetForm();
+        onSuccess(user);
+      }
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Có lỗi xảy ra. Vui lòng thử lại.';
+      setErrorMessage(message);
+    } finally {
       setIsSubmitting(false);
-      setErrorMessage(result.error);
-      return;
     }
-
-    setIsSubmitting(false);
-    resetForm();
-    // onSuccess handles both admin redirect and regular user login
-    onSuccess(result.user);
   };
 
   if (!isOpen) {

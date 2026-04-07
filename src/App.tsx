@@ -16,6 +16,11 @@ import {
   type HistoryItem,
   type Order,
 } from '@/lib/store';
+// ─── API Layer ────────────────────────────────────────────────────────────────────────────────
+import { createOrder } from '@/services/orders.service';
+import { logout as apiLogout } from '@/services/auth.service';
+import { getToken } from '@/lib/apiClient';
+import type { HandlingMode } from '@/types/api';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import BrandStory from './components/BrandStory';
@@ -105,30 +110,66 @@ function App() {
     updateAccount(user);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Gọi API logout để invalidate token phía BE (fire-and-forget)
+    if (getToken()) {
+      apiLogout().catch(() => { /* bỏ qua nếu mạng lỗi */ });
+    }
     clearAuthSession();
     setCurrentUser(null);
   };
 
   const handleBookingSubmit = async (payload: BookingSubmissionPayload) => {
-    // Simulated delay to show loading state
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    // ─── Gọi API thật POST /orders ────────────────────────────────────────────────────
+    // Tìm time_slot_id tương ứng với time slot văn bản khách chọn
+    // (FE hiọn tại lưu text "08:00 - 10:00"; sau này cần lấy id thật từ useTimeSlots)
+    const timeSlotIdFallback = payload.schedule.timeSlot;
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.info('Booking payload ready for integration:', payload);
-    }
+    const beHandlingMode: HandlingMode =
+      payload.services.handlingMode === 'outside' ? 'outside'
+      : payload.services.handlingMode === 'stairs' ? 'stairs'
+      : 'inside';
 
-    // Shared ID — dùng cho cả HistoryItem lẫn Order để 2 bên liên kết được
+    const orderBody = {
+      customer: {
+        name: payload.customer.name,
+        phone: payload.customer.phone,
+        email: payload.customer.email,
+      },
+      address: {
+        street: payload.customer.address.streetAddress,
+        ward: '',
+        district: payload.customer.address.district,
+        province: payload.customer.address.city,
+      },
+      booking_date: payload.schedule.date,
+      time_slot_id: timeSlotIdFallback,
+      items: payload.services.items.map((item) => ({
+        service_id: item.id,
+        quantity: item.quantity,
+        measurement_value: item.measurementValue,
+        custom_item_name:
+          item.id === 'custom' ? (item.name || undefined) : undefined,
+      })),
+      handling_mode: beHandlingMode,
+      stairs_floors:
+        beHandlingMode === 'stairs' ? (payload.services.stairsFloors ?? undefined) : undefined,
+      payment_method:
+        payload.payment.method === 'transfer' ? ('online' as const) : ('cash' as const),
+      cash_policy_accepted: payload.payment.cashPolicyAccepted,
+    };
+
+    // Gọi BE thật
+    const createdOrder = await createOrder(orderBody);
+
+    // ─── Cập nhật store cục bộ (fallback cho HistoryModal đọc) ───────────────
     const today = new Date();
-    const randomSuffix = Math.floor(Math.random() * 9000) + 1000;
-    const sharedId = `EC-${randomSuffix}`;
-    const sharedCode = `EC${today.getFullYear().toString().slice(-2)}${(today.getMonth() + 1)
-      .toString().padStart(2, '0')}${randomSuffix}`;
     const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1)
       .toString().padStart(2, '0')}/${today.getFullYear()}`;
     const isoNow = today.toISOString();
+    const sharedId = createdOrder.id;
+    const sharedCode = createdOrder.code;
 
-    // 1) Ghi vào STORAGE_KEYS.history — HistoryModal của user đọc từ đây
     const newHistoryItem: HistoryItem = {
       id: sharedId,
       date: formattedDate,
@@ -148,7 +189,6 @@ function App() {
     };
     setHistoryItems((prev) => appendHistory(prev, newHistoryItem));
 
-    // 2) Ghi vào STORAGE_KEYS.orders — Admin Dashboard đọc từ đây
     const newOrder: Order = {
       id: sharedId,
       code: sharedCode,

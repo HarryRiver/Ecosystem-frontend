@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { type AuthMode, type AuthUser } from './AuthModal';
+import { useEffect, useRef, useState, useMemo, useCallback, type ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import { type AuthMode, type AuthUser } from '@/lib/auth';
+import { HERO_OPTION_TO_CATEGORY, isHeroQuickOption, useSyncStore, STORAGE_KEYS, defaultPricing } from '@/lib/store';
 
 interface BookingPrefill {
   address?: string;
-  handlingGoal?: string;
   selectedWaste?: string;
 }
 
@@ -14,12 +15,95 @@ interface BookingModalProps {
   isOpen: boolean;
   onAuthClick: (mode: AuthMode) => void;
   onClose: () => void;
+  onSubmit: BookingSubmitHandler;
   prefill?: BookingPrefill | null;
 }
 
 type PricingMode = 'fixed' | 'estimate' | 'quote';
 type HandlingMode = 'inside' | 'outside' | 'stairs';
-type PaymentMethod = 'cash' | 'online';
+type PaymentMethod = 'cash' | 'transfer';
+
+export interface BookingSubmissionItem {
+  id: string;
+  name: string;
+  icon: string;
+  pricingMode: PricingMode;
+  quantity: number;
+  measurementValue?: number;
+  basePrice: number;
+  unitLabel: string;
+  selectedOptionId?: string;
+  selectedOptionLabel?: string;
+  billingAmount: number;
+  estimatedLineTotal: number | null;
+}
+
+export interface BookingSubmissionPayload {
+  submittedAt: string;
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+    notes: string;
+    address: {
+      streetAddress: string;
+      district: string;
+      city: string;
+      fullAddress: string;
+    };
+    isGuest: boolean;
+  };
+  schedule: {
+    date: string;
+    timeSlot: string;
+  };
+  services: {
+    items: BookingSubmissionItem[];
+    handlingMode: HandlingMode;
+    handlingLabel: string;
+    stairsFloors: number | null;
+    handlingFee: number;
+    subtotal: number;
+    total: number;
+    hasQuoteItems: boolean;
+  };
+  payment: {
+    method: PaymentMethod;
+    cashPolicyAccepted: boolean;
+  };
+  attachments: {
+    imageFile: File | null;
+    imagePreviewUrl: string | null;
+    imageFileName: string | null;
+    imageFileSize: number | null;
+    imageFileType: string | null;
+  };
+}
+
+export type BookingSubmitHandler = (payload: BookingSubmissionPayload) => Promise<void> | void;
+
+interface AvailableDateOption {
+  value: string;
+  label: string;
+  weekdayLabel: string;
+  dayLabel: string;
+  monthLabel: string;
+}
+
+interface Province {
+  code: number;
+  name: string;
+}
+
+interface District {
+  code: number;
+  name: string;
+}
+
+interface UploadedImage {
+  file: File;
+  previewUrl: string;
+}
 
 interface ServiceOption {
   id: string;
@@ -36,6 +120,7 @@ interface WasteService {
   category: string;
   pricingMode: PricingMode;
   basePrice?: number;
+  maxPrice?: number;
   unitLabel?: string;
   options?: ServiceOption[];
   note?: string;
@@ -54,194 +139,185 @@ interface SelectedWasteItem {
   selectedOptionLabel?: string;
 }
 
-const priceFormatter = new Intl.NumberFormat('vi-VN', {
+const getLocale = (lang: string) => {
+  switch (lang) {
+    case 'en': return 'en-US';
+    case 'sv': return 'sv-SE';
+    default: return 'vi-VN';
+  }
+};
+
+const getCurrency = (lang: string) => {
+  switch (lang) {
+    case 'en': return 'USD';
+    case 'sv': return 'SEK';
+    default: return 'VND';
+  }
+};
+
+const getPriceFormatter = (lang: string) => new Intl.NumberFormat(getLocale(lang), {
   style: 'currency',
-  currency: 'VND',
+  currency: getCurrency(lang),
   maximumFractionDigits: 0,
 });
 
-const wasteServices: WasteService[] = [
-  {
-    id: 'sofa-single',
-    name: 'Sofa đơn',
-    icon: '🛋️',
-    description: 'Thu gom sofa đơn, ghế đơn cỡ lớn.',
-    category: 'Nội thất',
-    pricingMode: 'fixed',
-    basePrice: 150000,
-    unitLabel: '/món',
-  },
-  {
-    id: 'sofa-large',
-    name: 'Sofa đôi / góc L',
-    icon: '🛋️',
-    description: 'Phù hợp với sofa đôi, sofa góc hoặc bộ ghế lớn.',
-    category: 'Nội thất',
-    pricingMode: 'fixed',
-    basePrice: 250000,
-    unitLabel: '/món',
-  },
-  {
-    id: 'wardrobe',
-    name: 'Tủ quần áo',
-    icon: '🗄️',
-    description: 'Có phân loại theo kích thước để phản ánh đúng tải trọng vận chuyển.',
-    category: 'Nội thất',
-    pricingMode: 'fixed',
-    options: [
-      { id: 'small', label: 'Nhỏ', price: 180000, unitLabel: '/món' },
-      { id: 'standard', label: 'Tiêu chuẩn', price: 260000, unitLabel: '/món' },
-      { id: 'oversize', label: 'Khổ lớn', price: 420000, unitLabel: '/món' },
+const getBookingDateWeekdayFormatter = (lang: string) => new Intl.DateTimeFormat(getLocale(lang), {
+  weekday: 'short',
+});
+
+const getBookingDateDayFormatter = (lang: string) => new Intl.DateTimeFormat(getLocale(lang), {
+  day: 'numeric',
+});
+
+const getBookingDateMonthFormatter = (lang: string) => new Intl.DateTimeFormat(getLocale(lang), {
+  month: 'short',
+});
+
+const getBookingDateLabelFormatter = (lang: string) => new Intl.DateTimeFormat(getLocale(lang), {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+});
+
+const maxUploadImageSizeBytes = 5 * 1024 * 1024;
+
+const wasteServiceDefs = [
+  { id: 'sofa-single', icon: '🛋️', categoryKey: 'furniture', pricingMode: 'fixed' as const, basePrice: 150000, unitLabelKey: 'perItem' },
+  { id: 'sofa-large',  icon: '🛋️', categoryKey: 'furniture', pricingMode: 'fixed' as const, basePrice: 250000, unitLabelKey: 'perItem' },
+  { id: 'wardrobe',    icon: '🗄️', categoryKey: 'furniture', pricingMode: 'fixed' as const,
+    optionDefs: [
+      { id: 'small',    price: 180000, unitLabelKey: 'perItem' },
+      { id: 'standard', price: 260000, unitLabelKey: 'perItem' },
+      { id: 'oversize', price: 420000, unitLabelKey: 'perItem' },
     ],
   },
-  {
-    id: 'kitchen-cabinet',
-    name: 'Tủ bếp / tủ giày',
-    icon: '🗃️',
-    description: 'Nhóm tủ nhỏ, kệ thấp hoặc tủ giày.',
-    category: 'Nội thất',
-    pricingMode: 'fixed',
-    basePrice: 120000,
-    unitLabel: '/món',
-  },
-  {
-    id: 'bed',
-    name: 'Giường / nệm',
-    icon: '🛏️',
-    description: 'Áp dụng cho khung giường, nệm đơn hoặc nệm đôi.',
-    category: 'Nội thất',
-    pricingMode: 'fixed',
-    basePrice: 220000,
-    unitLabel: '/món',
-  },
-  {
-    id: 'tv',
-    name: 'Tivi',
-    icon: '📺',
-    description: 'Tivi, màn hình hoặc thiết bị hiển thị cỡ vừa.',
-    category: 'Điện tử',
-    pricingMode: 'fixed',
-    basePrice: 80000,
-    unitLabel: '/món',
-  },
-  {
-    id: 'fridge',
-    name: 'Tủ lạnh',
-    icon: '🧊',
-    description: 'Thiết bị điện lạnh cồng kềnh cần xử lý riêng.',
-    category: 'Điện tử',
-    pricingMode: 'fixed',
-    basePrice: 200000,
-    unitLabel: '/món',
-  },
-  {
-    id: 'washer',
-    name: 'Máy giặt',
-    icon: '🫧',
-    description: 'Áp dụng cho máy giặt gia đình phổ biến.',
-    category: 'Điện tử',
-    pricingMode: 'fixed',
-    basePrice: 180000,
-    unitLabel: '/món',
-  },
-  {
-    id: 'aircon',
-    name: 'Máy lạnh cũ',
-    icon: '❄️',
-    description: 'Máy lạnh cũ hoặc thiết bị điều hòa treo tường.',
-    category: 'Điện tử',
-    pricingMode: 'fixed',
-    basePrice: 160000,
-    unitLabel: '/món',
-  },
-  {
-    id: 'office-furniture',
-    name: 'Bàn / ghế văn phòng',
-    icon: '🪑',
-    description: 'Bàn làm việc, ghế văn phòng hoặc ghế xoay.',
-    category: 'Khác',
-    pricingMode: 'fixed',
-    basePrice: 100000,
-    unitLabel: '/món',
-  },
-  {
-    id: 'household-bag',
-    name: 'Rác sinh hoạt đóng bao',
-    icon: '🗑️',
-    description: 'Dành cho bao rác đã đóng kín và có thể bốc xếp nhanh.',
-    category: 'Khác',
-    pricingMode: 'fixed',
-    basePrice: 60000,
-    unitLabel: '/bao',
-  },
-  {
-    id: 'construction',
-    name: 'Phế thải xây dựng',
-    icon: '🧱',
-    description: 'Hạng mục này nhập trực tiếp theo kg thay vì theo món.',
-    category: 'Khác',
-    pricingMode: 'estimate',
-    basePrice: 7000,
-    unitLabel: '/kg',
-    note: 'Người dùng nhập khối lượng thực tế theo kg để hệ thống tạm tính chi phí.',
-  },
-  {
-    id: 'custom',
-    name: 'Hạng mục khác',
-    icon: '✨',
-    description: 'Dùng khi khách muốn chuyển món không có sẵn trong danh sách hiện tại.',
-    category: 'Khác',
-    pricingMode: 'quote',
-    note: 'Ví dụ: bàn ăn, cũi trẻ em, xe máy điện, biển quảng cáo, máy cắt cỏ...',
-  },
+  { id: 'kitchen-cabinet', icon: '🗃️', categoryKey: 'furniture',    pricingMode: 'fixed' as const, basePrice: 120000, unitLabelKey: 'perItem' },
+  { id: 'bed',         icon: '🛏️', categoryKey: 'furniture',    pricingMode: 'fixed' as const, basePrice: 220000, unitLabelKey: 'perItem' },
+  { id: 'tv',          icon: '📺', categoryKey: 'electronics', pricingMode: 'fixed' as const, basePrice: 80000,  unitLabelKey: 'perItem' },
+  { id: 'fridge',      icon: '🧣', categoryKey: 'electronics', pricingMode: 'fixed' as const, basePrice: 200000, unitLabelKey: 'perItem' },
+  { id: 'washer',      icon: '🪧', categoryKey: 'electronics', pricingMode: 'fixed' as const, basePrice: 180000, unitLabelKey: 'perItem' },
+  { id: 'aircon',      icon: '❄️', categoryKey: 'electronics', pricingMode: 'fixed' as const, basePrice: 160000, unitLabelKey: 'perItem' },
+  { id: 'office-furniture', icon: '🪑', categoryKey: 'other', pricingMode: 'fixed' as const,    basePrice: 100000, unitLabelKey: 'perItem' },
+  { id: 'household-bag',    icon: '🗑️', categoryKey: 'other', pricingMode: 'fixed' as const,    basePrice: 60000,  unitLabelKey: 'perBag'  },
+  { id: 'construction',     icon: '🧱', categoryKey: 'other', pricingMode: 'estimate' as const, basePrice: 7000,   unitLabelKey: 'perKg'  },
+  { id: 'red-copper',       icon: '🔴', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 150000, maxPrice: 200000, unitLabelKey: 'perKg' },
+  { id: 'yellow-copper',    icon: '🟡', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 90000, maxPrice: 140000, unitLabelKey: 'perKg' },
+  { id: 'aluminum',         icon: '⚪', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 25000, maxPrice: 45000, unitLabelKey: 'perKg' },
+  { id: 'stainless-steel',  icon: '🔩', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 15000, maxPrice: 30000, unitLabelKey: 'perKg' },
+  { id: 'iron',             icon: '⬛', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 8000, maxPrice: 15000, unitLabelKey: 'perKg' },
+  { id: 'plastic-pet',      icon: '🍾', categoryKey: 'plastics', pricingMode: 'estimate' as const, basePrice: 8000, maxPrice: 15000, unitLabelKey: 'perKg' },
+  { id: 'plastic-hard',     icon: '🪣', categoryKey: 'plastics', pricingMode: 'estimate' as const, basePrice: 10000, maxPrice: 25000, unitLabelKey: 'perKg' },
+  { id: 'plastic-soft',     icon: '🛍️', categoryKey: 'plastics', pricingMode: 'estimate' as const, basePrice: 5000, maxPrice: 12000, unitLabelKey: 'perKg' },
+  { id: 'paper-carton',     icon: '📦', categoryKey: 'paper', pricingMode: 'estimate' as const, basePrice: 3000, maxPrice: 6000, unitLabelKey: 'perKg' },
+  { id: 'paper-white',      icon: '📄', categoryKey: 'paper', pricingMode: 'estimate' as const, basePrice: 5000, maxPrice: 8000, unitLabelKey: 'perKg' },
+  { id: 'paper-news',       icon: '📰', categoryKey: 'paper', pricingMode: 'estimate' as const, basePrice: 4000, maxPrice: 7000, unitLabelKey: 'perKg' },
+  { id: 'clothes-normal',   icon: '👕', categoryKey: 'clothes', pricingMode: 'estimate' as const, basePrice: 5000, maxPrice: 20000, unitLabelKey: 'perKg' },
+  { id: 'clothes-premium',  icon: '👗', categoryKey: 'clothes', pricingMode: 'estimate' as const, basePrice: 50000, maxPrice: 200000, unitLabelKey: 'perItem' },
+  { id: 'clothes-scraps',   icon: '🧵', categoryKey: 'clothes', pricingMode: 'estimate' as const, basePrice: 3000, maxPrice: 10000, unitLabelKey: 'perKg' },
+  { id: 'vehicle-motorcycle', icon: '🛵', categoryKey: 'vehicles', pricingMode: 'estimate' as const, basePrice: 1000000, maxPrice: 5000000, unitLabelKey: 'perItem' },
+  { id: 'vehicle-bicycle',    icon: '🚲', categoryKey: 'vehicles', pricingMode: 'estimate' as const, basePrice: 100000, maxPrice: 500000, unitLabelKey: 'perItem' },
+  { id: 'vehicle-machinery',  icon: '⚙️', categoryKey: 'vehicles', pricingMode: 'quote' as const },
+  { id: 'custom',           icon: '✨', categoryKey: 'other', pricingMode: 'quote' as const },
 ];
 
-const categories = ['Tất cả', 'Nội thất', 'Điện tử', 'Khác'];
-
-const districtSuggestions = [
-  'Quận 1',
-  'Quận 3',
-  'Quận 7',
-  'Phú Nhuận',
-  'Bình Thạnh',
-  'Thủ Đức',
-];
-
-const citySuggestions = ['TP. Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng'];
 const stairsBaseFee = 50000;
 const stairsPerFloorFee = 30000;
 
-function getCategoryFromPrefill(selectedWaste?: string) {
-  if (!selectedWaste) {
-    return 'Tất cả';
+const swedenLocationData = {
+  provinces: [
+    { code: 1001, name: "Stockholm" },
+    { code: 1002, name: "Uppsala" },
+    { code: 1003, name: "Södermanland" },
+    { code: 1004, name: "Östergötland" },
+    { code: 1005, name: "Jönköping" },
+    { code: 1006, name: "Kronoberg" },
+    { code: 1007, name: "Kalmar" },
+    { code: 1008, name: "Gotland" },
+    { code: 1009, name: "Blekinge" },
+    { code: 1010, name: "Skåne" },
+    { code: 1011, name: "Halland" },
+    { code: 1012, name: "Västra Götaland" },
+    { code: 1013, name: "Värmland" },
+    { code: 1014, name: "Örebro" },
+    { code: 1015, name: "Västmanland" },
+    { code: 1016, name: "Dalarna" },
+    { code: 1017, name: "Gävleborg" },
+    { code: 1018, name: "Västernorrland" },
+    { code: 1019, name: "Jämtland" },
+    { code: 1020, name: "Västerbotten" },
+    { code: 1021, name: "Norrbotten" }
+  ],
+  districts: {
+    1001: [
+      { code: 100101, name: "Stockholm City" },
+      { code: 100102, name: "Solna" },
+      { code: 100103, name: "Sundbyberg" },
+      { code: 100104, name: "Nacka" },
+      { code: 100105, name: "Huddinge" },
+      { code: 100106, name: "Täby" },
+      { code: 100107, name: "Södertälje" }
+    ],
+    1010: [
+      { code: 101001, name: "Malmö" },
+      { code: 101002, name: "Lund" },
+      { code: 101003, name: "Helsingborg" },
+      { code: 101004, name: "Kristianstad" }
+    ],
+    1012: [
+      { code: 101201, name: "Göteborg" },
+      { code: 101202, name: "Borås" },
+      { code: 101203, name: "Mölndal" },
+      { code: 101204, name: "Trollhättan" }
+    ],
+    1002: [
+      { code: 100201, name: "Uppsala City" },
+      { code: 100202, name: "Enköping" }
+    ]
   }
+};
 
-  if (selectedWaste.includes('Nội thất')) {
-    return 'Nội thất';
+
+/**
+ * Task 3: Map lang-agnostic hero option key → BookingModal category.
+ * Nếu Hero truyền đúng key ('furniture', 'electronics'...) → dùng map trong store.
+ * Fallback: dùng chính giá trị đó nếu nó đã là category id hợp lệ.
+ */
+function getCategoryFromPrefill(selectedWaste?: string): string {
+  if (!selectedWaste) return 'all';
+  const validCategories = ['furniture', 'electronics', 'metals', 'plastics', 'paper', 'clothes', 'vehicles', 'other'];
+  if (validCategories.includes(selectedWaste)) {
+    return selectedWaste;
   }
-
-  if (selectedWaste.includes('điện tử') || selectedWaste.includes('Điện tử')) {
-    return 'Điện tử';
+  if (isHeroQuickOption(selectedWaste)) {
+    return HERO_OPTION_TO_CATEGORY[selectedWaste];
   }
-
-  return 'Khác';
+  // Legacy fallback: nếu vẫn còn code cũ truyền Vietnamese text
+  const waste = selectedWaste.toLowerCase();
+  if (waste.includes('nội thất')) return 'furniture';
+  if (waste.includes('điện tử')) return 'electronics';
+  return 'other';
 }
 
-function formatPrice(amount: number) {
-  return priceFormatter.format(amount);
+function formatPrice(amount: number, lang: string) {
+  return getPriceFormatter(lang).format(amount);
 }
 
-function getDisplayPrice(service: WasteService) {
+function getDisplayPrice(service: WasteService, lang: string, t: any) {
   if (service.pricingMode === 'quote') {
-    return 'Cần báo giá';
+    return t('booking.quoteLabel');
   }
 
   const price = service.options?.[0]?.price ?? service.basePrice ?? 0;
-  if (service.unitLabel === '/kg') {
-    return `${formatPrice(price)}/kg`;
+  
+  if (service.maxPrice) {
+    return `${formatPrice(price, lang)} - ${formatPrice(service.maxPrice, lang)}${service.unitLabel ?? ''}`;
   }
 
-  return `Từ ${formatPrice(price)}`;
+  if (service.unitLabel === '/kg') {
+    return `${formatPrice(price, lang)}/kg`;
+  }
+
+  return `Từ ${formatPrice(price, lang)}`;
 }
 
 function createSelectedItem(service: WasteService, optionId?: string): SelectedWasteItem {
@@ -282,21 +358,85 @@ function getSelectionMeta(item: SelectedWasteItem) {
   return `x${item.quantity}`;
 }
 
-function isLikelyValidAddress(streetAddress: string, district: string, city: string) {
-  const hasStreetNumber = /\d/.test(streetAddress);
-  const hasStreetName = /[a-zA-ZÀ-ỹ]/.test(streetAddress);
-  const hasDistrict = district.trim().length >= 2;
-  const hasCity = city.trim().length >= 2;
+function formatLocalDateValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
 
-  return hasStreetNumber && hasStreetName && hasDistrict && hasCity;
+  return `${year}-${month}-${day}`;
 }
 
-export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose, prefill }: BookingModalProps) {
+function createAvailableDateOption(date: Date, lang: string): AvailableDateOption {
+  return {
+    value: formatLocalDateValue(date),
+    label: getBookingDateLabelFormatter(lang).format(date),
+    weekdayLabel: getBookingDateWeekdayFormatter(lang).format(date),
+    dayLabel: getBookingDateDayFormatter(lang).format(date),
+    monthLabel: getBookingDateMonthFormatter(lang).format(date),
+  };
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuthClick, onClose, onSubmit, prefill }: BookingModalProps) {
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language;
   const contentRef = useRef<HTMLDivElement | null>(null);
+
+  const [livePricing] = useSyncStore(STORAGE_KEYS.pricing, defaultPricing);
+
+  const wasteServices = useMemo<WasteService[]>(() => {
+    return wasteServiceDefs.map((def) => {
+      const livePriceRec = livePricing.find(p => p.id === def.id);
+      const svcT = t(`booking.services.${def.id}`, { returnObjects: true }) as Record<string, any>;
+      const unitLabel = def.unitLabelKey ? t(`booking.unitLabels.${def.unitLabelKey}`) : '';
+      const options = def.optionDefs?.map((opt) => ({
+        id: opt.id,
+        label: t(`booking.services.wardrobe.options.${opt.id}`, opt.id),
+        price: opt.price, // We could also sync option prices if needed later
+        unitLabel: t(`booking.unitLabels.${opt.unitLabelKey}`),
+      }));
+      return {
+        id: def.id,
+        name: svcT?.name ?? def.id,
+        icon: def.icon,
+        description: svcT?.desc ?? '',
+        category: def.categoryKey,
+        pricingMode: def.pricingMode,
+        basePrice: livePriceRec?.price ?? def.basePrice,
+        maxPrice: (def as any).maxPrice,
+        unitLabel,
+        options,
+        note: svcT?.note,
+      };
+    });
+  }, [t, livePricing]);
+
+  const categories = useMemo(() => [
+    { key: 'all',         label: t('booking.categoryAll') },
+    { key: 'furniture',   label: t('booking.categories.furniture') },
+    { key: 'electronics', label: t('booking.categories.electronics') },
+    { key: 'metals',      label: t('booking.categories.metals') },
+    { key: 'plastics',    label: t('booking.categories.plastics') },
+    { key: 'paper',       label: t('booking.categories.paper') },
+    { key: 'clothes',     label: t('booking.categories.clothes') },
+    { key: 'vehicles',    label: t('booking.categories.vehicles') },
+    { key: 'other',       label: t('booking.categories.other') },
+  ], [t]);
+
+  const hasPrefilled = useRef(false);
+  const activeSubmitIdRef = useRef(0);
+  const isMountedRef = useRef(true);
   const [step, setStep] = useState(1);
   const [selectedItems, setSelectedItems] = useState<SelectedWasteItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('Tất cả');
+  const [activeCategory, setActiveCategory] = useState('all');
   const [customItemName, setCustomItemName] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [streetAddress, setStreetAddress] = useState('');
@@ -304,16 +444,23 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
   const [city, setCity] = useState('TP. Hồ Chí Minh');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<UploadedImage | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [handlingMode, setHandlingMode] = useState<HandlingMode>('inside');
-  const [stairsFloors, setStairsFloors] = useState(2);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const [cashPolicyAccepted, setCashPolicyAccepted] = useState(false);
+  const [stairsFloors, _setStairsFloors] = useState(2);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
+  const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
+
   const [nameTouched, setNameTouched] = useState(false);
   const [streetTouched, setStreetTouched] = useState(false);
   const [districtTouched, setDistrictTouched] = useState(false);
@@ -321,6 +468,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
   const [emailTouched, setEmailTouched] = useState(false);
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [serviceStepTouched, setServiceStepTouched] = useState(false);
+  const [scheduleStepTouched, setScheduleStepTouched] = useState(false);
 
   const timeSlots = [
     '08:00 - 10:00',
@@ -334,19 +482,14 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
   const getAvailableDates = () => {
     return Array.from({ length: 14 }, (_, index) => {
       const date = new Date();
+      date.setHours(12, 0, 0, 0);
       date.setDate(date.getDate() + index + 1);
 
-      return {
-        value: date.toISOString().split('T')[0],
-        label: date.toLocaleDateString('vi-VN', {
-          weekday: 'short',
-          day: 'numeric',
-          month: 'short',
-        }),
-      };
+      return createAvailableDateOption(date, currentLang);
     });
   };
 
+  const availableDates = getAvailableDates();
   const selectedCustomItem = selectedItems.find((item) => item.id === 'custom');
   const hasQuoteItems = selectedItems.some((item) => item.pricingMode === 'quote');
 
@@ -355,13 +498,13 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
   const isStreetAddressValid = streetAddress.trim().length >= 5;
   const isDistrictValid = district.trim().length >= 2;
   const isCityValid = city.trim().length >= 2;
-  const isAddressValid = isLikelyValidAddress(streetAddress, district, city);
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const normalizedPhone = phone.replace(/\s+/g, '');
+  const selectedDateLabel = availableDates.find((date) => date.value === selectedDate)?.label ?? selectedDate;
   const isPhoneValid = /^(0|\+84)\d{9,10}$/.test(normalizedPhone);
+
   const canProceedStep1 =
     selectedItems.length > 0 &&
-    uploadedImage !== null &&
     selectedItems.every((item) => !isWeightBasedItem(item) || (item.measurementValue ?? 0) > 0) &&
     (!selectedCustomItem || customItemName.trim().length >= 3);
   const canProceedStep2 =
@@ -369,11 +512,10 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
     isStreetAddressValid &&
     isDistrictValid &&
     isCityValid &&
-    isAddressValid &&
     isPhoneValid &&
     isEmailValid;
   const canProceedStep3 = selectedDate !== '' && selectedTime !== '';
-  const canSubmit = canProceedStep2 && canProceedStep3 && (paymentMethod !== 'cash' || cashPolicyAccepted);
+  const canSubmit = canProceedStep2 && canProceedStep3;
 
   const serviceHandlingFee =
     handlingMode === 'outside'
@@ -384,10 +526,10 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
 
   const handlingLabel =
     handlingMode === 'outside'
-      ? 'Để đồ bên ngoài'
+      ? t('booking.handling.outside')
       : handlingMode === 'stairs'
-        ? `Vác thang bộ (${stairsFloors} tầng)`
-        : 'Vào tận nhà bê đồ';
+        ? `${t('booking.handling.stairs')} (${stairsFloors} tầng)`
+        : t('booking.handling.inside');
 
   const calculateTotal = () => {
     return selectedItems.reduce((total, item) => {
@@ -403,42 +545,46 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
     const total = calculateTotal() + serviceHandlingFee;
 
     if (hasQuoteItems && total > 0) {
-      return `Từ ${formatPrice(total)}`;
+      return `Từ ${formatPrice(total, currentLang)}`;
     }
 
     if (hasQuoteItems) {
-      return 'Cần báo giá';
+      return t('booking.quoteLabel');
     }
 
-    return formatPrice(total);
+    return formatPrice(total, currentLang);
   };
 
   const getLineItemLabel = (item: SelectedWasteItem) => {
     if (item.pricingMode === 'quote') {
-      return 'Cần báo giá';
+      return t('booking.quoteLabel');
     }
 
     const lineTotal = item.basePrice * getBillingAmount(item);
-    return item.pricingMode === 'estimate' ? `Tạm tính ${formatPrice(lineTotal)}` : formatPrice(lineTotal);
+    return item.pricingMode === 'estimate' ? `Tạm tính ${formatPrice(lineTotal, currentLang)}` : formatPrice(lineTotal, currentLang);
   };
 
-  const filteredServices = wasteServices.filter((service) => {
-    const matchesCategory = activeCategory === 'Tất cả' || service.category === activeCategory;
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const haystack = `${service.name} ${service.description}`.toLowerCase();
+  const filteredServices = useMemo(() => {
+    return wasteServices.filter((service) => {
+      const matchesCategory = activeCategory === 'all' || service.category === activeCategory;
+      const normalizedQuery = searchQuery.trim().toLowerCase();
+      const haystack = `${service.name} ${service.description}`.toLowerCase();
+      return matchesCategory && (normalizedQuery === '' || haystack.includes(normalizedQuery));
+    });
+  }, [wasteServices, activeCategory, searchQuery]);
 
-    return matchesCategory && (normalizedQuery === '' || haystack.includes(normalizedQuery));
-  });
+  const groupedServices = useMemo(() => {
+    return categories
+      .filter((cat) => cat.key !== 'all')
+      .map((cat) => ({
+        categoryKey: cat.key,
+        categoryLabel: cat.label,
+        items: filteredServices.filter((service) => service.category === cat.key),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [categories, filteredServices]);
 
-  const groupedServices = categories
-    .filter((category) => category !== 'Tất cả')
-    .map((category) => ({
-      category,
-      items: filteredServices.filter((service) => service.category === category),
-    }))
-    .filter((group) => group.items.length > 0);
-
-  const selectService = (service: WasteService) => {
+  const selectService = useCallback((service: WasteService) => {
     setSelectedItems((currentItems) => {
       const existingItem = currentItems.find((item) => item.id === service.id);
 
@@ -448,9 +594,9 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
 
       return [...currentItems, createSelectedItem(service)];
     });
-  };
+  }, []);
 
-  const selectServiceOption = (service: WasteService, option: ServiceOption) => {
+  const selectServiceOption = useCallback((service: WasteService, option: ServiceOption) => {
     setSelectedItems((currentItems) => {
       const existingItem = currentItems.find((item) => item.id === service.id);
 
@@ -471,9 +617,9 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
           : item,
       );
     });
-  };
+  }, []);
 
-  const updateQuantity = (id: string, change: number) => {
+  const updateQuantity = useCallback((id: string, change: number) => {
     setSelectedItems((currentItems) =>
       currentItems.map((item) => {
         if (item.id !== id) {
@@ -486,9 +632,9 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
         };
       }),
     );
-  };
+  }, []);
 
-  const updateMeasurementValue = (id: string, value: number) => {
+  const updateMeasurementValue = useCallback((id: string, value: number) => {
     setSelectedItems((currentItems) =>
       currentItems.map((item) => {
         if (item.id !== id) {
@@ -501,23 +647,104 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
         };
       }),
     );
-  };
+  }, []);
 
-  const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    event.target.value = '';
 
     if (!file) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setUploadedImage(reader.result as string);
+    const fileName = file.name.toLowerCase();
+    const hasImageMimeType = file.type.startsWith('image/');
+    const hasImageExtension = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif'].some((extension) =>
+      fileName.endsWith(extension),
+    );
+
+    if (!hasImageMimeType && !hasImageExtension) {
+      setImageError('Chỉ hỗ trợ file ảnh cho phần đính kèm tham khảo.');
+      return;
+    }
+
+    if (file.size > maxUploadImageSizeBytes) {
+      setImageError(`Ảnh vượt quá ${formatFileSize(maxUploadImageSizeBytes)}. Vui lòng chọn file nhỏ hơn.`);
+      return;
+    }
+
+    setImageError(null);
+    setUploadedImage({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    });
+  }, []);
+
+  const buildSubmissionPayload = (): BookingSubmissionPayload => {
+    const subtotal = calculateTotal();
+    const total = subtotal + serviceHandlingFee;
+
+    return {
+      submittedAt: new Date().toISOString(),
+      customer: {
+        name: customerName.trim(),
+        email: email.trim(),
+        phone: normalizedPhone,
+        notes: notes.trim(),
+        address: {
+          streetAddress: streetAddress.trim(),
+          district: district.trim(),
+          city: city.trim(),
+          fullAddress,
+        },
+        isGuest: currentUser === null,
+      },
+      schedule: {
+        date: selectedDate,
+        timeSlot: selectedTime,
+      },
+      services: {
+        items: selectedItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          icon: item.icon,
+          pricingMode: item.pricingMode,
+          quantity: item.quantity,
+          measurementValue: item.measurementValue,
+          basePrice: item.basePrice,
+          unitLabel: item.unitLabel,
+          selectedOptionId: item.selectedOptionId,
+          selectedOptionLabel: item.selectedOptionLabel,
+          billingAmount: getBillingAmount(item),
+          estimatedLineTotal: item.pricingMode === 'quote' ? null : item.basePrice * getBillingAmount(item),
+        })),
+        handlingMode,
+        handlingLabel,
+        stairsFloors: handlingMode === 'stairs' ? stairsFloors : null,
+        handlingFee: serviceHandlingFee,
+        subtotal,
+        total,
+        hasQuoteItems,
+      },
+      payment: {
+        method: paymentMethod,
+        cashPolicyAccepted: true,
+      },
+      attachments: {
+        imageFile: uploadedImage?.file ?? null,
+        imagePreviewUrl: uploadedImage?.previewUrl ?? null,
+        imageFileName: uploadedImage?.file.name ?? null,
+        imageFileSize: uploadedImage?.file.size ?? null,
+        imageFileType: uploadedImage?.file.type ?? null,
+      },
     };
-    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) {
+      return;
+    }
+
     setEmailTouched(true);
     setPhoneTouched(true);
 
@@ -525,33 +752,61 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
       return;
     }
 
+    const submitId = activeSubmitIdRef.current + 1;
+    activeSubmitIdRef.current = submitId;
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1800));
-    setIsSubmitting(false);
-    setIsSuccess(true);
+    setSubmitError(null);
+
+    try {
+      await onSubmit(buildSubmissionPayload());
+
+      if (!isMountedRef.current || activeSubmitIdRef.current !== submitId) {
+        return;
+      }
+
+      setIsSuccess(true);
+    } catch (error) {
+      if (!isMountedRef.current || activeSubmitIdRef.current !== submitId) {
+        return;
+      }
+
+      setSubmitError(error instanceof Error ? error.message : 'Khong the gui booking. Vui long thu lai.');
+    } finally {
+      if (isMountedRef.current && activeSubmitIdRef.current === submitId) {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  const getSubmitError = () => {
+    if (submitError) return submitError;
+    if (serviceStepTouched && !canProceedStep1) return "Vui lòng chọn ít nhất một hạng mục.";
+    if (scheduleStepTouched && !canProceedStep3) return "Vui lòng chọn ngày và giờ thu gom.";
+    return null;
   };
 
   const resetForm = () => {
     setStep(1);
     setSelectedItems([]);
     setSearchQuery('');
-    setActiveCategory('Tất cả');
+    setActiveCategory('all');
     setCustomItemName('');
     setCustomerName('');
+    setEmail('');
+    setPhone('');
+    setNotes('');
+    setHandlingMode('inside');
+    setPaymentMethod('cash');
     setStreetAddress('');
     setDistrict('');
     setCity('TP. Hồ Chí Minh');
     setSelectedDate('');
     setSelectedTime('');
     setUploadedImage(null);
-    setEmail('');
-    setPhone('');
-    setNotes('');
-    setHandlingMode('inside');
-    setStairsFloors(2);
-    setPaymentMethod('cash');
-    setCashPolicyAccepted(false);
+    setImageError(null);
+    setIsSubmitting(false);
     setIsSuccess(false);
+    setSubmitError(null);
     setNameTouched(false);
     setStreetTouched(false);
     setDistrictTouched(false);
@@ -559,6 +814,8 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
     setEmailTouched(false);
     setPhoneTouched(false);
     setServiceStepTouched(false);
+    setScheduleStepTouched(false);
+    hasPrefilled.current = false;
   };
 
   const handleNext = () => {
@@ -581,18 +838,39 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
       }
     }
 
-    if (step === 3 && !canProceedStep3) {
-      return;
+    if (step === 3) {
+      setScheduleStepTouched(true);
+      if (!canProceedStep3) {
+        return;
+      }
     }
 
     setStep((currentStep) => currentStep + 1);
   };
 
   useEffect(() => {
-    if (!isOpen) {
-      setTimeout(resetForm, 300);
+    if (isOpen) {
+      return;
     }
+
+    activeSubmitIdRef.current += 1;
+    resetForm();
   }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      activeSubmitIdRef.current += 1;
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (uploadedImage) {
+        URL.revokeObjectURL(uploadedImage.previewUrl);
+      }
+    };
+  }, [uploadedImage]);
 
   useEffect(() => {
     if (!currentUser || !isOpen) {
@@ -602,6 +880,9 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
     setCustomerName((currentName) => currentName || currentUser.name);
     setEmail((currentEmail) => currentEmail || currentUser.email);
     setPhone((currentPhone) => currentPhone || currentUser.phone);
+    setStreetAddress((currentStreet) => currentStreet || currentUser.streetAddress || '');
+    setDistrict((currentDistrict) => currentDistrict || currentUser.district || '');
+    setCity((currentCity) => (currentCity === 'TP. Hồ Chí Minh' || !currentCity) ? (currentUser.city || currentCity) : currentCity);
   }, [currentUser, isOpen]);
 
   useEffect(() => {
@@ -609,19 +890,103 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
       return;
     }
 
-    if (prefill.selectedWaste && searchQuery === '') {
-      setSearchQuery(prefill.selectedWaste);
-      setActiveCategory(getCategoryFromPrefill(prefill.selectedWaste));
+    if (!hasPrefilled.current) {
+      if (prefill.selectedWaste) {
+        const category = getCategoryFromPrefill(prefill.selectedWaste);
+        setActiveCategory(category);
+        // Task 3: chỉ set search query nếu selectedWaste là service ID cụ thể,
+        // không phải category-level option (hero quick options luôn là category-level)
+        const isQuickOption = isHeroQuickOption(prefill.selectedWaste);
+        const validCategories = ['furniture', 'electronics', 'metals', 'plastics', 'paper', 'clothes', 'vehicles', 'other'];
+        const isCategoryKey = validCategories.includes(prefill.selectedWaste);
+
+        if (!isQuickOption && !isCategoryKey) {
+          // service id cụ thể: tìm và pre-select
+          const targetService = wasteServices.find((s) => s.id === prefill.selectedWaste);
+          if (targetService) {
+            setSelectedItems([createSelectedItem(targetService)]);
+          } else {
+            setSearchQuery(prefill.selectedWaste);
+          }
+        } else {
+          // category-level quick option: chỉ set category, clear search
+          setSearchQuery('');
+        }
+      }
+
+      if (prefill.address) {
+        setStreetAddress(prefill.address);
+        setCity('');
+        setDistrict('');
+      }
+
+
+      
+      hasPrefilled.current = true;
+    }
+  }, [isOpen, prefill, wasteServices]);
+
+  useEffect(() => {
+    const fetchProvinces = async () => {
+      if (currentLang === 'sv') {
+        setProvinces(swedenLocationData.provinces);
+        setCity('');
+        setDistrict('');
+        return;
+      }
+
+      setIsLoadingProvinces(true);
+      try {
+        const response = await fetch('https://provinces.open-api.vn/api/p/');
+        if (response.ok) {
+          const data = await response.json();
+          setProvinces(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching provinces:', error);
+      } finally {
+        setIsLoadingProvinces(false);
+      }
+    };
+
+    fetchProvinces();
+  }, [currentLang]);
+
+  useEffect(() => {
+    if (!city || provinces.length === 0) {
+      setDistricts([]);
+      return;
     }
 
-    if (prefill.address && streetAddress === '') {
-      setStreetAddress(prefill.address);
+    const province = provinces.find((p) => p.name === city);
+    if (!province) {
+      setDistricts([]);
+      return;
     }
 
-    if (prefill.handlingGoal && notes === '') {
-      setNotes(`Yêu cầu từ form nhanh: ${prefill.handlingGoal}.`);
-    }
-  }, [isOpen, notes, prefill, searchQuery, streetAddress]);
+    const fetchDistricts = async () => {
+      if (currentLang === 'sv') {
+        const swedishDistricts = (swedenLocationData.districts as any)[province.code] || [];
+        setDistricts(swedishDistricts);
+        return;
+      }
+
+      setIsLoadingDistricts(true);
+      try {
+        const response = await fetch(`https://provinces.open-api.vn/api/p/${province.code}?depth=2`);
+        if (response.ok) {
+          const data = await response.json();
+          setDistricts(data.districts || []);
+        }
+      } catch (error) {
+        console.error('Error fetching districts:', error);
+      } finally {
+        setIsLoadingDistricts(false);
+      }
+    };
+
+    fetchDistricts();
+  }, [city, provinces, currentLang]);
 
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -630,17 +995,22 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0B1511]/70 p-4 backdrop-blur-md">
-      <div className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-[32px] bg-white shadow-[0_30px_120px_rgba(0,0,0,0.32)] animate-fadeInUp">
-        <div className="bg-[linear-gradient(135deg,_#103B2D_0%,_#18543F_55%,_#1D6B4E_100%)] p-6 text-white">
+    <div className="fixed inset-0 z-100 flex items-center justify-center p-4 [perspective:1000px]">
+      <div 
+        className="absolute inset-0 bg-[#0B1511]/60 backdrop-blur-sm transition-opacity duration-300" 
+        onClick={onClose}
+      />
+      
+      <div className="relative max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-[32px] bg-white shadow-[0_20px_80px_rgba(0,0,0,0.25)] animate-fadeInUp flex flex-col transform-gpu [backface-visibility:hidden]">
+        <div className="shrink-0 bg-[linear-gradient(135deg,#103B2D_0%,#18543F_55%,#1D6B4E_100%)] p-6 text-white">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#A7E8B6]">
-                EcoCollect booking flow
+                {t('booking.badge')}
               </p>
-              <h2 className="text-3xl font-bold">Đặt lịch thu gom thông minh</h2>
+              <h2 className="text-3xl font-bold">{t('booking.title')}</h2>
               <p className="mt-2 max-w-2xl text-sm text-white/75">
-                Chọn đúng loại rác và số lượng. Một số món cồng kềnh có phân loại kích thước, còn phế thải xây dựng sẽ nhập trực tiếp theo kg.
+                {t('booking.subtitle')}
               </p>
             </div>
             <button
@@ -656,17 +1026,17 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
           {!isSuccess && (
             <div className="mt-6 grid gap-2 sm:grid-cols-4">
               {[
-                { stepNumber: 1, label: 'Chọn dịch vụ' },
-                { stepNumber: 2, label: 'Địa chỉ' },
-                { stepNumber: 3, label: 'Lịch hẹn' },
-                { stepNumber: 4, label: 'Xác nhận' },
+                { stepNumber: 1, label: t('booking.steps.items') },
+                { stepNumber: 2, label: t('booking.steps.address') },
+                { stepNumber: 3, label: t('booking.steps.schedule') },
+                { stepNumber: 4, label: t('booking.steps.confirm') },
               ].map((progress) => (
                 <div
                   key={progress.stepNumber}
                   className={`rounded-2xl border px-4 py-3 text-sm transition-colors ${
                     step >= progress.stepNumber
                       ? 'border-[#8DE0A6]/40 bg-[#8DE0A6]/12 text-white'
-                      : 'border-white/10 bg-white/[0.06] text-white/60'
+                      : 'border-white/10 bg-white/6 text-white/60'
                   }`}
                 >
                   <div className="mb-1 text-xs uppercase tracking-[0.18em] text-white/50">
@@ -681,70 +1051,108 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
 
         <div
           ref={contentRef}
-          className="overflow-y-auto p-6"
-          style={{ maxHeight: 'calc(92vh - 226px)' }}
+          className="flex-1 overflow-y-auto overflow-x-hidden p-6 [scrollbar-gutter:stable] [scroll-behavior:auto] [-webkit-overflow-scrolling:touch] [contain:content] transform-gpu"
         >
           {isSuccess ? (
-            <div className="py-10 text-center">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#EAF8EE]">
-                <span className="text-4xl">✅</span>
-              </div>
-              <h3 className="mb-2 text-3xl font-bold text-[#103B2D]">Đặt lịch thành công</h3>
-              <p className="mx-auto mb-8 max-w-xl text-gray-600">
-                Chúng tôi đã gửi email xác nhận đến {email}. Đơn hàng sẽ tiếp tục được phân tuyến để ưu tiên xử lý xanh và tối ưu chuyến xe.
-              </p>
-              <div className="mx-auto mb-8 max-w-2xl rounded-[28px] bg-[#F5FBF6] p-5 text-left">
-                <h4 className="mb-4 font-semibold text-[#103B2D]">Tóm tắt đơn hàng</h4>
-                <div className="space-y-2 text-sm text-[#476458]">
-                  <p>👤 {customerName}</p>
-                  <p>📞 {phone}</p>
-                  <p>📧 {email}</p>
-                  <p>📍 {fullAddress}</p>
-                  <p>📅 {selectedDate} • {selectedTime}</p>
-                  <p>🚚 {handlingLabel}</p>
-                  <p>💰 {getTotalLabel()}</p>
-                  {hasQuoteItems && (
-                    <p className="text-[#2F855A]">Một số hạng mục sẽ được đội vận hành xác nhận báo giá thủ công.</p>
-                  )}
+            <div className="py-8 px-2">
+              {/* ── Animated success badge ── */}
+              <div className="flex flex-col items-center text-center">
+                <div className="relative mb-6">
+                  <div className="h-24 w-24 rounded-full bg-[#EAF8EE] flex items-center justify-center shadow-[0_0_0_8px_rgba(47,133,90,0.08)]">
+                    <svg className="h-12 w-12 text-[#2F855A]" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="absolute -right-1 -top-1 text-2xl">🎉</span>
+                </div>
+
+                <h3 className="text-3xl font-bold text-[#103B2D]">{t('booking.success.title')}</h3>
+                <p className="mt-2 max-w-md text-[#5D776A]">
+                  {t('booking.success.desc', { email })}
+                </p>
+
+                {/* Order code pill */}
+                <div className="mt-4 flex items-center gap-2 rounded-full border border-[#C3E5CE] bg-[#F3FBF5] px-5 py-2">
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#6D877A]">Mã đơn hàng</span>
+                  <span className="font-mono text-lg font-bold text-[#103B2D]">
+                    EC-{Math.random().toString(36).slice(2, 8).toUpperCase()}
+                  </span>
                 </div>
               </div>
-              {!currentUser && (
-                <div className="mx-auto mb-8 max-w-2xl rounded-[28px] border border-[#D6EEDD] bg-white p-5 text-left shadow-[0_16px_40px_rgba(15,61,46,0.05)]">
-                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">
-                    Tạo tài khoản sau đơn đầu tiên
-                  </p>
-                  <h4 className="mt-2 text-2xl font-bold text-[#103B2D]">
-                    Lưu thông tin đơn này và nhận voucher cho lần tiếp theo
-                  </h4>
-                  <p className="mt-3 text-sm leading-6 text-[#476458]">
-                    Bạn vừa đặt lịch thành công với chế độ guest checkout. Nếu tạo tài khoản ngay bây giờ,
-                    hệ thống sẽ lưu email này làm hồ sơ thành viên, giúp các lần đặt sau nhanh hơn và có ưu đãi riêng.
-                  </p>
-                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                    <button
-                      type="button"
-                      onClick={() => onAuthClick('register')}
-                      className="rounded-full bg-[#103B2D] px-6 py-3 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5"
-                    >
-                      Tạo tài khoản nhận voucher
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onAuthClick('login')}
-                      className="rounded-full border border-[#D6EEDD] px-6 py-3 font-semibold text-[#103B2D] transition-colors hover:bg-[#F5FBF6]"
-                    >
-                      Tôi đã có tài khoản
-                    </button>
+
+              {/* ── Order summary card ── */}
+              <div className="mt-8 rounded-[28px] border border-[#D7ECDD] bg-[#F9FCF9] p-6 space-y-5">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8AA89A]">Chi tiết đơn hàng</p>
+
+                {/* Items */}
+                <div className="space-y-2">
+                  {selectedItems.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between rounded-[18px] bg-white px-4 py-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{item.icon}</span>
+                        <div>
+                          <p className="font-semibold text-[#103B2D] text-sm">{item.name}</p>
+                          <p className="text-xs text-[#8AA89A]">×{item.quantity}</p>
+                        </div>
+                      </div>
+                      <p className="font-semibold text-[#2F855A] text-sm">
+                        {item.pricingMode === 'quote'
+                          ? 'Báo giá'
+                          : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(
+                              item.basePrice * getBillingAmount(item)
+                            )}
+                      </p>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between rounded-[18px] bg-[#103B2D] px-4 py-3">
+                    <p className="text-sm font-bold text-[#A7E8B6]">Tổng cộng</p>
+                    <p className="text-lg font-bold text-white">{getTotalLabel()}</p>
                   </div>
                 </div>
-              )}
-              <button
-                onClick={onClose}
-                className="rounded-full bg-[#103B2D] px-8 py-3 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5"
-              >
-                Đóng
-              </button>
+
+                {/* Info grid */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    { icon: '👤', label: 'Khách hàng', value: customerName },
+                    { icon: '📞', label: 'Số điện thoại', value: phone },
+                    { icon: '📧', label: 'Email', value: email },
+                    { icon: '📅', label: 'Lịch hẹn', value: `${selectedDateLabel} • ${selectedTime}` },
+                    { icon: '📍', label: 'Địa chỉ', value: fullAddress },
+                    { icon: '🚚', label: 'Hình thức', value: handlingLabel },
+                    {
+                      icon: '💳',
+                      label: 'Thanh toán',
+                      value: paymentMethod === 'cash' ? 'Thanh toán khi thu gom' : 'Chuyển khoản ngân hàng',
+                    },
+                  ].map(({ icon, label, value }) => (
+                    <div key={label} className="rounded-[18px] bg-white px-4 py-3 shadow-sm">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#8AA89A]">{label}</p>
+                      <p className="mt-1 flex items-start gap-2 text-sm font-semibold text-[#103B2D]">
+                        <span>{icon}</span>
+                        <span>{value || '—'}</span>
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── CTA buttons ── */}
+              <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                <button
+                  onClick={onClose}
+                  className="rounded-full bg-[#103B2D] px-10 py-3.5 font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(16,59,45,0.25)]"
+                >
+                  Về trang chủ
+                </button>
+                <button
+                  onClick={() => { resetForm(); setStep(1); }}
+                  className="rounded-full border border-[#C3E5CE] bg-white px-10 py-3.5 font-semibold text-[#2F855A] transition-all hover:bg-[#F3FBF5]"
+                >
+                  Đặt thêm đơn
+                </button>
+              </div>
             </div>
+
           ) : (
             <>
               {step === 1 && (
@@ -753,57 +1161,53 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                     <div className="mb-5 rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-5">
                       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div>
-                          <h3 className="text-xl font-bold text-[#103B2D]">Chọn loại rác cần thu gom</h3>
-                          <p className="mt-1 text-sm text-[#476458]">
-                            Giữ cách chọn sản phẩm đơn giản như ban đầu, nhưng thêm phân loại kích thước cho món cồng kềnh và mục riêng cho hạng mục ngoài danh sách.
-                          </p>
+                          <h3 className="text-xl font-bold text-[#103B2D]">{t('booking.steps.items')}</h3>
                         </div>
                         <div className="rounded-2xl bg-white px-4 py-3 text-sm text-[#476458]">
-                          Tổng món đã chọn: <span className="font-semibold text-[#103B2D]">{selectedItems.length}</span>
+                          {t('booking.selectedCount', { count: selectedItems.length })}
                         </div>
                       </div>
 
-                      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
-                        <input
-                          type="text"
-                          value={searchQuery}
-                          onChange={(event) => setSearchQuery(event.target.value)}
-                          placeholder="Tìm vật phẩm: sofa, tủ quần áo, xe máy điện..."
-                          className="w-full rounded-2xl border border-[#D6EEDD] bg-white px-4 py-3 text-sm outline-none transition-colors placeholder:text-[#789185] focus:border-[#22C55E]"
-                        />
+                      <div className="mt-4 flex flex-col gap-4">
+                        <div className="relative">
+                          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#789185]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(event) => setSearchQuery(event.target.value)}
+                            placeholder={t('booking.searchPlaceholder')}
+                            className="w-full rounded-2xl border border-[#D6EEDD] bg-white pl-11 pr-4 py-3.5 text-sm outline-none transition-colors placeholder:text-[#789185] hover:border-[#22C55E]/50 focus:border-[#22C55E] focus:ring-4 focus:ring-[#22C55E]/10"
+                          />
+                        </div>
                         <div className="flex flex-wrap gap-2">
-                          {categories.map((category) => (
+                          {categories.map((cat) => (
                             <button
-                              key={category}
+                              key={cat.key}
                               type="button"
-                              onClick={() => setActiveCategory(category)}
+                              onClick={() => setActiveCategory(cat.key)}
                               className={`rounded-full px-4 py-3 text-sm font-semibold transition-colors ${
-                                activeCategory === category
+                                activeCategory === cat.key
                                   ? 'bg-[#103B2D] text-white'
                                   : 'bg-white text-[#476458] hover:bg-[#EAF8EE]'
                               }`}
                             >
-                              {category}
+                              {cat.label}
                             </button>
                           ))}
                         </div>
                       </div>
-
-                      {serviceStepTouched && !canProceedStep1 && (
-                        <p className="mt-4 text-sm font-medium text-red-500">
-                          Vui lòng chọn ít nhất một dịch vụ và tải ảnh vật cần chuyển trước khi sang bước 2. Với phế thải xây dựng, hãy nhập khối lượng lớn hơn 0 kg. Với hạng mục khác, hãy nhập tên món rõ ràng.
-                        </p>
-                      )}
                     </div>
 
                     <div className="space-y-6">
                       {groupedServices.map((group) => (
-                        <section key={group.category}>
+                        <section key={group.categoryKey}>
                           <div className="mb-3 flex items-center justify-between">
                             <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2F855A]">
-                              {group.category}
+                              {group.categoryLabel}
                             </h4>
-                            <span className="text-xs text-[#789185]">{group.items.length} lựa chọn</span>
+                            <span className="text-xs text-[#789185]">{group.items.length} {t('booking.choices')}</span>
                           </div>
 
                           <div className="grid gap-4 md:grid-cols-2">
@@ -821,31 +1225,15 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                                       : 'border-[#E3ECE6] bg-white hover:border-[#A7E8B6] hover:shadow-[0_12px_30px_rgba(15,61,46,0.05)]'
                                   }`}
                                 >
-                                  <div className="mb-4 flex items-start justify-between gap-3">
-                                    <div className="flex items-start gap-3">
-                                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F7FCF8] text-3xl">
-                                        {service.icon}
-                                      </div>
-                                      <div>
-                                        <div className="flex items-center gap-2">
-                                          <h5 className="text-lg font-semibold text-[#103B2D]">{service.name}</h5>
-                                          <span
-                                            className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
-                                              isSelected
-                                                ? 'bg-[#DFF5E5] text-[#2F855A]'
-                                                : 'bg-[#F1F4F2] text-[#6C8378]'
-                                            }`}
-                                          >
-                                            {isSelected ? 'Đã chọn' : 'Chưa chọn'}
-                                          </span>
-                                        </div>
-                                        <p className="mt-1 text-sm leading-6 text-[#476458]">
-                                          {service.description}
-                                        </p>
-                                      </div>
+                                  <div className="mb-3 flex items-start gap-3">
+                                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#F7FCF8] text-3xl">
+                                      {service.icon}
                                     </div>
-                                    <div className="rounded-full bg-[#F7FCF8] px-3 py-1 text-xs font-semibold text-[#2F855A]">
-                                      {getDisplayPrice(service)}
+                                    <div className="flex min-h-14 flex-col justify-center gap-1">
+                                      <h5 className="text-lg font-semibold leading-tight text-[#103B2D]">{service.name}</h5>
+                                      <div className="w-fit rounded-full border border-[#D6EEDD] bg-[#F7FCF8] px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[#2F855A]">
+                                        {getDisplayPrice(service, currentLang, t)}
+                                      </div>
                                     </div>
                                   </div>
 
@@ -865,30 +1253,9 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                                               : 'bg-[#F1F4F2] text-[#476458] hover:bg-[#EAF8EE]'
                                           }`}
                                         >
-                                          {option.label} • {formatPrice(option.price)}
+                                          {option.label} • {formatPrice(option.price, currentLang)}
                                         </button>
                                       ))}
-                                    </div>
-                                  )}
-
-                                  {service.note && (
-                                    <p className="rounded-2xl bg-white px-4 py-3 text-xs leading-5 text-[#476458]">
-                                      {service.note}
-                                    </p>
-                                  )}
-
-                                  {service.id === 'custom' && isSelected && (
-                                    <div className="mt-4" onClick={(event) => event.stopPropagation()}>
-                                      <label className="mb-2 block text-sm font-semibold text-[#24483A]">
-                                        Tên hạng mục cần chuyển *
-                                      </label>
-                                      <input
-                                        type="text"
-                                        value={customItemName}
-                                        onChange={(event) => setCustomItemName(event.target.value)}
-                                        placeholder="Ví dụ: bàn ăn, cũi trẻ em, xe máy điện..."
-                                        className="w-full rounded-2xl border border-[#D6EEDD] bg-white px-4 py-3 text-sm outline-none transition-colors placeholder:text-[#789185] focus:border-[#22C55E]"
-                                      />
                                     </div>
                                   )}
 
@@ -899,19 +1266,14 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                                     >
                                       <div className="text-sm text-[#476458]">
                                         <span className="font-medium text-[#103B2D]">
-                                          {selectedItem.selectedOptionLabel ?? 'Mặc định'}
+                                          {selectedItem.selectedOptionLabel ?? 'Default'}
                                         </span>
-                                        {selectedItem.unitLabel && <span> • {selectedItem.unitLabel}</span>}
                                       </div>
                                       {isWeightBasedItem(selectedItem) ? (
                                         <div className="flex items-center gap-2">
-                                          <label className="text-sm font-medium text-[#24483A]">
-                                            Số kg
-                                          </label>
                                           <input
                                             type="number"
                                             min="0"
-                                            step="1"
                                             value={selectedItem.measurementValue ?? 0}
                                             onChange={(event) =>
                                               updateMeasurementValue(
@@ -919,7 +1281,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                                                 Number(event.target.value),
                                               )
                                             }
-                                            className="w-24 rounded-2xl border border-[#D6EEDD] bg-white px-3 py-2 text-right text-sm font-semibold text-[#103B2D] outline-none focus:border-[#22C55E]"
+                                            className="w-24 rounded-2xl border border-[#D6EEDD] bg-white px-3 py-2 text-right text-sm font-semibold text-[#103B2D] outline-none"
                                           />
                                           <span className="text-sm text-[#476458]">kg</span>
                                         </div>
@@ -955,25 +1317,10 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                     </div>
                   </div>
 
-                  <aside className="space-y-5">
-                    <div className="rounded-[28px] border border-[#D6EEDD] bg-[#103B2D] p-5 text-white">
-                      <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#A7E8B6]">
-                        Quick guidance
-                      </p>
-                      <div className="space-y-3 text-sm leading-6 text-white/78">
-                        <p>1. Các món thông thường vẫn chọn theo từng sản phẩm như trước.</p>
-                        <p>2. Tủ quần áo có thêm lựa chọn kích thước để phản ánh đúng tải trọng.</p>
-                        <p>3. Riêng phế thải xây dựng sẽ nhập theo kg để hệ thống tạm tính đúng hơn.</p>
-                        <p>4. Nếu món không có trong list, chọn “Hạng mục khác” và nhập tên cụ thể.</p>
-                      </div>
-                    </div>
-
+                  <aside className="lg:sticky lg:top-0 lg:h-fit space-y-5">
                     <div className="rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-5">
                       <div className="mb-4 flex items-center justify-between">
-                        <h4 className="font-semibold text-[#103B2D]">Tóm tắt lựa chọn</h4>
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#2F855A]">
-                          {selectedItems.length} mục
-                        </span>
+                        <h4 className="font-semibold text-[#103B2D]">{t('booking.summary.items')}</h4>
                       </div>
 
                       {selectedItems.length > 0 ? (
@@ -986,8 +1333,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                                     {item.icon} {item.id === 'custom' && customItemName.trim() !== '' ? customItemName : item.name}
                                   </p>
                                   <p className="mt-1 text-sm text-[#476458]">
-                                    {item.selectedOptionLabel ?? 'Mặc định'}
-                                    {item.unitLabel ? ` • ${item.unitLabel}` : ''}
+                                    {item.selectedOptionLabel ?? 'Default'}
                                     {` • ${getSelectionMeta(item)}`}
                                   </p>
                                 </div>
@@ -1000,319 +1346,230 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                         </div>
                       ) : (
                         <p className="text-sm leading-6 text-[#476458]">
-                          Chưa có hạng mục nào được chọn. Hãy chọn ít nhất một dịch vụ để tiếp tục.
+                          {t('booking.noItems', 'Chưa có hạng mục nào được chọn.')}
                         </p>
                       )}
                     </div>
 
-                    <div className="rounded-[28px] border border-dashed border-[#C6DBCC] bg-white p-5 text-center">
+                    <div className="rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-5">
+                      <div className="mb-4">
+                        <h4 className="font-semibold text-[#103B2D]">{t('booking.labels.photo')}</h4>
+                        <p className="mt-1 text-xs text-[#476458]">{t('booking.labels.photoDesc')}</p>
+                      </div>
+
                       {uploadedImage ? (
-                        <div className="relative">
-                          <img src={uploadedImage} alt="Preview" className="mx-auto max-h-48 rounded-2xl" />
+                        <div className="relative group">
+                          <div className="aspect-video w-full overflow-hidden rounded-2xl border border-[#D6EEDD] bg-white">
+                            <img
+                              src={uploadedImage.previewUrl}
+                              alt="Upload preview"
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
                           <button
+                            type="button"
                             onClick={() => setUploadedImage(null)}
-                            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#103B2D] text-white"
+                            className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white shadow-lg transition-transform hover:scale-110"
                           >
-                            ×
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
                           </button>
                         </div>
                       ) : (
-                        <label className="block cursor-pointer">
-                          <div className="mb-3 text-4xl">📷</div>
-                          <p className="font-semibold text-[#103B2D]">Thêm ảnh để báo giá chính xác hơn</p>
-                          <p className="mt-1 text-sm text-[#789185]">
-                            Đặc biệt hữu ích với món ngoài danh sách hoặc phế thải xây dựng.
-                          </p>
-                          <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                        <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D6EEDD] bg-white py-8 transition-colors hover:border-[#103B2D] hover:bg-[#F0FBF3]">
+                          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-[#F7FCF8] text-2xl">
+                            📸
+                          </div>
+                          <span className="text-sm font-medium text-[#103B2D]">
+                            {t('booking.labels.choosePhoto', 'Chọn hoặc chụp ảnh')}
+                          </span>
+                          <span className="mt-1 text-xs text-[#789185]">JPG, PNG, WEBP (Max 5MB)</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
                         </label>
+                      )}
+
+                      {imageError && (
+                        <p className="mt-2 text-xs font-medium text-red-500">{imageError}</p>
                       )}
                     </div>
 
-                    <div className="rounded-[28px] border border-[#D6EEDD] bg-[#F5FBF6] p-5">
-                      <p className="mb-3 text-sm font-medium text-[#476458]">
-                        Chỉ khi đã chọn dịch vụ và tải ảnh vật cần chuyển thì mới sang được bước nhập địa chỉ.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleNext}
-                        disabled={!canProceedStep1}
-                        className="flex w-full items-center justify-center gap-2 rounded-full bg-[#103B2D] px-6 py-4 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#9EB8A7] disabled:hover:translate-y-0"
-                      >
-                        <span>Tiếp tục sang bước 2</span>
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    </div>
+
                   </aside>
                 </div>
               )}
 
               {step === 2 && (
                 <div className="mx-auto max-w-3xl">
-                  <h3 className="mb-2 text-2xl font-bold text-[#103B2D]">Bước 2: Thông tin khách hàng và địa chỉ</h3>
-                  <p className="mb-6 text-[#476458]">
-                    Điền đầy đủ thông tin để tạo hồ sơ khách hàng, gửi email xác nhận và kiểm tra địa chỉ hợp lệ trước khi sang bước tiếp theo.
-                  </p>
-
-                  <div className="mb-6 rounded-[28px] border border-[#D6EEDD] bg-[#F5FBF6] p-5">
-                    {currentUser ? (
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">
-                            Tài khoản đã đăng nhập
-                          </p>
-                          <h4 className="mt-2 text-xl font-bold text-[#103B2D]">
-                            Hệ thống đã tự điền một phần thông tin cho bạn
-                          </h4>
-                          <p className="mt-2 text-sm leading-6 text-[#476458]">
-                            Bạn có thể chỉnh lại dữ liệu trước khi xác nhận. Sau khi tạo đơn, lịch sử sẽ được lưu
-                            vào cùng một hồ sơ khách hàng.
-                          </p>
-                        </div>
-                        <div className="rounded-[24px] bg-white px-4 py-3 text-sm text-[#476458]">
-                          <p className="font-semibold text-[#103B2D]">{currentUser.name}</p>
-                          <p className="mt-1">{currentUser.email}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">
-                            Guest checkout
-                          </p>
-                          <h4 className="mt-2 text-xl font-bold text-[#103B2D]">
-                            Bạn vẫn đặt lịch được mà không cần tài khoản
-                          </h4>
-                          <p className="mt-2 text-sm leading-6 text-[#476458]">
-                            Nếu đăng nhập hoặc tạo tài khoản, hệ thống sẽ lưu địa chỉ, lịch sử đơn và gửi voucher
-                            cho lần đặt tiếp theo.
-                          </p>
-                        </div>
-                        <div className="flex gap-3">
-                          <button
-                            type="button"
-                            onClick={() => onAuthClick('login')}
-                            className="rounded-full border border-[#D6EEDD] px-4 py-3 text-sm font-semibold text-[#103B2D] transition-colors hover:bg-white"
-                          >
-                            Đăng nhập
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onAuthClick('register')}
-                            className="rounded-full bg-[#103B2D] px-4 py-3 text-sm font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5"
-                          >
-                            Tạo tài khoản
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-5">
+                  <h3 className="mb-2 text-2xl font-bold text-[#103B2D]">{t('booking.steps.address')}</h3>
+                  <div className="space-y-5 mt-6">
                     <div>
                       <label className="mb-2 block text-sm font-semibold text-[#24483A]">
-                        Tên khách hàng *
+                        {t('booking.labels.name')} *
                       </label>
                       <input
                         type="text"
                         value={customerName}
                         onChange={(event) => setCustomerName(event.target.value)}
                         onBlur={() => setNameTouched(true)}
-                        placeholder="Ví dụ: Nguyễn Văn A"
                         className={`w-full rounded-[24px] border px-4 py-4 text-base outline-none transition-colors ${
                           nameTouched && !isCustomerNameValid
-                            ? 'border-red-300 bg-red-50'
+                            ? 'border-red-500 bg-red-50 focus:border-red-600'
                             : 'border-[#D6EEDD] bg-[#F7FCF8] focus:border-[#22C55E]'
                         }`}
                       />
                       {nameTouched && !isCustomerNameValid && (
-                        <p className="mt-2 text-sm font-medium text-red-500">
-                          Vui lòng nhập tên khách hàng hợp lệ.
+                        <p className="mt-1.5 ml-4 text-sm font-medium text-red-500 animate-fadeIn">
+                          {t('booking.errors.name')}
                         </p>
                       )}
                     </div>
 
                     <div>
                       <label className="mb-2 block text-sm font-semibold text-[#24483A]">
-                        Số nhà, tên đường *
+                        {t('booking.labels.street')} *
                       </label>
                       <input
                         type="text"
                         value={streetAddress}
                         onChange={(event) => setStreetAddress(event.target.value)}
                         onBlur={() => setStreetTouched(true)}
-                        placeholder="Ví dụ: T18 Times City"
                         className={`w-full rounded-[24px] border px-4 py-4 text-base outline-none transition-colors ${
                           streetTouched && !isStreetAddressValid
-                            ? 'border-red-300 bg-red-50'
+                            ? 'border-red-500 bg-red-50 focus:border-red-600'
                             : 'border-[#D6EEDD] bg-[#F7FCF8] focus:border-[#22C55E]'
                         }`}
                       />
+                      {streetTouched && !isStreetAddressValid && (
+                        <p className="mt-1.5 ml-4 text-sm font-medium text-red-500 animate-fadeIn">
+                          {t('booking.errors.street')}
+                        </p>
+                      )}
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <label className="mb-2 block text-sm font-semibold text-[#24483A]">
-                          Quận / Huyện *
+                          {t('booking.labels.city')} *
                         </label>
-                        <input
-                          type="text"
+                        <select
+                          value={city}
+                          onChange={(event) => {
+                            setCity(event.target.value);
+                            setDistrict('');
+                          }}
+                          onBlur={() => setCityTouched(true)}
+                          className={`w-full rounded-[24px] border px-4 py-4 text-base outline-none appearance-none transition-colors ${
+                            cityTouched && !isCityValid
+                              ? 'border-red-500 bg-red-50 focus:border-red-600'
+                              : 'border-[#D6EEDD] bg-[#F7FCF8] focus:border-[#22C55E]'
+                          }`}
+                        >
+                          <option value="">{isLoadingProvinces ? 'Đang tải...' : t('booking.labels.selectCity', 'Chọn Thành phố')}</option>
+                          {provinces.map((p) => (
+                            <option key={p.code} value={p.name}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                        {cityTouched && !isCityValid && (
+                          <p className="mt-1.5 ml-4 text-sm font-medium text-red-500 animate-fadeIn">
+                            {t('booking.errors.city')}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                          {t('booking.labels.district')} *
+                        </label>
+                        <select
                           value={district}
                           onChange={(event) => setDistrict(event.target.value)}
                           onBlur={() => setDistrictTouched(true)}
-                          placeholder="Ví dụ: Quận 1"
-                          list="district-suggestions"
-                          className={`w-full rounded-[24px] border px-4 py-4 text-base outline-none transition-colors ${
+                          disabled={!city || isLoadingDistricts}
+                          className={`w-full rounded-[24px] border px-4 py-4 text-base outline-none appearance-none disabled:opacity-50 transition-colors ${
                             districtTouched && !isDistrictValid
-                              ? 'border-red-300 bg-red-50'
+                              ? 'border-red-500 bg-red-50 focus:border-red-600'
                               : 'border-[#D6EEDD] bg-[#F7FCF8] focus:border-[#22C55E]'
                           }`}
-                        />
-                        <datalist id="district-suggestions">
-                          {districtSuggestions.map((item) => (
-                            <option key={item} value={item} />
+                        >
+                          <option value="">{isLoadingDistricts ? 'Đang tải...' : t('booking.labels.selectDistrict', 'Chọn Quận/Huyện')}</option>
+                          {districts.map((d) => (
+                            <option key={d.code} value={d.name}>
+                              {d.name}
+                            </option>
                           ))}
-                        </datalist>
-                      </div>
-
-                      <div>
-                        <label className="mb-2 block text-sm font-semibold text-[#24483A]">
-                          Thành phố *
-                        </label>
-                        <input
-                          type="text"
-                          value={city}
-                          onChange={(event) => setCity(event.target.value)}
-                          onBlur={() => setCityTouched(true)}
-                          list="city-suggestions"
-                          className={`w-full rounded-[24px] border px-4 py-4 text-base outline-none transition-colors ${
-                            cityTouched && !isCityValid
-                              ? 'border-red-300 bg-red-50'
-                              : 'border-[#D6EEDD] bg-[#F7FCF8] focus:border-[#22C55E]'
-                          }`}
-                        />
-                        <datalist id="city-suggestions">
-                          {citySuggestions.map((item) => (
-                            <option key={item} value={item} />
-                          ))}
-                        </datalist>
+                        </select>
+                        {districtTouched && !isDistrictValid && (
+                          <p className="mt-1.5 ml-4 text-sm font-medium text-red-500 animate-fadeIn">
+                            {t('booking.errors.district')}
+                          </p>
+                        )}
                       </div>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <label className="mb-2 block text-sm font-semibold text-[#24483A]">
-                          Số điện thoại liên hệ *
+                          {t('booking.labels.phone')} *
                         </label>
                         <input
                           type="tel"
                           value={phone}
                           onChange={(event) => setPhone(event.target.value)}
                           onBlur={() => setPhoneTouched(true)}
-                          placeholder="093633040"
                           className={`w-full rounded-[24px] border px-4 py-4 text-base outline-none transition-colors ${
                             phoneTouched && !isPhoneValid
-                              ? 'border-red-300 bg-red-50'
+                              ? 'border-red-500 bg-red-50 focus:border-red-600'
                               : 'border-[#D6EEDD] bg-[#F7FCF8] focus:border-[#22C55E]'
                           }`}
                         />
                         {phoneTouched && !isPhoneValid && (
-                          <p className="mt-2 text-sm font-medium text-red-500">
-                            Số điện thoại không hợp lệ. Vui lòng kiểm tra lại trước khi tiếp tục.
+                          <p className="mt-1.5 ml-4 text-sm font-medium text-red-500 animate-fadeIn">
+                            {t('booking.errors.phone')}
                           </p>
                         )}
                       </div>
-
                       <div>
                         <label className="mb-2 block text-sm font-semibold text-[#24483A]">
-                          Email xác nhận *
+                          {t('booking.labels.email')} *
                         </label>
                         <input
                           type="email"
                           value={email}
                           onChange={(event) => setEmail(event.target.value)}
                           onBlur={() => setEmailTouched(true)}
-                          placeholder="ban@company.com"
                           className={`w-full rounded-[24px] border px-4 py-4 text-base outline-none transition-colors ${
                             emailTouched && !isEmailValid
-                              ? 'border-red-300 bg-red-50'
+                              ? 'border-red-500 bg-red-50 focus:border-red-600'
                               : 'border-[#D6EEDD] bg-[#F7FCF8] focus:border-[#22C55E]'
                           }`}
                         />
                         {emailTouched && !isEmailValid && (
-                          <p className="mt-2 text-sm font-medium text-red-500">
-                            Email không hợp lệ. Vui lòng nhập email để tạo database khách hàng và gửi xác nhận.
+                          <p className="mt-1.5 ml-4 text-sm font-medium text-red-500 animate-fadeIn">
+                            {t('booking.errors.email')}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold text-[#24483A]">
-                        Ghi chú thêm (tùy chọn)
-                      </label>
-                      <textarea
-                        value={notes}
-                        onChange={(event) => setNotes(event.target.value)}
-                        placeholder="VD: Tầng 3, thang máy còn hoạt động, gọi trước 30 phút..."
-                        rows={4}
-                        className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E]"
-                      />
-                    </div>
 
-                    <div className="rounded-[28px] border border-dashed border-[#C6DBCC] bg-white p-5 text-center">
-                      <div className="mb-3 text-4xl">📍</div>
-                      <p className="font-semibold text-[#103B2D]">Bản đồ xác nhận địa chỉ</p>
-                      <p className="mt-1 text-sm text-[#789185]">Google Maps integration</p>
-                    </div>
-
-                    {(nameTouched || streetTouched || districtTouched || cityTouched || phoneTouched || emailTouched) &&
-                      !canProceedStep2 && (
-                        <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                          {!isCustomerNameValid && <p>Vui lòng nhập tên khách hàng hợp lệ.</p>}
-                          {!isStreetAddressValid && <p>Vui lòng nhập số nhà và tên đường.</p>}
-                          {!isDistrictValid && <p>Vui lòng nhập quận/huyện hợp lệ.</p>}
-                          {!isCityValid && <p>Vui lòng nhập thành phố hợp lệ.</p>}
-                          {isStreetAddressValid && isDistrictValid && isCityValid && !isAddressValid && (
-                            <p>Không tìm thấy địa chỉ phù hợp. Vui lòng kiểm tra lại địa chỉ trước khi tiếp tục.</p>
-                          )}
-                          {!isPhoneValid && <p>Số điện thoại không hợp lệ.</p>}
-                          {!isEmailValid && <p>Email không hợp lệ.</p>}
-                        </div>
-                      )}
-
-                    <div className="rounded-[28px] border border-[#D6EEDD] bg-[#F5FBF6] p-5">
-                      <p className="mb-3 text-sm font-medium text-[#476458]">
-                        Chỉ khi thông tin khách hàng và địa chỉ hợp lệ thì mới được sang bước 3.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleNext}
-                        disabled={!canProceedStep2}
-                        className="flex w-full items-center justify-center gap-2 rounded-full bg-[#103B2D] px-6 py-4 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#9EB8A7] disabled:hover:translate-y-0"
-                      >
-                        <span>Tiếp tục sang bước 3</span>
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    </div>
                   </div>
                 </div>
               )}
 
               {step === 3 && (
                 <div className="mx-auto max-w-3xl">
-                  <h3 className="mb-2 text-2xl font-bold text-[#103B2D]">Bước 3: Chọn ngày và khung giờ</h3>
-                  <p className="mb-6 text-[#476458]">
-                    Sau khi đặt lịch, khách hàng sẽ tiếp tục theo dõi trạng thái xử lý từ thu gom đến hoàn tất.
-                  </p>
-
+                  <h3 className="mb-8 text-2xl font-bold text-[#103B2D]">{t('booking.steps.schedule')}</h3>
                   <div className="mb-8">
-                    <label className="mb-3 block text-sm font-semibold text-[#24483A]">Ngày thu gom *</label>
+                    <label className="mb-3 block text-sm font-semibold text-[#24483A]">{t('booking.labels.date')} *</label>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      {getAvailableDates().slice(0, 8).map((date) => (
+                      {availableDates.slice(0, 8).map((date) => (
                         <button
                           key={date.value}
                           onClick={() => setSelectedDate(date.value)}
@@ -1323,16 +1580,17 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                           }`}
                         >
                           <div className="text-xs uppercase tracking-[0.16em] opacity-70">
-                            {date.label.split(',')[0]}
+                            {date.weekdayLabel}
                           </div>
-                          <div className="mt-2 text-lg font-semibold">{date.label.split(' ')[1]}</div>
+                          <div className="mt-2 text-lg font-semibold">{date.dayLabel}</div>
+                          <div className="mt-1 text-xs opacity-70">{date.monthLabel}</div>
                         </button>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <label className="mb-3 block text-sm font-semibold text-[#24483A]">Khung giờ *</label>
+                    <label className="mb-3 block text-sm font-semibold text-[#24483A]">{t('booking.labels.time')} *</label>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                       {timeSlots.map((time) => (
                         <button
@@ -1350,42 +1608,23 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                     </div>
                   </div>
 
-                  <div className="mt-5 rounded-[28px] border border-[#D6EEDD] bg-[#F5FBF6] p-5">
-                    <p className="mb-3 text-sm font-medium text-[#476458]">
-                      Chọn xong ngày và khung giờ thì sang bước xác nhận đơn hàng.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={handleNext}
-                      disabled={!canProceedStep3}
-                      className="flex w-full items-center justify-center gap-2 rounded-full bg-[#103B2D] px-6 py-4 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#9EB8A7] disabled:hover:translate-y-0"
-                    >
-                      <span>Tiếp tục sang bước 4</span>
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
                 </div>
               )}
 
               {step === 4 && (
                 <div className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
                   <div className="rounded-[28px] bg-[#F5FBF6] p-5">
-                    <h3 className="mb-4 text-2xl font-bold text-[#103B2D]">Xác nhận đơn hàng</h3>
-
+                    <h3 className="mb-4 text-2xl font-bold text-[#103B2D]">{t('booking.steps.confirm')}</h3>
                     <div className="space-y-3">
                       {selectedItems.map((item) => (
                         <div key={item.id} className="rounded-2xl bg-white p-4">
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                              <p className="font-semibold text-[#103B2D]">
+                               <p className="font-semibold text-[#103B2D]">
                                 {item.icon} {item.id === 'custom' && customItemName.trim() !== '' ? customItemName : item.name}
                               </p>
                               <p className="mt-1 text-sm text-[#476458]">
-                                {item.selectedOptionLabel ?? 'Mặc định'}
-                                {item.unitLabel ? ` • ${item.unitLabel}` : ''}
-                                {` • ${getSelectionMeta(item)}`}
+                                {item.selectedOptionLabel ?? 'Default'}
                               </p>
                             </div>
                             <span className="text-sm font-semibold text-[#2F855A]">
@@ -1396,213 +1635,77 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
                       ))}
                     </div>
 
-                    <div className="mt-4 rounded-2xl bg-white p-4 text-sm text-[#476458]">
-                      <p>👤 {customerName}</p>
-                      <p className="mt-2">📞 {phone}</p>
-                      <p className="mt-2">📧 {email}</p>
-                      <p className="mt-2">📍 {fullAddress}</p>
-                      <p className="mt-2">📅 {selectedDate} • {selectedTime}</p>
-                      <p className="mt-2">🚚 {handlingLabel}</p>
-                      {notes.trim() !== '' && <p className="mt-2">📝 {notes}</p>}
-                    </div>
-
                     <div className="mt-4 rounded-2xl bg-[#103B2D] p-4 text-white">
-                      <div className="mb-3 space-y-2 border-b border-white/10 pb-3 text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="text-white/70">Tạm tính dịch vụ</span>
-                          <span>{formatPrice(calculateTotal())}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-white/70">Điều chỉnh bốc xếp</span>
-                          <span>
-                            {serviceHandlingFee >= 0 ? '+' : ''}
-                            {formatPrice(serviceHandlingFee)}
-                          </span>
-                        </div>
-                      </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-white/70">Tổng dự kiến</span>
+                        <span className="text-sm text-white/70">Total</span>
                         <span className="text-2xl font-bold">{getTotalLabel()}</span>
                       </div>
-                      {hasQuoteItems && (
-                        <p className="mt-2 text-xs leading-5 text-white/75">
-                          Có hạng mục cần báo giá riêng. Đội vận hành sẽ xác nhận lại trước khi chốt đơn.
-                        </p>
-                      )}
                     </div>
                   </div>
 
                   <div>
                     <div className="rounded-[28px] border border-[#D6EEDD] bg-white p-5">
-                      <h4 className="mb-4 text-xl font-bold text-[#103B2D]">Thông tin khách hàng</h4>
-                      <div className="space-y-3 text-sm text-[#476458]">
-                        <div className="rounded-2xl bg-[#F7FCF8] p-4">
-                          <p className="font-semibold text-[#103B2D]">{customerName}</p>
-                          <p className="mt-1">📞 {phone}</p>
-                          <p className="mt-1">📧 {email}</p>
-                          <p className="mt-1">📍 {fullAddress}</p>
-                        </div>
-                        <p>
-                          Email này sẽ được dùng để lưu hồ sơ khách hàng và gửi email xác nhận sau khi đặt lịch thành công.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-5 rounded-[28px] border border-[#D6EEDD] bg-white p-5">
-                      <h4 className="mb-3 text-xl font-bold text-[#103B2D]">Cách bốc xếp / tiếp cận hàng</h4>
+                      <h4 className="mb-3 text-xl font-bold text-[#103B2D]">Handling Mode</h4>
                       <div className="space-y-3">
                         {[
-                          {
-                            id: 'inside' as const,
-                            title: 'Vào tận nhà bê đồ',
-                            description: 'Giá chuẩn, đội thu gom vào tận nơi lấy hàng.',
-                            price: '0đ',
-                          },
-                          {
-                            id: 'outside' as const,
-                            title: 'Để đồ bên ngoài',
-                            description: 'Khách tự mang đồ ra điểm lấy, giảm phí dịch vụ.',
-                            price: '-30.000đ',
-                          },
-                          {
-                            id: 'stairs' as const,
-                            title: 'Vác đồ thang bộ',
-                            description: 'Áp dụng khi không có thang máy hoặc cần vác qua cầu thang.',
-                            price: '+50.000đ + 30.000đ/tầng thêm',
-                          },
+                          { id: 'inside' as const, title: t('booking.handling.inside'), price: '0' },
+                          { id: 'outside' as const, title: t('booking.handling.outside'), price: '-30.000' },
+                          { id: 'stairs' as const, title: t('booking.handling.stairs'), price: '+50.000' },
                         ].map((option) => (
                           <button
                             key={option.id}
                             type="button"
                             onClick={() => setHandlingMode(option.id)}
-                            className={`w-full rounded-[24px] border p-4 text-left transition-colors ${
-                              handlingMode === option.id
-                                ? 'border-[#2F855A] bg-[#F0FBF3]'
-                                : 'border-[#D6EEDD] bg-[#F7FCF8]'
+                            className={`w-full rounded-[24px] border p-4 text-left ${
+                              handlingMode === option.id ? 'border-[#2F855A] bg-[#F0FBF3]' : 'border-[#D6EEDD]'
                             }`}
                           >
-                            <div className="flex items-start justify-between gap-4">
-                              <div>
-                                <p className="font-semibold text-[#103B2D]">{option.title}</p>
-                                <p className="mt-1 text-sm text-[#476458]">{option.description}</p>
-                              </div>
-                              <span className="text-sm font-semibold text-[#2F855A]">{option.price}</span>
+                            <div className="flex justify-between">
+                              <span className="font-semibold">{option.title}</span>
+                              <span className="text-sm text-[#2F855A]">{option.price}đ</span>
                             </div>
                           </button>
                         ))}
                       </div>
-
-                      {handlingMode === 'stairs' && (
-                        <div className="mt-4">
-                          <label className="mb-2 block text-sm font-semibold text-[#24483A]">
-                            Số tầng cần vác *
-                          </label>
-                          <input
-                            type="number"
-                            min="1"
-                            step="1"
-                            value={stairsFloors}
-                            onChange={(event) => setStairsFloors(Math.max(1, Number(event.target.value) || 1))}
-                            className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E]"
-                          />
-                        </div>
-                      )}
                     </div>
 
-                    <div className="mt-5 rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-5">
-                      <h4 className="mb-3 text-xl font-bold text-[#103B2D]">Phương thức thanh toán</h4>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <button
-                          type="button"
-                          onClick={() => setPaymentMethod('cash')}
-                          className={`rounded-[24px] border p-4 text-left ${
-                            paymentMethod === 'cash' ? 'border-[#2F855A] bg-white' : 'border-[#D6EEDD] bg-white'
-                          }`}
-                        >
-                          <span className="mb-2 block text-2xl">💸</span>
-                          <span className="font-semibold text-[#103B2D]">Thanh toán khi thu gom</span>
-                          <span className="mt-1 block text-sm text-[#476458]">Thu tiền mặt khi staff hoàn tất thu gom</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPaymentMethod('online')}
-                          className={`rounded-[24px] border p-4 text-left ${
-                            paymentMethod === 'online' ? 'border-[#2F855A] bg-white' : 'border-[#D6EEDD] bg-white'
-                          }`}
-                        >
-                          <span className="mb-2 block text-2xl">💳</span>
-                          <span className="font-semibold text-[#103B2D]">Thanh toán online</span>
-                          <span className="mt-1 block text-sm text-[#476458]">Ưu tiên để giảm tỷ lệ hủy / bùng đơn</span>
-                        </button>
+                    <div className="mt-4 rounded-[28px] border border-[#D6EEDD] bg-white p-5">
+                      <h4 className="mb-3 text-sm font-semibold text-[#24483A]">{t('booking.labels.payment', 'Phương thức thanh toán')}</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          { id: 'cash' as const, title: t('booking.payment.cash', 'Tiền mặt'), icon: '💵' },
+                          { id: 'transfer' as const, title: t('booking.payment.transfer', 'Chuyển khoản'), icon: '🏦' },
+                        ].map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => setPaymentMethod(option.id)}
+                            className={`flex flex-col items-center justify-center gap-1 rounded-[24px] border p-4 transition-all ${
+                              paymentMethod === option.id 
+                                ? 'border-[#103B2D] bg-[#F5FBF6] text-[#103B2D]' 
+                                : 'border-[#D6EEDD] bg-[#F7FCF8] text-[#476458] hover:border-[#A7E8B6]'
+                            }`}
+                          >
+                            <span className="text-xl">{option.icon}</span>
+                            <span className="text-xs font-bold">{option.title}</span>
+                          </button>
+                        ))}
                       </div>
-
-                      {paymentMethod === 'cash' ? (
-                        <div className="mt-4 rounded-[24px] border border-[#F4D7A4] bg-[#FFF9ED] p-4 text-sm text-[#7A5A18]">
-                          <p className="font-semibold">Chính sách chống bùng đơn cho thanh toán tiền mặt</p>
-                          <p className="mt-2">
-                            Đơn tiền mặt sẽ cần xác nhận lại qua điện thoại trước khi chốt lịch. Nếu khách hủy sát giờ hoặc staff đến nơi nhưng không liên hệ được, hệ thống sẽ ghi nhận `no-show` và lần đặt tiếp theo bắt buộc chuyển sang thanh toán trước.
-                          </p>
-                          <label className="mt-3 flex items-start gap-3">
-                            <input
-                              type="checkbox"
-                              checked={cashPolicyAccepted}
-                              onChange={(event) => setCashPolicyAccepted(event.target.checked)}
-                              className="mt-1"
-                            />
-                            <span>Tôi hiểu chính sách xác nhận đơn và xử lý trường hợp no-show đối với thanh toán tiền mặt.</span>
-                          </label>
-                        </div>
-                      ) : (
-                        <div className="mt-4 rounded-[24px] border border-[#CFE7D7] bg-[#F0FBF3] p-4 text-sm text-[#2F855A]">
-                          Thanh toán online giúp giữ lịch chắc chắn hơn và hạn chế phát sinh no-show.
-                        </div>
-                      )}
                     </div>
 
-                    <div className="mt-5 rounded-[28px] border border-[#D6EEDD] bg-white p-5">
-                      <h4 className="mb-3 text-xl font-bold text-[#103B2D]">
-                        {currentUser ? 'Tài khoản thành viên' : 'Tài khoản là tùy chọn nhưng có lợi'}
-                      </h4>
-                      {currentUser ? (
-                        <div className="rounded-[24px] bg-[#F5FBF6] p-4 text-sm leading-6 text-[#476458]">
-                          <p className="font-semibold text-[#103B2D]">{currentUser.name}</p>
-                          <p className="mt-1">
-                            Đơn hiện tại sẽ được lưu vào lịch sử đặt lịch của tài khoản và dùng cho các voucher về sau.
-                          </p>
-                          <p className="mt-2 text-[#2F855A]">Email thành viên: {currentUser.email}</p>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="grid gap-3 sm:grid-cols-3">
-                            {[
-                              'Lưu tự động địa chỉ giao dịch',
-                              'Nhận voucher hoặc discount thành viên',
-                              'Theo dõi lịch sử đơn và trạng thái dễ hơn',
-                            ].map((benefit) => (
-                              <div key={benefit} className="rounded-[22px] bg-[#F5FBF6] p-4 text-sm leading-6 text-[#476458]">
-                                {benefit}
-                              </div>
-                            ))}
-                          </div>
-                          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                            <button
-                              type="button"
-                              onClick={() => onAuthClick('register')}
-                              className="rounded-full bg-[#103B2D] px-5 py-3 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5"
-                            >
-                              Tạo tài khoản sau đơn này
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => onAuthClick('login')}
-                              className="rounded-full border border-[#D6EEDD] px-5 py-3 font-semibold text-[#103B2D] transition-colors hover:bg-[#F5FBF6]"
-                            >
-                              Đăng nhập để lưu đơn
-                            </button>
-                          </div>
-                        </>
+                      {getSubmitError() && (
+                        <p className="mt-2 text-center text-sm font-medium text-red-500 animate-fadeIn">
+                          {getSubmitError()}
+                        </p>
                       )}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[#2F855A] px-6 py-4 font-semibold text-white transition-transform duration-300 shadow-[0_4px_14px_rgba(47,133,90,0.39)] hover:shadow-[0_6px_20px_rgba(47,133,90,0.23)] hover:scale-[1.02]"
+                    >
+                      {isSubmitting ? t('common.loading') : t('booking.submit')}
+                    </button>
                   </div>
                 </div>
               )}
@@ -1611,66 +1714,27 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick, onClose
         </div>
 
         {!isSuccess && (
-          <div className="border-t border-[#E7EFE9] bg-[#FBFDFC] p-4">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="border-t border-[#E7EFE9] bg-[#FBFDFC] p-6">
+            <div className="flex justify-between items-center">
               <div>
-                <div className="text-sm text-[#789185]">Tổng dự kiến</div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-[#789185] mb-1">Total Amount</p>
                 <div className="text-2xl font-bold text-[#103B2D]">{getTotalLabel()}</div>
-                {hasQuoteItems && (
-                  <div className="text-xs text-[#2F855A]">Có hạng mục cần báo giá thủ công</div>
-                )}
               </div>
-
-              <div className="flex gap-3">
+              <div className="flex gap-4">
                 {step > 1 && (
                   <button
                     onClick={() => setStep((currentStep) => currentStep - 1)}
-                    className="rounded-full border border-[#C9D9CF] px-6 py-3 font-semibold text-[#476458] transition-colors hover:bg-[#F1F6F3]"
+                    className="rounded-full border border-[#C9D9CF] px-8 py-3.5 font-semibold text-[#476458] transition-colors hover:bg-[#F0FBF3]"
                   >
-                    Quay lại
+                    {t('booking.back')}
                   </button>
                 )}
-
-                {step < 4 ? (
+                {step < 4 && (
                   <button
                     onClick={handleNext}
-                    className="flex items-center gap-2 rounded-full bg-[#103B2D] px-6 py-3 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5"
+                    className="rounded-full bg-[#103B2D] px-10 py-3.5 font-semibold text-white transition-all hover:bg-[#18543F] shadow-[0_10px_20px_rgba(16,59,45,0.15)]"
                   >
-                    <span>
-                      {step === 1
-                        ? 'Tiếp tục tới bước 2'
-                        : step === 2
-                          ? 'Tiếp tục tới bước 3'
-                          : 'Tiếp tục tới bước 4'}
-                    </span>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="flex items-center gap-2 rounded-full bg-[#2F855A] px-6 py-3 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#9EB8A7]"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        <span>Đang xử lý...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Xác nhận đặt lịch</span>
-                        <span>✓</span>
-                      </>
-                    )}
+                    {t('booking.next')}
                   </button>
                 )}
               </div>

@@ -1,827 +1,595 @@
 'use client';
 
-import Link from 'next/link';
-import { useDeferredValue, useState } from 'react';
-import { adminAccounts } from '../data/adminMock';
+import { useDeferredValue, useState, useMemo } from 'react';
 import { cn } from '../utils/cn';
+import { type AuthUser } from '../lib/auth';
+import {
+  currency,
+  getCustomerFacingStatus,
+  OrderStatus,
+  statusMeta,
+  statusFilters,
+  type OrderRecord,
+  readOrders,
+  readPricing,
+  writePricing,
+  readCustomers,
+} from '../data/adminDashboardMock';
+import {
+  readHistory,
+  writeHistory,
+  useSyncStore,
+  STORAGE_KEYS,
+  type ServicePriceRecord,
+  type HistoryItem,
+} from '../lib/store';
+// ─── API Layer ────────────────────────────────────────────────────────────────────────────────
+import { updateAdminOrder, markOrderNoShow } from '../services/admin.service';
 
-type OrderStatus = 'processing' | 'delivering' | 'completed' | 'cancelled' | 'no_show';
+/* ─── Types ─────────────────────────────────────────────────────────── */
+type Tab = 'overview' | 'users' | 'pricing' | 'orders';
 
-interface CustomerRecord {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  accountType: 'guest' | 'member';
-  district: string;
-  noShowCount: number;
+interface AdminDashboardProps {
+  currentUser?: AuthUser | null;
+  onLogout?: () => void;
 }
 
-interface OrderRecord {
-  id: string;
-  code: string;
-  customerId: string;
-  itemSummary: string;
-  bookingDate: string;
-  slot: string;
-  amount: number;
-  status: OrderStatus;
-  paymentMethod: 'cash' | 'online';
-  assignedStaff: string;
-  selfAssessment: string;
-  priceAdjustment: string;
+/* ─── SVG Icons ─────────────────────────────────────────────────────── */
+function IconDashboard({ active }: { active?: boolean }) {
+  return (
+    <svg className={cn('h-5 w-5 transition-colors', active ? 'text-[#2F855A]' : 'text-[#6D877A]')} fill="none" strokeWidth={1.8} stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  );
+}
+function IconUsers({ active }: { active?: boolean }) {
+  return (
+    <svg className={cn('h-5 w-5 transition-colors', active ? 'text-[#2F855A]' : 'text-[#6D877A]')} fill="none" strokeWidth={1.8} stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 0 0-4-4h-1M9 20H4v-2a4 4 0 0 1 4-4h2m3-4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-6 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+    </svg>
+  );
+}
+function IconPricing({ active }: { active?: boolean }) {
+  return (
+    <svg className={cn('h-5 w-5 transition-colors', active ? 'text-[#2F855A]' : 'text-[#6D877A]')} fill="none" strokeWidth={1.8} stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    </svg>
+  );
+}
+function IconOrders({ active }: { active?: boolean }) {
+  return (
+    <svg className={cn('h-5 w-5 transition-colors', active ? 'text-[#2F855A]' : 'text-[#6D877A]')} fill="none" strokeWidth={1.8} stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v0ZM9 12h6M9 16h4" />
+    </svg>
+  );
+}
+function IconLogout() {
+  return (
+    <svg className="h-4 w-4" fill="none" strokeWidth={1.8} stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+    </svg>
+  );
 }
 
-interface ServicePriceRecord {
-  id: string;
-  name: string;
-  unitLabel: string;
-  category: string;
-  price: number;
-  note: string;
+/* ─── Nav Config ─────────────────────────────────────────────────────── */
+const NAV_ITEMS: { id: Tab; label: string; desc: string; badge?: number }[] = [
+  { id: 'overview', label: 'Tổng quan', desc: 'Số liệu & tóm tắt' },
+  { id: 'users',    label: 'Khách hàng', desc: 'Quản lý tài khoản' },
+  { id: 'pricing',  label: 'Bảng giá', desc: 'Cập nhật giá dịch vụ' },
+  { id: 'orders',   label: 'Đơn hàng', desc: 'Xác nhận & chốt đơn' },
+];
+
+function NavIcon({ id, active }: { id: Tab; active?: boolean }) {
+  if (id === 'overview') return <IconDashboard active={active} />;
+  if (id === 'users')    return <IconUsers active={active} />;
+  if (id === 'pricing')  return <IconPricing active={active} />;
+  return <IconOrders active={active} />;
 }
 
-const customers: CustomerRecord[] = [
-  {
-    id: 'CUS-01',
-    name: 'Nguyễn Văn A',
-    email: 'vana@gmail.com',
-    phone: '0901234567',
-    accountType: 'member',
-    district: 'Quận 1',
-    noShowCount: 0,
-  },
-  {
-    id: 'CUS-02',
-    name: 'Trần Thị B',
-    email: 'thib@gmail.com',
-    phone: '0909234567',
-    accountType: 'guest',
-    district: 'Bình Thạnh',
-    noShowCount: 1,
-  },
-  {
-    id: 'CUS-03',
-    name: 'Phạm Minh C',
-    email: 'minhc@company.com',
-    phone: '0936123456',
-    accountType: 'member',
-    district: 'Thủ Đức',
-    noShowCount: 0,
-  },
-  {
-    id: 'CUS-04',
-    name: 'Lê Anh D',
-    email: 'anhd@gmail.com',
-    phone: '0918666888',
-    accountType: 'member',
-    district: 'Quận 7',
-    noShowCount: 0,
-  },
-  {
-    id: 'CUS-05',
-    name: 'Hoàng Gia H',
-    email: 'giah@gmail.com',
-    phone: '0978123000',
-    accountType: 'guest',
-    district: 'Phú Nhuận',
-    noShowCount: 2,
-  },
-  {
-    id: 'CUS-06',
-    name: 'Đặng Thu K',
-    email: 'thuk@gmail.com',
-    phone: '0988111000',
-    accountType: 'member',
-    district: 'Quận 3',
-    noShowCount: 0,
-  },
-];
-
-const initialOrders: OrderRecord[] = [
-  {
-    id: 'ORD-01',
-    code: 'EC240401',
-    customerId: 'CUS-01',
-    itemSummary: 'Sofa đơn + Tủ quần áo',
-    bookingDate: '2026-04-06',
-    slot: '08:00 - 10:00',
-    amount: 410000,
-    status: 'delivering',
-    paymentMethod: 'online',
-    assignedStaff: 'Huy / Xe 01',
-    selfAssessment: 'Đồ cồng kềnh, cần 2 nhân viên và xe tải nhỏ.',
-    priceAdjustment: 'Giữ nguyên giá',
-  },
-  {
-    id: 'ORD-02',
-    code: 'EC240402',
-    customerId: 'CUS-02',
-    itemSummary: 'Phế thải xây dựng 45kg',
-    bookingDate: '2026-04-06',
-    slot: '10:00 - 12:00',
-    amount: 315000,
-    status: 'processing',
-    paymentMethod: 'cash',
-    assignedStaff: 'Chưa phân công',
-    selfAssessment: 'Cần kiểm tra khối lượng thực tế và ảnh hiện trường.',
-    priceAdjustment: 'Có thể điều chỉnh theo kg thực tế',
-  },
-  {
-    id: 'ORD-03',
-    code: 'EC240403',
-    customerId: 'CUS-03',
-    itemSummary: 'Tủ lạnh + Máy giặt',
-    bookingDate: '2026-04-07',
-    slot: '14:00 - 16:00',
-    amount: 380000,
-    status: 'delivering',
-    paymentMethod: 'online',
-    assignedStaff: 'Nam / Xe 03',
-    selfAssessment: 'Đồ nặng, cần xe có sàn nâng.',
-    priceAdjustment: 'Giữ nguyên giá',
-  },
-  {
-    id: 'ORD-04',
-    code: 'EC240404',
-    customerId: 'CUS-04',
-    itemSummary: 'Rác sinh hoạt đóng bao x4',
-    bookingDate: '2026-04-05',
-    slot: '16:00 - 18:00',
-    amount: 240000,
-    status: 'completed',
-    paymentMethod: 'cash',
-    assignedStaff: 'Tài / Xe 02',
-    selfAssessment: 'Khách đã để sẵn đồ bên ngoài.',
-    priceAdjustment: 'Giảm 30.000đ vì khách tự mang ra ngoài',
-  },
-  {
-    id: 'ORD-05',
-    code: 'EC240405',
-    customerId: 'CUS-05',
-    itemSummary: 'Hạng mục khác: xe máy điện',
-    bookingDate: '2026-04-05',
-    slot: '12:00 - 14:00',
-    amount: 0,
-    status: 'no_show',
-    paymentMethod: 'cash',
-    assignedStaff: 'Kiệt / Xe 05',
-    selfAssessment: 'Hạng mục ngoài danh sách, cần báo giá thủ công.',
-    priceAdjustment: 'Chưa chốt giá vì khách không có mặt',
-  },
-  {
-    id: 'ORD-06',
-    code: 'EC240406',
-    customerId: 'CUS-06',
-    itemSummary: 'Tivi + Bàn ghế văn phòng',
-    bookingDate: '2026-04-08',
-    slot: '08:00 - 10:00',
-    amount: 180000,
-    status: 'processing',
-    paymentMethod: 'online',
-    assignedStaff: 'Hùng / Xe 04',
-    selfAssessment: 'Cần tách riêng thiết bị điện tử để xử lý.',
-    priceAdjustment: 'Giữ nguyên giá',
-  },
-  {
-    id: 'ORD-07',
-    code: 'EC240407',
-    customerId: 'CUS-01',
-    itemSummary: 'Giường / nệm',
-    bookingDate: '2026-04-10',
-    slot: '10:00 - 12:00',
-    amount: 220000,
-    status: 'processing',
-    paymentMethod: 'online',
-    assignedStaff: 'Chưa phân công',
-    selfAssessment: 'Nệm cồng kềnh, cần xác nhận thang máy.',
-    priceAdjustment: 'Có thể cộng phí vác thang bộ',
-  },
-  {
-    id: 'ORD-08',
-    code: 'EC240408',
-    customerId: 'CUS-03',
-    itemSummary: 'Hạng mục khác: biển quảng cáo',
-    bookingDate: '2026-04-09',
-    slot: '18:00 - 20:00',
-    amount: 0,
-    status: 'cancelled',
-    paymentMethod: 'cash',
-    assignedStaff: 'Chưa phân công',
-    selfAssessment: 'Biển quảng cáo cần khảo sát thực tế trước khi nhận.',
-    priceAdjustment: 'Chưa chốt giá',
-  },
-];
-
-const initialServicePricing: ServicePriceRecord[] = [
-  {
-    id: 'SER-01',
-    name: 'Sofa đơn',
-    unitLabel: '/món',
-    category: 'Nội thất',
-    price: 150000,
-    note: 'Giá chuẩn cho món đơn, không có phụ phí đặc biệt.',
-  },
-  {
-    id: 'SER-02',
-    name: 'Tủ quần áo khổ lớn',
-    unitLabel: '/món',
-    category: 'Nội thất',
-    price: 420000,
-    note: 'Có thể cộng thêm nếu khách cần vác thang bộ.',
-  },
-  {
-    id: 'SER-03',
-    name: 'Phế thải xây dựng',
-    unitLabel: '/kg',
-    category: 'Khác',
-    price: 7000,
-    note: 'Admin kiểm tra lại theo khối lượng thực tế tại hiện trường.',
-  },
-  {
-    id: 'SER-04',
-    name: 'Rác sinh hoạt đóng bao',
-    unitLabel: '/bao',
-    category: 'Khác',
-    price: 60000,
-    note: 'Giá áp dụng với bao đã đóng kín và dễ bốc xếp.',
-  },
-];
-
-const currency = new Intl.NumberFormat('vi-VN', {
-  style: 'currency',
-  currency: 'VND',
-  maximumFractionDigits: 0,
-});
-
-const statusMeta: Record<OrderStatus, { label: string; tone: string }> = {
-  processing: {
-    label: 'Đang xử lý',
-    tone: 'bg-amber-100 text-amber-700',
-  },
-  delivering: {
-    label: 'Đang giao hàng',
-    tone: 'bg-sky-100 text-sky-700',
-  },
-  completed: {
-    label: 'Đã hoàn thành',
-    tone: 'bg-teal-100 text-teal-700',
-  },
-  cancelled: {
-    label: 'Đã hủy',
-    tone: 'bg-slate-200 text-slate-700',
-  },
-  no_show: {
-    label: 'Không có mặt',
-    tone: 'bg-rose-100 text-rose-700',
-  },
-};
-
-const statusFilters: Array<{ id: 'all' | OrderStatus; label: string }> = [
-  { id: 'all', label: 'Tất cả' },
-  { id: 'processing', label: 'Đang xử lý' },
-  { id: 'delivering', label: 'Đang giao hàng' },
-  { id: 'completed', label: 'Đã hoàn thành' },
-  { id: 'no_show', label: 'Không có mặt' },
-];
-
-function getCustomerFacingStatus(status: OrderStatus) {
-  if (status === 'completed') {
-    return { label: 'Đã hoàn thành', tone: 'bg-teal-100 text-teal-700' };
-  }
-
-  if (status === 'cancelled') {
-    return { label: 'Đã hủy', tone: 'bg-slate-200 text-slate-700' };
-  }
-
-  if (status === 'no_show') {
-    return { label: 'Không hoàn thành', tone: 'bg-rose-100 text-rose-700' };
-  }
-
-  return { label: 'Đang xử lý', tone: 'bg-amber-100 text-amber-700' };
-}
-
-export default function AdminDashboard() {
+/* ══════════════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+   ══════════════════════════════════════════════════════════════════════ */
+export default function AdminDashboard({ currentUser, onLogout }: AdminDashboardProps) {
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
-  const [orders, setOrders] = useState<OrderRecord[]>(initialOrders);
-  const [servicePricing, setServicePricing] = useState<ServicePriceRecord[]>(initialServicePricing);
   const deferredQuery = useDeferredValue(query);
-
   const normalizedQuery = deferredQuery.trim().toLowerCase();
 
-  const updateOrderStatus = (orderId: string, nextStatus: OrderStatus) => {
-    setOrders((currentOrders) =>
-      currentOrders.map((order) =>
-        order.id === orderId
-          ? {
-              ...order,
-              status: nextStatus,
-            }
-          : order
-      )
+  // Đọc từ store thật — tự đồng bộ multi-tab qua BroadcastChannel
+  const [orders, setOrders] = useSyncStore<OrderRecord[]>(STORAGE_KEYS.orders, readOrders());
+  const [servicePricing, setServicePricing] = useSyncStore<ServicePriceRecord[]>(STORAGE_KEYS.pricing, readPricing());
+  const customers = readCustomers();
+
+  const [selectedPricingCategory, setSelectedPricingCategory] = useState<string>('Tất cả');
+
+  const groupedPricing = useMemo(() => {
+    const groups: Record<string, ServicePriceRecord[]> = {};
+    servicePricing.forEach((s) => {
+      if (!groups[s.category]) groups[s.category] = [];
+      groups[s.category].push(s);
+    });
+    return groups;
+  }, [servicePricing]);
+
+  const categoriesList = useMemo(() => {
+    return ['Tất cả', ...Object.keys(groupedPricing)];
+  }, [groupedPricing]);
+
+  const filteredPricing = useMemo(() => {
+    if (selectedPricingCategory === 'Tất cả') return servicePricing;
+    return servicePricing.filter(s => s.category === selectedPricingCategory);
+  }, [servicePricing, selectedPricingCategory]);
+
+  /**
+   * Cập nhật trạng thái đơn: optimistic update cục bộ ngay lập tức,
+   * sau đó gọi API BE để đồng bộ.
+   */
+  const updateOrderStatusSync = (orderId: string, nextStatus: OrderStatus) => {
+    // 1) Optimistic: cập nhật store cục bộ ngay
+    setOrders((cur: OrderRecord[]) => {
+      const next = cur.map((o: OrderRecord) => o.id === orderId ? {
+        ...o, status: nextStatus, updatedAt: new Date().toISOString()
+      } : o);
+      return next;
+    });
+
+    // Cập nhật history cục bộ
+    const historyStatusMap: Record<OrderStatus, 'in_progress' | 'completed' | 'cancelled'> = {
+      processing: 'in_progress',
+      delivering: 'in_progress',
+      completed:  'completed',
+      cancelled:  'cancelled',
+      no_show:    'cancelled',
+    };
+    const historyItems: HistoryItem[] = readHistory();
+    const updatedHistory: HistoryItem[] = historyItems.map((h: HistoryItem) =>
+      h.id === orderId
+        ? { ...h, status: historyStatusMap[nextStatus] }
+        : h
     );
+    writeHistory(updatedHistory);
+
+    // 2) Gọi API thật (fire-and-forget: lỗi chỉ log, không cần rollback)
+    if (nextStatus === 'no_show') {
+      markOrderNoShow(orderId).catch((err: unknown) => {
+        console.error('[Admin] markOrderNoShow failed:', err);
+      });
+    } else {
+      // Cast sang OrderStatus của api.ts (no_show đã xử lý riêng ở trên)
+      type ApiOrderStatus = import('../types/api').OrderStatus;
+      updateAdminOrder(orderId, { status: nextStatus as ApiOrderStatus }).catch((err: unknown) => {
+        console.error('[Admin] updateAdminOrder failed:', err);
+      });
+    }
   };
 
   const adjustServicePrice = (serviceId: string, delta: number) => {
-    setServicePricing((currentServices) =>
-      currentServices.map((service) =>
-        service.id === serviceId
-          ? {
-              ...service,
-              price: Math.max(0, service.price + delta),
-            }
-          : service
-      )
-    );
+    setServicePricing((cur: ServicePriceRecord[]) => {
+      const next = cur.map((s: ServicePriceRecord) => s.id === serviceId
+        ? { ...s, price: Math.max(0, s.price + delta) } : s);
+      writePricing(next);
+      return next;
+    });
   };
 
   const getAdminAction = (order: OrderRecord) => {
-    if (order.status === 'processing') {
-      return {
-        label: 'Xác nhận đơn',
-        helper: 'Admin xác nhận để chuyển đơn từ đang xử lý sang đang giao hàng.',
-        onClick: () => updateOrderStatus(order.id, 'delivering'),
-        className: 'bg-[#103B2D] text-white hover:-translate-y-0.5',
-      };
-    }
-
-    if (order.status === 'delivering') {
-      return {
-        label: 'Hoàn thành đơn',
-        helper: 'Chốt đơn sau khi giao / thu gom xong để cập nhật trạng thái cuối.',
-        onClick: () => updateOrderStatus(order.id, 'completed'),
-        className: 'bg-[#2F855A] text-white hover:-translate-y-0.5',
-      };
-    }
-
-    if (order.status === 'no_show') {
-      return {
-        label: 'Xác nhận no-show',
-        helper: 'Ghi nhận thất bại để lưu lịch sử cảnh báo cho khách hàng này.',
-        onClick: () => updateOrderStatus(order.id, 'cancelled'),
-        className: 'bg-[#7A2E2E] text-white hover:-translate-y-0.5',
-      };
-    }
-
+    if (order.status === 'processing') return { label: 'Xác nhận đơn', helper: 'Chuyển sang đang giao hàng.', onClick: () => updateOrderStatusSync(order.id, 'delivering'), tone: 'bg-[#103B2D] text-white' };
+    if (order.status === 'delivering') return { label: 'Hoàn thành đơn', helper: 'Chốt đơn sau khi giao / thu gom xong.', onClick: () => updateOrderStatusSync(order.id, 'completed'), tone: 'bg-[#2F855A] text-white' };
+    if (order.status === 'no_show')   return { label: 'Xác nhận no-show', helper: 'Ghi nhận để cảnh báo khách này.', onClick: () => updateOrderStatusSync(order.id, 'cancelled'), tone: 'bg-rose-700 text-white' };
     return null;
   };
 
   const customerRows = customers
-    .map((customer) => {
-      const customerOrders = orders.filter((order) => order.customerId === customer.id);
-      const latestOrder = [...customerOrders].sort((a, b) => b.bookingDate.localeCompare(a.bookingDate))[0];
-      const totalSpent = customerOrders.reduce((sum, order) => sum + order.amount, 0);
-
-      return {
-        ...customer,
-        latestOrder,
-        ordersCount: customerOrders.length,
-        totalSpent,
-      };
+    .map((c) => {
+      const cOrders = orders.filter((o) => o.customerId === c.id);
+      const latest  = [...cOrders].sort((a, b) => b.schedule.date.localeCompare(a.schedule.date))[0];
+      return { ...c, latestOrder: latest, ordersCount: cOrders.length, totalSpent: cOrders.reduce((s, o) => s + o.finalAmount, 0) };
     })
-    .filter((customer) => {
-      const matchesQuery =
-        normalizedQuery === '' ||
-        customer.name.toLowerCase().includes(normalizedQuery) ||
-        customer.email.toLowerCase().includes(normalizedQuery) ||
-        customer.phone.includes(normalizedQuery);
-
-      const matchesStatus = statusFilter === 'all' || customer.latestOrder?.status === statusFilter;
-
-      return matchesQuery && matchesStatus;
+    .filter((c) => {
+      const q = normalizedQuery === '' || c.name.toLowerCase().includes(normalizedQuery) || c.email.toLowerCase().includes(normalizedQuery) || c.phone.includes(normalizedQuery);
+      const s = statusFilter === 'all' || c.latestOrder?.status === statusFilter;
+      return q && s;
     });
 
-  const statusSummary = Object.entries(statusMeta).map(([status, meta]) => ({
-    id: status as OrderStatus,
-    label: meta.label,
-    count: orders.filter((order) => order.status === status).length,
-    tone: meta.tone,
+  const statusSummary = Object.entries(statusMeta).map(([id, meta]) => ({
+    id: id as OrderStatus, ...meta,
+    count: orders.filter((o) => o.status === id).length,
   }));
 
-  const totalRevenue = orders.reduce((sum, order) => sum + order.amount, 0);
-  const memberCount = customers.filter((customer) => customer.accountType === 'member').length;
-  const guestCount = customers.length - memberCount;
+  const totalRevenue  = orders.reduce((s, o) => s + o.finalAmount, 0);
+  const memberCount   = customers.filter((c) => c.accountType === 'member').length;
+  const pendingCount  = orders.filter((o) => ['processing', 'delivering'].includes(o.status)).length;
 
+  /* ─────────────────────────────────────────────────────────────────── */
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,_#EEF8F0_0%,_#F9FCFA_35%,_#FFFFFF_100%)] text-[#103B2D]">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="rounded-[32px] border border-[#D7ECDD] bg-[linear-gradient(135deg,_#103B2D_0%,_#18543F_100%)] p-6 text-white shadow-[0_28px_80px_rgba(16,59,45,0.18)]">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#A7E8B6]">
-                Trang quản trị EcoCollect
-              </p>
-              <h1 className="mt-3 text-4xl font-bold">Quản lý người dùng và tình trạng đơn hàng</h1>
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-white/78">
-                Dashboard mock này mô phỏng đúng luồng quản trị: theo dõi user, cập nhật giá dịch vụ,
-                xác nhận đơn và chốt hoàn thành đơn hàng.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/"
-                className="rounded-full border border-white/14 bg-white/8 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/14"
-              >
-                Về trang chủ
-              </Link>
-              <span className="rounded-full bg-[#E6FFEE] px-5 py-3 text-sm font-semibold text-[#103B2D]">
-                Chỉ dùng mock data
-              </span>
-            </div>
+    <div className="flex min-h-screen bg-[#F4FAF5] text-[#103B2D]">
+
+      {/* ══ SIDEBAR ══════════════════════════════════════════════════════ */}
+      <aside className="flex w-64 shrink-0 flex-col gap-3 border-r border-[#DFF0E5] bg-white p-4 shadow-[4px_0_30px_rgba(16,59,45,0.06)] lg:sticky lg:top-0 lg:h-screen">
+
+        {/* Brand */}
+        <div className="mb-1 flex items-center gap-3 rounded-[20px] bg-[linear-gradient(135deg,#0d2f23,#103B2D)] px-4 py-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2F855A] shadow-[0_4px_12px_rgba(47,133,90,0.5)]">
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5Z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#A7E8B6]">EcoCollect</p>
+            <p className="text-xs font-semibold text-white">Admin</p>
           </div>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {[
-            { label: 'Tổng khách hàng', value: customers.length, note: `${memberCount} thành viên / ${guestCount} khách vãng lai` },
-            { label: 'Tổng đơn hàng', value: orders.length, note: `${orders.filter((order) => order.status === 'completed').length} đơn đã hoàn thành` },
-            { label: 'Chờ admin xử lý', value: orders.filter((order) => ['processing', 'delivering'].includes(order.status)).length, note: 'Đơn cần xác nhận hoặc chốt hoàn thành' },
-            { label: 'Doanh thu mock', value: currency.format(totalRevenue), note: `${orders.filter((order) => order.status === 'no_show').length} đơn không có mặt` },
-          ].map((card) => (
-            <section
-              key={card.label}
-              className="rounded-[28px] border border-[#D7ECDD] bg-white p-5 shadow-[0_18px_45px_rgba(16,59,45,0.06)]"
-            >
-              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#2F855A]">{card.label}</p>
-              <div className="mt-3 text-3xl font-bold text-[#103B2D]">{card.value}</div>
-              <p className="mt-2 text-sm text-[#5D776A]">{card.note}</p>
-            </section>
-          ))}
+        {/* Admin info */}
+        <div className="flex items-center gap-3 rounded-[20px] border border-[#E0F0E6] bg-[#F7FCF8] px-4 py-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2F855A]/20 text-sm font-bold text-[#2F855A] ring-2 ring-[#2F855A]/30">
+            {(currentUser?.name ?? 'A').charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-[#103B2D]">{currentUser?.name ?? 'Admin'}</p>
+            <p className="truncate text-xs text-[#6D877A]">{currentUser?.email ?? 'admin@ecocollect.vn'}</p>
+          </div>
         </div>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[260px_1fr]">
-          <aside className="lg:sticky lg:top-6 lg:self-start">
-            <div className="rounded-[32px] border border-[#D7ECDD] bg-white p-5 shadow-[0_18px_45px_rgba(16,59,45,0.06)]">
-              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">Thanh quản trị</p>
-              <div className="mt-5 space-y-3">
+        {/* Nav */}
+        <nav className="flex-1">
+          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#8AA89A]">Menu</p>
+          <div className="space-y-0.5">
+            {NAV_ITEMS.map(({ id, label, desc, badge }) => {
+              const isActive = activeTab === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setActiveTab(id)}
+                  className={cn(
+                    'group relative flex w-full items-center gap-3 rounded-[16px] px-3 py-2.5 text-left transition-all duration-200',
+                    isActive ? 'bg-[#EBF7F0] shadow-sm' : 'hover:bg-[#F5FAF6]',
+                  )}
+                >
+                  {/* Active bar */}
+                  <span className={cn('absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#2F855A] transition-all', isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-30')} />
+
+                  <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all', isActive ? 'bg-white shadow-sm' : 'bg-transparent group-hover:bg-white/70')}>
+                    <NavIcon id={id} active={isActive} />
+                  </span>
+
+                  <div className="min-w-0 flex-1">
+                    <p className={cn('text-sm font-semibold leading-tight', isActive ? 'text-[#103B2D]' : 'text-[#476458] group-hover:text-[#103B2D]')}>{label}</p>
+                    <p className="mt-0.5 text-[11px] text-[#8AA89A] truncate">{desc}</p>
+                  </div>
+
+                  {badge !== undefined && (
+                    <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-bold', isActive ? 'bg-[#103B2D] text-white' : 'bg-[#E0F5E6] text-[#2F855A]')}>
+                      {badge}
+                    </span>
+                  )}
+                  {id === 'orders' && pendingCount > 0 && (
+                    <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-bold', isActive ? 'bg-white text-[#103B2D]' : 'bg-amber-100 text-amber-700')}>
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* Logout */}
+        <button
+          type="button"
+          onClick={onLogout}
+          className="flex items-center gap-3 rounded-[16px] border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition-all hover:bg-red-100 hover:shadow-sm"
+        >
+          <IconLogout />
+          Đăng xuất
+        </button>
+      </aside>
+
+      {/* ══ MAIN CONTENT ════════════════════════════════════════════════ */}
+      <main className="flex-1 overflow-y-auto">
+
+        {/* Top bar */}
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[#DFF0E5] bg-white/90 px-8 py-4 backdrop-blur-sm">
+          <div>
+            <h1 className="text-2xl font-bold text-[#103B2D]">
+              {activeTab === 'overview' && 'Tổng quan'}
+              {activeTab === 'users'    && 'Quản lý khách hàng'}
+              {activeTab === 'pricing'  && 'Bảng giá dịch vụ'}
+              {activeTab === 'orders'   && 'Quản lý đơn hàng'}
+            </h1>
+            <p className="mt-0.5 text-sm text-[#6D877A]">
+              {activeTab === 'overview' && 'Số liệu & tình trạng hoạt động'}
+              {activeTab === 'users'    && `${customerRows.length} khách hàng`}
+              {activeTab === 'pricing'  && 'Điều chỉnh giá trực tiếp'}
+              {activeTab === 'orders'   && `${pendingCount} đơn cần xử lý`}
+            </p>
+          </div>
+          <span className="rounded-full bg-[#EBF7F0] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#2F855A]">
+            Mock data
+          </span>
+        </header>
+
+        <div className="p-6 lg:p-8">
+
+          {/* ══ TAB: OVERVIEW ═══════════════════════════════════════════ */}
+          {activeTab === 'overview' && (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Stat cards */}
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {[
-                  {
-                    href: '#user-management',
-                    title: 'Quản lý user',
-                    description: 'Xem khách hàng, loại tài khoản, đơn gần nhất và trạng thái hiển thị cho khách.',
-                  },
-                  {
-                    href: '#pricing-management',
-                    title: 'Cập nhật giá dịch vụ',
-                    description: 'Tăng giảm giá mock cho từng hạng mục để demo nghiệp vụ điều chỉnh bảng giá.',
-                  },
-                  {
-                    href: '#order-review',
-                    title: 'Kiểm tra đơn hàng',
-                    description: 'Xác nhận đơn, chuyển sang đang giao hàng và hoàn thành đơn trực tiếp trên dashboard.',
-                  },
-                ].map((item) => (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    className="block rounded-[24px] border border-[#D7ECDD] bg-[#F9FCFA] p-4 transition-colors hover:border-[#2F855A] hover:bg-[#F3FBF5]"
-                  >
-                    <p className="font-semibold text-[#103B2D]">{item.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-[#5D776A]">{item.description}</p>
-                  </a>
+                  { label: 'Tổng khách hàng', value: customers.length, sub: `${memberCount} thành viên`, icon: '👥', tone: 'from-emerald-400 to-teal-500' },
+                  { label: 'Tổng đơn hàng', value: orders.length, sub: `${orders.filter(o => o.status === 'completed').length} đã hoàn thành`, icon: '📦', tone: 'from-violet-400 to-purple-500' },
+                  { label: 'Chờ xử lý', value: pendingCount, sub: 'Cần xác nhận hoặc chốt', icon: '⏳', tone: 'from-amber-400 to-orange-500' },
+                  { label: 'Doanh thu', value: currency.format(totalRevenue), sub: `${orders.filter(o => o.status === 'no_show').length} no-show`, icon: '💰', tone: 'from-sky-400 to-blue-500' },
+                ].map((card) => (
+                  <div key={card.label} className="relative overflow-hidden rounded-[24px] bg-white p-5 shadow-[0_8px_30px_rgba(16,59,45,0.07)] border border-[#E8F5EC]">
+                    <div className={cn('absolute -right-4 -top-4 h-20 w-20 rounded-full bg-linear-to-br opacity-10', card.tone)} />
+                    <div className="flex items-start justify-between">
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8AA89A]">{card.label}</p>
+                      <span className="text-2xl">{card.icon}</span>
+                    </div>
+                    <div className="mt-3 text-3xl font-bold text-[#103B2D]">{card.value}</div>
+                    <p className="mt-1 text-xs text-[#6D877A]">{card.sub}</p>
+                  </div>
                 ))}
               </div>
 
-              <div className="mt-5 rounded-[24px] bg-[#103B2D] p-4 text-sm leading-6 text-white/78">
-                Admin xử lý theo đúng nghiệp vụ đã chốt: khách mới đặt đơn là đang xử lý, admin xác nhận
-                thì chuyển sang đang giao hàng, giao xong thì đánh dấu đã hoàn thành.
-              </div>
-            </div>
-          </aside>
-
-          <div className="space-y-8">
-            <section className="rounded-[32px] border border-[#D7ECDD] bg-white p-6 shadow-[0_18px_45px_rgba(16,59,45,0.06)]">
-              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">Tài khoản admin demo</p>
-                  <h2 className="mt-2 text-2xl font-bold">Mock data tài khoản quản trị để test UI</h2>
-                </div>
-                <div className="rounded-full bg-[#F3FBF5] px-4 py-2 text-sm text-[#476458]">
-                  Gợi ý: dùng các tài khoản này để demo phần role / quyền hạn
+              {/* Status pill summary */}
+              <div className="rounded-[24px] border border-[#DFF0E5] bg-white p-5 shadow-[0_8px_30px_rgba(16,59,45,0.05)]">
+                <p className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-[#8AA89A]">Phân bổ trạng thái đơn</p>
+                <div className="flex flex-wrap gap-3">
+                  {statusSummary.map((s) => (
+                    <div key={s.id} className="flex items-center gap-2 rounded-full border border-[#DFF0E5] bg-[#F7FCF8] px-4 py-2">
+                      <span className={cn('inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold', s.tone)}>{s.label}</span>
+                      <span className="text-lg font-bold text-[#103B2D]">{s.count}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-4 lg:grid-cols-3">
-                {adminAccounts.map((admin) => (
-                  <article key={admin.id} className="rounded-[28px] border border-[#D7ECDD] bg-[#F9FCFA] p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#2F855A]">{admin.id}</p>
-                        <h3 className="mt-2 text-xl font-bold text-[#103B2D]">{admin.name}</h3>
-                        <p className="mt-1 text-sm text-[#476458]">{admin.role}</p>
+              {/* Recent orders */}
+              <div className="rounded-[24px] border border-[#DFF0E5] bg-white p-5 shadow-[0_8px_30px_rgba(16,59,45,0.05)]">
+                <div className="mb-4 flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8AA89A]">Đơn hàng gần nhất</p>
+                  <button type="button" onClick={() => setActiveTab('orders')} className="text-xs font-semibold text-[#2F855A] hover:underline">
+                    Xem tất cả →
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {orders.slice(0, 5).map((o) => (
+                    <div key={o.id} className="flex items-center gap-4 rounded-[18px] bg-[#F7FCF8] px-4 py-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-[#103B2D]">{o.code}</p>
+                        <p className="text-xs text-[#6D877A] truncate">{o.itemSummary}</p>
                       </div>
-                      <span className="rounded-full bg-[#103B2D] px-3 py-1 text-xs font-semibold text-white">
-                        {admin.shift}
+                      <span className={cn('rounded-full px-3 py-1 text-[11px] font-semibold', statusMeta[o.status].tone)}>
+                        {statusMeta[o.status].label}
+                      </span>
+                      <span className="text-sm font-bold text-[#103B2D] whitespace-nowrap">
+                        {o.finalAmount > 0 ? currency.format(o.finalAmount) : '—'}
                       </span>
                     </div>
-
-                    <div className="mt-5 rounded-[22px] bg-white p-4 text-sm text-[#476458]">
-                      <p><span className="font-semibold text-[#103B2D]">Email:</span> {admin.email}</p>
-                      <p className="mt-2"><span className="font-semibold text-[#103B2D]">Mật khẩu:</span> {admin.password}</p>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {admin.permissions.map((permission) => (
-                        <span
-                          key={permission}
-                          className="rounded-full bg-[#EAF8EE] px-3 py-2 text-xs font-semibold text-[#2F855A]"
-                        >
-                          {permission}
-                        </span>
-                      ))}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section id="user-management" className="rounded-[32px] border border-[#D7ECDD] bg-white p-6 shadow-[0_18px_45px_rgba(16,59,45,0.06)]">
-              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">Quản lý user</p>
-                  <h2 className="mt-2 text-2xl font-bold">Quản lý người dùng và đơn hàng gần nhất</h2>
+                  ))}
                 </div>
-                <div className="text-sm text-[#5D776A]">
-                  Đang hiển thị <span className="font-semibold text-[#103B2D]">{customerRows.length}</span> user
+              </div>
+            </div>
+          )}
+
+          {/* ══ TAB: USERS ══════════════════════════════════════════════ */}
+          {activeTab === 'users' && (
+            <div className="animate-fadeIn space-y-4">
+              {/* Search + filter bar */}
+              <div className="flex flex-wrap gap-3">
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Tìm theo tên, email, số điện thoại..."
+                  className="min-w-[260px] flex-1 rounded-full border border-[#DFF0E5] bg-white px-4 py-2.5 text-sm outline-none shadow-sm transition-colors focus:border-[#2F855A]"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {statusFilters.map((f) => (
+                    <button key={f.id} type="button" onClick={() => setStatusFilter(f.id)}
+                      className={cn('rounded-full px-4 py-2 text-sm font-semibold transition-colors', statusFilter === f.id ? 'bg-[#103B2D] text-white shadow-sm' : 'bg-white border border-[#DFF0E5] text-[#476458] hover:bg-[#F7FCF8]')}>
+                      {f.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="mt-6 overflow-x-auto">
-                <table className="min-w-full border-separate border-spacing-y-3">
-                  <thead>
-                    <tr className="text-left text-xs uppercase tracking-[0.16em] text-[#6E877C]">
-                      <th className="px-4">Khách hàng</th>
-                      <th className="px-4">Loại tài khoản</th>
-                      <th className="px-4">Đơn gần nhất</th>
-                      <th className="px-4">Trạng thái admin</th>
-                      <th className="px-4">Trạng thái khách thấy</th>
-                      <th className="px-4">Tổng đơn</th>
-                      <th className="px-4">Tổng chi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customerRows.map((customer) => (
-                      <tr key={customer.id} className="rounded-[24px] bg-[#F9FCFA] text-sm text-[#476458]">
-                        <td className="rounded-l-[24px] px-4 py-4 align-top">
-                          <p className="font-semibold text-[#103B2D]">{customer.name}</p>
-                          <p className="mt-1">{customer.email}</p>
-                          <p className="mt-1">{customer.phone}</p>
-                          <p className="mt-2 text-xs text-[#6E877C]">
-                            {customer.district} • no-show: {customer.noShowCount}
-                          </p>
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          <span
-                            className={cn(
-                              'inline-flex rounded-full px-3 py-2 text-xs font-semibold',
-                              customer.accountType === 'member'
-                                ? 'bg-[#DDF6E4] text-[#2F855A]'
-                                : 'bg-[#EEF1EF] text-[#5E7469]'
-                            )}
-                          >
-                            {customer.accountType === 'member' ? 'Thành viên' : 'Khách vãng lai'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          {customer.latestOrder ? (
-                            <>
-                              <p className="font-semibold text-[#103B2D]">{customer.latestOrder.code}</p>
-                              <p className="mt-1">{customer.latestOrder.itemSummary}</p>
-                              <p className="mt-1 text-xs text-[#6E877C]">
-                                {customer.latestOrder.bookingDate} • {customer.latestOrder.slot}
-                              </p>
-                            </>
-                          ) : (
-                            <span>Chưa có đơn</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          {customer.latestOrder ? (
-                            <span
-                              className={cn(
-                                'inline-flex rounded-full px-3 py-2 text-xs font-semibold',
-                                statusMeta[customer.latestOrder.status].tone
-                              )}
-                            >
-                              {statusMeta[customer.latestOrder.status].label}
-                            </span>
-                          ) : (
-                            <span className="text-[#6E877C]">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 align-top">
-                          {customer.latestOrder ? (
-                            <span
-                              className={cn(
-                                'inline-flex rounded-full px-3 py-2 text-xs font-semibold',
-                                getCustomerFacingStatus(customer.latestOrder.status).tone
-                              )}
-                            >
-                              {getCustomerFacingStatus(customer.latestOrder.status).label}
-                            </span>
-                          ) : (
-                            <span className="text-[#6E877C]">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 align-top font-semibold text-[#103B2D]">{customer.ordersCount}</td>
-                        <td className="rounded-r-[24px] px-4 py-4 align-top font-semibold text-[#103B2D]">
-                          {currency.format(customer.totalSpent)}
-                        </td>
+              <div className="rounded-[24px] border border-[#DFF0E5] bg-white shadow-[0_8px_30px_rgba(16,59,45,0.05)] overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr className="border-b border-[#EEF8F1]">
+                        {['Khách hàng', 'Loại TK', 'Đơn gần nhất', 'Trạng thái admin', 'Khách thấy', 'Đơn', 'Chi tiêu'].map((h) => (
+                          <th key={h} className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-[#8AA89A]">{h}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            <section id="pricing-management" className="rounded-[32px] border border-[#D7ECDD] bg-white p-6 shadow-[0_18px_45px_rgba(16,59,45,0.06)]">
-              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">Cập nhật giá cả dịch vụ</p>
-                  <h2 className="mt-2 text-2xl font-bold">Bảng giá mock để admin điều chỉnh nhanh</h2>
+                    </thead>
+                    <tbody>
+                      {customerRows.map((c, i) => (
+                        <tr key={c.id} className={cn('border-b border-[#F0F7F2] transition-colors hover:bg-[#F7FCF8]', i % 2 === 1 && 'bg-[#FAFCFB]')}>
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EBF7F0] text-sm font-bold text-[#2F855A]">
+                                {c.name.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-[#103B2D]">{c.name}</p>
+                                <p className="text-xs text-[#8AA89A]">{c.email}</p>
+                                <p className="text-xs text-[#8AA89A]">{c.phone}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className={cn('rounded-full px-3 py-1 text-xs font-semibold', c.accountType === 'member' ? 'bg-[#DDF6E4] text-[#2F855A]' : 'bg-[#EEF1EF] text-[#5E7469]')}>
+                              {c.accountType === 'member' ? 'Thành viên' : 'Khách vãng lai'}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4">
+                            {c.latestOrder ? (
+                              <div>
+                                <p className="font-semibold text-[#103B2D] text-sm">{c.latestOrder.code}</p>
+                                <p className="text-xs text-[#8AA89A]">{c.latestOrder.itemSummary}</p>
+                                <p className="text-xs text-[#8AA89A]">{c.latestOrder.schedule.date} • {c.latestOrder.schedule.timeSlot}</p>
+                              </div>
+                            ) : <span className="text-sm text-[#8AA89A]">Chưa có đơn</span>}
+                          </td>
+                          <td className="px-5 py-4">
+                            {c.latestOrder ? (
+                              <span className={cn('rounded-full px-3 py-1 text-xs font-semibold', statusMeta[c.latestOrder.status].tone)}>
+                                {statusMeta[c.latestOrder.status].label}
+                              </span>
+                            ) : <span className="text-[#8AA89A]">—</span>}
+                          </td>
+                          <td className="px-5 py-4">
+                            {c.latestOrder ? (
+                              <span className={cn('rounded-full px-3 py-1 text-xs font-semibold', getCustomerFacingStatus(c.latestOrder.status).tone)}>
+                                {getCustomerFacingStatus(c.latestOrder.status).label}
+                              </span>
+                            ) : <span className="text-[#8AA89A]">—</span>}
+                          </td>
+                          <td className="px-5 py-4 font-semibold text-[#103B2D]">{c.ordersCount}</td>
+                          <td className="px-5 py-4 font-semibold text-[#103B2D]">{currency.format(c.totalSpent)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="rounded-full bg-[#F3FBF5] px-4 py-2 text-sm text-[#476458]">
-                  Demo thao tác tăng / giảm giá trực tiếp trên dashboard
-                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ══ TAB: PRICING ════════════════════════════════════════════ */}
+          {activeTab === 'pricing' && (
+            <div className="animate-fadeIn space-y-4">
+              {/* Menu Tabs */}
+              <div className="mb-6 flex flex-wrap gap-2">
+                {categoriesList.map((cat: string) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedPricingCategory(cat)}
+                    className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-300 ${
+                      selectedPricingCategory === cat
+                        ? 'bg-[#103B2D] text-white shadow-md'
+                        : 'bg-white border border-[#DFF0E5] text-[#2F855A] hover:bg-[#F3FBF5]'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
 
-              <div className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-                {servicePricing.map((service) => (
-                  <article key={service.id} className="rounded-[28px] border border-[#D7ECDD] bg-[#F9FCFA] p-5">
-                    <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#2F855A]">
-                      {service.category}
-                    </p>
-                    <h3 className="mt-2 text-xl font-bold text-[#103B2D]">{service.name}</h3>
-                    <p className="mt-1 text-sm text-[#476458]">{service.note}</p>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {filteredPricing.map((svc: ServicePriceRecord) => (
+                  <article key={svc.id} className="rounded-[24px] border border-[#DFF0E5] bg-white p-5 shadow-[0_8px_30px_rgba(16,59,45,0.05)]">
+                    <span className="inline-block rounded-full bg-[#EBF7F0] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#2F855A]">{svc.category}</span>
+                    <h3 className="mt-3 text-lg font-bold text-[#103B2D]">{svc.name}</h3>
+                    <p className="mt-1 text-xs leading-5 text-[#6D877A]">{svc.note}</p>
 
-                    <div className="mt-4 rounded-[22px] bg-white p-4">
-                      <p className="text-sm text-[#5D776A]">Giá hiện tại</p>
-                      <div className="mt-2 text-2xl font-bold text-[#103B2D]">
-                        {currency.format(service.price)}
-                        {service.unitLabel}
-                      </div>
+                    <div className="my-4 rounded-[18px] bg-[#F7FCF8] p-4 text-center">
+                      <p className="text-xs text-[#8AA89A] mb-1">Giá hiện tại</p>
+                      <p className="text-2xl font-bold text-[#103B2D]">{currency.format(svc.price)}</p>
+                      <p className="text-xs text-[#8AA89A]">{svc.unitLabel}</p>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => adjustServicePrice(service.id, -10000)}
-                        className="rounded-full border border-[#D7ECDD] bg-white px-4 py-3 text-sm font-semibold text-[#103B2D] transition-colors hover:bg-[#EEF6F0]"
-                      >
-                        Giảm 10.000đ
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => adjustServicePrice(svc.id, -10000)}
+                        className="rounded-full border border-[#DFF0E5] bg-white py-2.5 text-sm font-semibold text-[#476458] transition-colors hover:bg-red-50 hover:border-red-200 hover:text-red-600">
+                        − 10K
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => adjustServicePrice(service.id, 10000)}
-                        className="rounded-full bg-[#103B2D] px-4 py-3 text-sm font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5"
-                      >
-                        Tăng 10.000đ
+                      <button type="button" onClick={() => adjustServicePrice(svc.id, 10000)}
+                        className="rounded-full bg-[#103B2D] py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-md">
+                        + 10K
                       </button>
                     </div>
                   </article>
                 ))}
               </div>
-            </section>
+            </div>
+          )}
 
-            <section id="order-review" className="rounded-[32px] border border-[#D7ECDD] bg-white p-6 shadow-[0_18px_45px_rgba(16,59,45,0.06)]">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">Kiểm tra đơn hàng</p>
-                  <h2 className="mt-2 text-2xl font-bold">Tình trạng đơn hàng hiện tại</h2>
-                </div>
-
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Tìm theo tên, email, số điện thoại..."
-                    className="min-w-[280px] rounded-full border border-[#D7ECDD] bg-[#F9FCFA] px-4 py-3 text-sm outline-none transition-colors focus:border-[#2F855A]"
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    {statusFilters.map((filter) => (
-                      <button
-                        key={filter.id}
-                        type="button"
-                        onClick={() => setStatusFilter(filter.id)}
-                        className={cn(
-                          'rounded-full px-4 py-3 text-sm font-semibold transition-colors',
-                          statusFilter === filter.id
-                            ? 'bg-[#103B2D] text-white'
-                            : 'bg-[#F3FBF5] text-[#476458] hover:bg-[#EAF8EE]'
-                        )}
-                      >
-                        {filter.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+          {/* ══ TAB: ORDERS ═════════════════════════════════════════════ */}
+          {activeTab === 'orders' && (
+            <div className="animate-fadeIn space-y-5">
+              {/* Filter bar */}
+              <div className="flex flex-wrap gap-2">
+                {statusFilters.map((f) => (
+                  <button key={f.id} type="button" onClick={() => setStatusFilter(f.id)}
+                    className={cn('rounded-full px-4 py-2 text-sm font-semibold transition-all', statusFilter === f.id ? 'bg-[#103B2D] text-white shadow-sm' : 'bg-white border border-[#DFF0E5] text-[#476458] hover:bg-[#F7FCF8]')}>
+                    {f.label}
+                  </button>
+                ))}
               </div>
 
-              <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {statusSummary.map((status) => (
-                  <div key={status.id} className="rounded-[24px] border border-[#D7ECDD] bg-[#F9FCFA] p-4">
-                    <span className={cn('inline-flex rounded-full px-3 py-1 text-xs font-semibold', status.tone)}>
-                      {status.label}
-                    </span>
-                    <div className="mt-4 text-3xl font-bold text-[#103B2D]">{status.count}</div>
-                    <p className="mt-1 text-sm text-[#5D776A]">Đơn theo luồng xử lý của admin</p>
+              {/* Status chips */}
+              <div className="flex flex-wrap gap-3">
+                {statusSummary.map((s) => (
+                  <div key={s.id} className="flex items-center gap-2 rounded-full border border-[#DFF0E5] bg-white px-4 py-1.5 shadow-sm">
+                    <span className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-bold', s.tone)}>{s.label}</span>
+                    <span className="font-bold text-[#103B2D]">{s.count}</span>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-8 grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
-                <section className="rounded-[28px] border border-[#D7ECDD] bg-[#FCFEFD] p-5">
-                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">Nghiệp vụ admin</p>
-                  <div className="mt-5 space-y-3">
-                    {orders
-                      .filter((order) => ['processing', 'delivering', 'no_show'].includes(order.status))
-                      .map((order) => {
-                        const action = getAdminAction(order);
-
-                        return (
-                          <div key={order.id} className="rounded-[24px] bg-[#F9FCFA] p-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="font-semibold text-[#103B2D]">{order.code}</p>
-                                <p className="mt-1 text-sm text-[#476458]">{order.itemSummary}</p>
-                                <p className="mt-2 text-xs text-[#6E877C]">
-                                  {order.bookingDate} • {order.slot}
-                                </p>
-                                <p className="mt-3 text-sm text-[#476458]">
-                                  <span className="font-semibold text-[#103B2D]">Tự đánh giá đồ:</span> {order.selfAssessment}
-                                </p>
-                                <p className="mt-2 text-sm text-[#476458]">
-                                  <span className="font-semibold text-[#103B2D]">Điều chỉnh giá:</span> {order.priceAdjustment}
-                                </p>
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                  <span className="rounded-full bg-[#EAF8EE] px-3 py-2 text-xs font-semibold text-[#2F855A]">
-                                    Tự đánh giá đồ
-                                  </span>
-                                  <span className="rounded-full bg-[#FFF4E5] px-3 py-2 text-xs font-semibold text-[#B26A00]">
-                                    Điều chỉnh giá
-                                  </span>
-                                </div>
-                                {action && (
-                                  <div className="mt-4 rounded-[20px] border border-[#D7ECDD] bg-white p-4">
-                                    <p className="text-sm text-[#5D776A]">{action.helper}</p>
-                                    <button
-                                      type="button"
-                                      onClick={action.onClick}
-                                      className={cn(
-                                        'mt-3 rounded-full px-5 py-3 text-sm font-semibold transition-transform duration-300',
-                                        action.className
-                                      )}
-                                    >
-                                      {action.label}
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                              <span
-                                className={cn(
-                                  'inline-flex rounded-full px-3 py-1 text-xs font-semibold',
-                                  statusMeta[order.status].tone
-                                )}
-                              >
-                                {statusMeta[order.status].label}
+              {/* Order cards — only actionable orders */}
+              <div className="space-y-3">
+                {orders
+                  .filter((o) => statusFilter === 'all' ? true : o.status === statusFilter)
+                  .map((o) => {
+                    const action = getAdminAction(o);
+                    return (
+                      <div key={o.id} className="rounded-[24px] border border-[#DFF0E5] bg-white p-5 shadow-[0_4px_20px_rgba(16,59,45,0.04)] transition-shadow hover:shadow-[0_8px_30px_rgba(16,59,45,0.08)]">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <p className="font-bold text-[#103B2D]">{o.code}</p>
+                              <span className={cn('rounded-full px-3 py-1 text-[11px] font-bold', statusMeta[o.status].tone)}>
+                                {statusMeta[o.status].label}
+                              </span>
+                              <span className="text-xs text-[#8AA89A]">
+                                Khách thấy: <span className="font-semibold text-[#476458]">{getCustomerFacingStatus(o.status).label}</span>
                               </span>
                             </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </section>
 
-                <section className="space-y-8">
-                  <div className="rounded-[28px] border border-[#D7ECDD] bg-[#FCFEFD] p-5">
-                    <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">Tóm tắt xử lý gần đây</p>
-                    <div className="mt-5 space-y-3">
-                      {orders.slice(0, 5).map((order) => (
-                        <div key={order.id} className="rounded-[24px] bg-[#F9FCFA] p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="font-semibold text-[#103B2D]">{order.code}</p>
-                              <p className="mt-1 text-sm text-[#476458]">{order.assignedStaff}</p>
-                              <p className="mt-1 text-xs text-[#6E877C]">
-                                Khách nhìn thấy: {getCustomerFacingStatus(order.status).label}
-                              </p>
+                            <p className="mt-2 text-sm text-[#476458]">{o.itemSummary}</p>
+                            <p className="mt-1 text-xs text-[#8AA89A]">{o.schedule.date} • {o.schedule.timeSlot} • {o.assignedStaff}</p>
+
+                            <div className="mt-3 grid grid-cols-1 gap-1 sm:grid-cols-2">
+                              <p className="text-sm text-[#476458]"><span className="font-semibold text-[#103B2D]">Đánh giá:</span> {o.selfAssessment}</p>
+                              <p className="text-sm text-[#476458]"><span className="font-semibold text-[#103B2D]">Giá:</span> {o.priceAdjustment}</p>
                             </div>
-                            <p className="text-sm font-semibold text-[#103B2D]">
-                              {order.amount > 0 ? currency.format(order.amount) : 'Cần báo giá'}
+                          </div>
+
+                          <div className="flex flex-row items-center gap-3 sm:flex-col sm:items-end">
+                            <p className="text-xl font-bold text-[#103B2D] whitespace-nowrap">
+                              {o.finalAmount > 0 ? currency.format(o.finalAmount) : <span className="text-sm text-[#8AA89A]">Cần báo giá</span>}
                             </p>
+                            {action && (
+                              <button type="button" onClick={action.onClick}
+                                className={cn('rounded-full px-5 py-2.5 text-sm font-semibold transition-all hover:-translate-y-0.5 hover:shadow-md whitespace-nowrap', action.tone)}>
+                                {action.label}
+                              </button>
+                            )}
+                            {!action && (
+                              <span className="text-xs text-[#8AA89A]">Không cần thao tác</span>
+                            )}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                </section>
+                        {action && (
+                          <p className="mt-3 text-xs text-[#8AA89A] border-t border-[#F0F7F2] pt-3">💬 {action.helper}</p>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
-            </section>
-          </div>
+            </div>
+          )}
+
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

@@ -1,50 +1,83 @@
+'use client';
+
+import { useTranslation } from 'react-i18next';
+
 interface WasteTypesProps {
-  onBookingClick: () => void;
+  onBookingClick: (prefill?: { selectedWaste?: string }) => void;
 }
 
 export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
+  const { t } = useTranslation();
+
+  const getArray = (key: string) => {
+    const val = t(key, { returnObjects: true });
+    return Array.isArray(val) ? val : [];
+  };
+
   const wasteTypes = [
     {
+      id: 'furniture',
       icon: '🛋️',
-      name: 'Sofa & Ghế',
-      description: 'Có chọn size đơn, đôi hoặc góc L',
-      price: 'Từ 150.000đ / món',
-      items: ['Sofa 2-3 chỗ', 'Ghế bành', 'Ghế gaming', 'Ghế văn phòng']
-    },
-    {
-      icon: '🗄️',
-      name: 'Tủ & Kệ',
-      description: 'Tách theo kích thước nhỏ, vừa, lớn',
-      price: 'Từ 180.000đ / món',
-      items: ['Tủ quần áo', 'Tủ bếp', 'Kệ sách', 'Tủ giày']
-    },
-    {
-      icon: '📺',
-      name: 'Đồ điện tử',
-      description: 'TV, máy tính, tủ lạnh, máy giặt',
+      name: t('wasteTypes.types.furniture'),
+      description: t('booking.categories.furniture'),
       price: 'Từ 100.000đ / món',
-      items: ['TV & Màn hình', 'Máy tính', 'Tủ lạnh', 'Máy giặt']
+      items: getArray('wasteTypes.items.furniture')
     },
     {
+      id: 'electronics',
+      icon: '📺',
+      name: t('wasteTypes.types.electronics'),
+      description: t('booking.categories.electronics'),
+      price: 'Từ 80.000đ / món',
+      items: getArray('wasteTypes.items.electronics')
+    },
+    {
+      id: 'metals',
+      icon: '🔩',
+      name: t('wasteTypes.types.metals'),
+      description: t('booking.categories.metals'),
+      price: 'Từ 8.000đ / kg',
+      items: getArray('wasteTypes.items.metals')
+    },
+    {
+      id: 'plastics',
+      icon: '🪣',
+      name: t('wasteTypes.types.plastics'),
+      description: t('booking.categories.plastics'),
+      price: 'Từ 5.000đ / kg',
+      items: getArray('wasteTypes.items.plastics')
+    },
+    {
+      id: 'paper',
+      icon: '📦',
+      name: t('wasteTypes.types.paper'),
+      description: t('booking.categories.paper'),
+      price: 'Từ 3.000đ / kg',
+      items: getArray('wasteTypes.items.paper')
+    },
+    {
+      id: 'clothes',
+      icon: '👕',
+      name: t('wasteTypes.types.clothes'),
+      description: t('booking.categories.clothes'),
+      price: 'Từ 3.000đ / kg',
+      items: getArray('wasteTypes.items.clothes')
+    },
+    {
+      id: 'vehicles',
+      icon: '🛵',
+      name: t('wasteTypes.types.vehicles'),
+      description: t('booking.categories.vehicles'),
+      price: 'Từ 100.000đ / món',
+      items: getArray('wasteTypes.items.vehicles')
+    },
+    {
+      id: 'other',
       icon: '🧱',
-      name: 'Phế thải xây dựng',
-      description: 'Tính theo bao, kg hoặc khối lượng ước tính',
-      price: 'Từ 80.000đ / bao',
-      items: ['Xà bần', 'Gạch vỡ', 'Xi măng', 'Tấm trần']
-    },
-    {
-      icon: '🪑',
-      name: 'Bàn & Đồ gỗ',
-      description: 'Bàn ăn, bàn làm việc, ghế và đồ gỗ rời',
-      price: 'Từ 120.000đ / món',
-      items: ['Bàn ăn', 'Bàn làm việc', 'Bàn coffee', 'Tủ TV']
-    },
-    {
-      icon: '✨',
-      name: 'Món ngoài danh sách',
-      description: 'Khách có thể mô tả riêng và upload ảnh',
-      price: 'Cần báo giá',
-      items: ['Bàn ăn', 'Cũi trẻ em', 'Xe máy điện', 'Biển quảng cáo']
+      name: t('wasteTypes.types.other'),
+      description: t('booking.categories.other'),
+      price: t('booking.quoteLabel'),
+      items: getArray('wasteTypes.items.other')
     }
   ];
 
@@ -54,23 +87,21 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
           <span className="inline-block rounded-full bg-[#2F855A]/10 px-4 py-1.5 text-sm font-semibold text-[#2F855A] mb-4">
-            Service selection rõ ràng hơn
+            {t('wasteTypes.badge')}
           </span>
           <h2 className="text-3xl md:text-4xl font-bold text-[#303030] mb-4">
-            Loại rác chúng tôi nhận
+            {t('wasteTypes.title')}
           </h2>
-          <p className="text-gray-600 text-lg">
-            Mỗi nhóm rác đều có logic báo giá riêng để UX rõ ràng hơn và nghiệp vụ dễ xử lý hơn.
-          </p>
+
         </div>
 
         {/* Waste Types Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {wasteTypes.map((type, index) => (
             <div
               key={index}
               className="group cursor-pointer rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-[#2F855A] hover:shadow-[0_18px_45px_rgba(16,59,45,0.08)]"
-              onClick={onBookingClick}
+              onClick={() => onBookingClick({ selectedWaste: type.id })}
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-3xl shadow-sm transition-transform duration-300 group-hover:scale-110">
@@ -81,10 +112,10 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
                 </span>
               </div>
 
-              <h3 className="mb-2 text-xl font-bold text-[#103B2D]">
+              <h3 className="mb-2 mt-4 text-xl font-bold text-[#103B2D]">
                 {type.name}
               </h3>
-              <p className="mb-4 text-gray-600">
+              <p className="mb-4 text-sm text-gray-600 font-medium tracking-wide">
                 {type.description}
               </p>
 
@@ -101,9 +132,9 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
 
               <div className="mt-6 flex items-center justify-between">
                 <span className="text-sm font-medium text-[#476458]">
-                  Click để mở flow đặt lịch
+                  {t('wasteTypes.ctaLabel')}
                 </span>
-                <span className="text-sm font-bold text-[#2F855A]">Chọn dịch vụ</span>
+                <span className="text-sm font-bold text-[#2F855A]">{t('wasteTypes.ctaButton')}</span>
               </div>
             </div>
           ))}
@@ -114,18 +145,18 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#A7E8B6]">
-                Special case handling
+                {t('wasteTypes.specialCase.badge')}
               </p>
-              <h3 className="text-2xl font-bold">Không thấy món của bạn trong danh sách?</h3>
+              <h3 className="text-2xl font-bold">{t('wasteTypes.specialCase.title')}</h3>
               <p className="mt-2 max-w-2xl text-white/75">
-                Flow mới cho phép nhập mô tả riêng, gửi ảnh và chuyển item sang chế độ cần báo giá thay vì buộc khách phải chọn sai danh mục.
+                {t('wasteTypes.specialCase.desc')}
               </p>
             </div>
             <button
-              onClick={onBookingClick}
+              onClick={() => onBookingClick({ selectedWaste: 'custom' })}
               className="rounded-full bg-[#8DE0A6] px-6 py-3 font-semibold text-[#103B2D]"
             >
-              Gửi yêu cầu đặc biệt
+              {t('wasteTypes.specialCase.button')}
             </button>
           </div>
         </div>

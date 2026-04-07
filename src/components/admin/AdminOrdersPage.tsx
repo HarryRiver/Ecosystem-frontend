@@ -1,15 +1,17 @@
 'use client';
 
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   currency,
-  customers,
-  initialOrders,
-  OrderRecord,
+  defaultCustomers,
+  Order,
   OrderStatus,
+  readOrders,
   statusFilters,
   statusMeta,
-} from '../../data/adminDashboardMock';
+  updateOrderStatus,
+  writeOrders,
+} from '../../lib/store';
 import { cn } from '../../utils/cn';
 
 /* ─── Icons ──────────────────────────────────────────────────────── */
@@ -79,14 +81,14 @@ function OrderDetailPanel({
   onReject,
   onComplete,
 }: {
-  order: OrderRecord;
+  order: Order;
   adjustedAmount: number;
   onAdjustedAmountChange: (val: number) => void;
   onConfirm: () => void;
   onReject: () => void;
   onComplete: () => void;
 }) {
-  const customer = customers.find((c) => c.id === order.customerId);
+  const customer = defaultCustomers.find((c) => c.id === order.customerId);
   const [priceInput, setPriceInput] = useState(String(adjustedAmount));
   const [confirmingReject, setConfirmingReject] = useState(false);
 
@@ -162,11 +164,11 @@ function OrderDetailPanel({
             </div>
             <div className="flex justify-between">
               <span className="text-[#6D877A]">Ngày hẹn</span>
-              <span className="font-semibold text-[#103B2D]">{order.bookingDate}</span>
+              <span className="font-semibold text-[#103B2D]">{order.schedule.date}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#6D877A]">Khung giờ</span>
-              <span className="font-semibold text-[#103B2D]">{order.slot}</span>
+              <span className="font-semibold text-[#103B2D]">{order.schedule.timeSlot}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#6D877A]">Thanh toán</span>
@@ -180,6 +182,21 @@ function OrderDetailPanel({
             </div>
           </div>
         </div>
+
+        {/* ── Danh sách vật phẩm ── */}
+        {order.items.length > 0 && (
+          <div className="rounded-[20px] border border-[#E5F0E8] bg-white p-4 md:col-span-2">
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[#2F855A]">Danh sách vật phẩm</p>
+            <div className="space-y-1">
+              {order.items.map((item, idx) => (
+                <div key={idx} className="flex justify-between text-sm">
+                  <span className="text-[#103B2D]">{item.name} x{item.quantity}</span>
+                  <span className="font-semibold text-[#103B2D]">{item.price > 0 ? currency.format(item.price) : 'Báo giá'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Tự đánh giá ── */}
         <div className="rounded-[20px] border border-[#E5F0E8] bg-white p-4">
@@ -350,7 +367,7 @@ function OrderCard({
   adjustedAmount,
   onAdjustedAmountChange,
 }: {
-  order: OrderRecord;
+  order: Order;
   isExpanded: boolean;
   onToggle: () => void;
   onConfirm: () => void;
@@ -359,7 +376,7 @@ function OrderCard({
   adjustedAmount: number;
   onAdjustedAmountChange: (val: number) => void;
 }) {
-  const customer = customers.find((c) => c.id === order.customerId);
+  const customer = defaultCustomers.find((c) => c.id === order.customerId);
   const meta = statusMeta[order.status];
 
   const urgencyBorder =
@@ -408,7 +425,7 @@ function OrderCard({
             )}
           </div>
           <p className="mt-1 text-sm text-[#476458]">
-            {order.itemSummary} &nbsp;·&nbsp; {customer?.name} &nbsp;·&nbsp; {order.bookingDate} {order.slot}
+            {order.itemSummary} &nbsp;·&nbsp; {customer?.name} &nbsp;·&nbsp; {order.schedule.date} {order.schedule.timeSlot}
           </p>
         </div>
 
@@ -443,35 +460,34 @@ function OrderCard({
 export default function AdminOrdersPage() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
-  const [orders, setOrders] = useState<OrderRecord[]>(initialOrders);
+  const [orders, setOrders] = useState<Order[]>(() => readOrders());
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  // Adjusted prices per order (override the original amount)
   const [adjustedAmounts, setAdjustedAmounts] = useState<Record<string, number>>(
-    () => Object.fromEntries(initialOrders.map((o) => [o.id, o.amount]))
+    () => Object.fromEntries(readOrders().map((o) => [o.id, o.finalAmount]))
   );
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLowerCase();
 
-  const updateStatus = (orderId: string, nextStatus: OrderStatus) => {
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId
-          ? { ...o, status: nextStatus, amount: adjustedAmounts[orderId] ?? o.amount }
-          : o
-      )
-    );
+  // Persist to store whenever orders change
+  useEffect(() => {
+    writeOrders(orders);
+  }, [orders]);
+
+  const handleStatusChange = (orderId: string, nextStatus: OrderStatus) => {
+    const newAmount = adjustedAmounts[orderId];
+    setOrders((prev) => updateOrderStatus(prev, orderId, nextStatus, newAmount));
     setExpandedId(null);
   };
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      const customer = customers.find((c) => c.id === order.customerId);
+      const customer = defaultCustomers.find((c) => c.id === order.customerId);
       const matchesQuery =
         normalizedQuery === '' ||
         order.code.toLowerCase().includes(normalizedQuery) ||
         order.itemSummary.toLowerCase().includes(normalizedQuery) ||
-        customer?.name.toLowerCase().includes(normalizedQuery) ||
-        customer?.phone.includes(normalizedQuery);
+        (customer?.name.toLowerCase().includes(normalizedQuery) ?? false) ||
+        (customer?.phone.includes(normalizedQuery) ?? false);
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
       return matchesQuery && matchesStatus;
     });
@@ -573,13 +589,13 @@ export default function AdminOrdersPage() {
             order={order}
             isExpanded={expandedId === order.id}
             onToggle={() => setExpandedId(expandedId === order.id ? null : order.id)}
-            adjustedAmount={adjustedAmounts[order.id] ?? order.amount}
+            adjustedAmount={adjustedAmounts[order.id] ?? order.finalAmount}
             onAdjustedAmountChange={(val) =>
               setAdjustedAmounts((prev) => ({ ...prev, [order.id]: val }))
             }
-            onConfirm={() => updateStatus(order.id, 'delivering')}
-            onReject={() => updateStatus(order.id, 'cancelled')}
-            onComplete={() => updateStatus(order.id, 'completed')}
+            onConfirm={() => handleStatusChange(order.id, 'delivering')}
+            onReject={() => handleStatusChange(order.id, 'cancelled')}
+            onComplete={() => handleStatusChange(order.id, 'completed')}
           />
         ))}
       </div>

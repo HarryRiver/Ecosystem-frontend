@@ -33,7 +33,6 @@ function IconOrders({ className }: { className?: string }) {
   );
 }
 
-
 function IconLogout({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor">
@@ -74,8 +73,20 @@ const navItems = [
   },
 ];
 
+/* ─── Props ───────────────────────────────────────────────────────── */
+interface AdminSidebarProps {
+  /** Task 7: onLogout thật — được truyền từ App.tsx qua AdminDashboard */
+  onLogout?: () => void;
+  adminName?: string;
+  adminEmail?: string;
+}
+
 /* ─── Component ───────────────────────────────────────────────────── */
-export default function AdminSidebar() {
+export default function AdminSidebar({
+  onLogout,
+  adminName = 'Admin Vận Hành',
+  adminEmail = 'admin@ecocollect.vn',
+}: AdminSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -101,11 +112,11 @@ export default function AdminSidebar() {
         {/* Admin info */}
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2F855A]/60 text-sm font-bold text-white ring-2 ring-[#2F855A]/40">
-            A
+            {adminName.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">Admin Vận Hành</p>
-            <p className="truncate text-xs text-white/50">admin@ecocollect.vn</p>
+            <p className="truncate text-sm font-semibold text-white">{adminName}</p>
+            <p className="truncate text-xs text-white/50">{adminEmail}</p>
           </div>
           <span className="ml-auto shrink-0 rounded-full bg-[#2F855A]/30 px-2 py-0.5 text-[10px] font-semibold text-[#A7E8B6]">
             ONLINE
@@ -129,16 +140,14 @@ export default function AdminSidebar() {
                 href={item.href}
                 className={cn(
                   'group relative flex items-center gap-3 overflow-hidden rounded-[20px] px-3 py-3 transition-all duration-200',
-                  isActive
-                    ? 'bg-[#F3FBF5]'
-                    : 'hover:bg-[#F9FCFA]'
+                  isActive ? 'bg-[#F3FBF5]' : 'hover:bg-[#F9FCFA]',
                 )}
               >
                 {/* Active indicator */}
                 <span
                   className={cn(
                     'absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[#2F855A] transition-all duration-300',
-                    isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
+                    isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-40',
                   )}
                 />
 
@@ -148,7 +157,7 @@ export default function AdminSidebar() {
                     'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-all duration-200',
                     isActive
                       ? `bg-gradient-to-br ${item.color} shadow-lg ${item.glow} text-white`
-                      : 'bg-[#EEF8F0] text-[#2F855A] group-hover:bg-[#E0F5E6]'
+                      : 'bg-[#EEF8F0] text-[#2F855A] group-hover:bg-[#E0F5E6]',
                   )}
                 >
                   <Icon className="h-5 w-5" />
@@ -159,7 +168,7 @@ export default function AdminSidebar() {
                   <p
                     className={cn(
                       'text-sm font-semibold leading-tight',
-                      isActive ? 'text-[#103B2D]' : 'text-[#476458] group-hover:text-[#103B2D]'
+                      isActive ? 'text-[#103B2D]' : 'text-[#476458] group-hover:text-[#103B2D]',
                     )}
                   >
                     {item.label}
@@ -174,7 +183,7 @@ export default function AdminSidebar() {
                       'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
                       isActive
                         ? 'bg-[#103B2D] text-white'
-                        : 'bg-[#E6FFEE] text-[#2F855A] group-hover:bg-[#103B2D] group-hover:text-white'
+                        : 'bg-[#E6FFEE] text-[#2F855A] group-hover:bg-[#103B2D] group-hover:text-white',
                     )}
                   >
                     {item.badge}
@@ -192,8 +201,10 @@ export default function AdminSidebar() {
           Khác
         </p>
         <div className="space-y-1">
+          {/* Task 7: Logout button có logic thật */}
           <button
             type="button"
+            onClick={onLogout}
             className="group flex w-full items-center gap-3 rounded-[20px] px-3 py-3 transition-all duration-200 hover:bg-red-50"
           >
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-400 transition-colors group-hover:bg-red-100">

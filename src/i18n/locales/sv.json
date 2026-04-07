@@ -1,0 +1,546 @@
+{
+  "header": {
+    "home": "Hem",
+    "howItWorks": "Så här fungerar det",
+    "wasteTypes": "Typer av avfall",
+    "about": "Om oss",
+    "pricing": "Varför välja oss",
+    "reviews": "Recensioner",
+    "login": "Logga in",
+    "register": "Registrera dig",
+    "logout": "Logga ut",
+    "bookNow": "Boka nu"
+  },
+  "hero": {
+    "title": "Boka hämtning av skräp",
+    "titleHighlight": "på 60 sekunder",
+    "subtitle": "Få transparent prissättning baserad på typ, storlek och enhet. Varje beställning spåras via moderna ruttplaneringssystem.",
+    "badge": "Eko-teknisk plattform för insamling, sortering och bearbetning av skrot",
+    "ctaBook": "Boka nu",
+    "ctaRegister": "Skapa konto för erbjudanden",
+    "ctaAbout": "Om oss",
+    "quickBookingTitle": "Snabb bokning",
+    "quickBookingSubtitle": "Boka en insamling med grundläggande info",
+    "labelWasteType": "Välj typ av föremål",
+    "labelAddress": "Insamlingsadress",
+    "labelGoal": "Mål med bearbetning",
+    "placeholderAddress": "T.ex.: 12 Nguyen Hue, Distrikt 1, HCMC",
+    "applyToForm": "Använd i detaljerat formulär",
+    "goals": {
+      "recycled": "Återvinningsprioritet",
+      "today": "Samla in idag"
+    },
+    "quickOptions": {
+      "furniture": "Skrymmande möbler",
+      "electronics": "Elektronik",
+      "household": "Hushållspåsar",
+      "construction": "Byggavfall",
+      "other": "Övrigt - Manuell offert"
+    },
+    "stats": {
+      "orders": "Behandlade order",
+      "recycled": "Föremål skickade till återvinning",
+      "satisfaction": "Kundnöjdhet"
+    },
+    "guestInfo": "Boka utan konto",
+    "accountBenefit": "Konto behövs för sparade adresser och kuponger"
+  },
+  "footer": {
+    "ctaTitle": "Redo för en grönare insamlingsupplevelse?",
+    "ctaSubtitle": "Boka idag för en transparent offert, tydlig sortering och miljövänlig verksamhet.",
+    "ctaButton": "Boka nu - Gratis offert",
+    "brandDesc": "Professionella, snabba och miljövänliga insamlingstjänster för gamla föremål.",
+    "linksTitle": "Snabblänkar",
+    "servicesTitle": "Tjänster",
+    "contactTitle": "Kontakt",
+    "rights": "© 2024 EcoCollect. Alla rättigheter förbehållna.",
+    "links": {
+      "home": "Hem",
+      "about": "Om oss",
+      "howItWorks": "Så här fungerar det",
+      "wasteTypes": "Typer av avfall",
+      "reviews": "Recensioner"
+    },
+    "services": {
+      "furniture": "Möbelinsamling",
+      "electronics": "Elektronikinsamling",
+      "household": "Hushållsavfall",
+      "construction": "Byggavfall",
+      "recycling": "Återvinning & bearbetning"
+    }
+  },
+  "howItWorks": {
+    "badge": "How it works",
+    "title": "Så här fungerar det",
+    "subtitle": "",
+    "cta": "Börja nu",
+    "steps": {
+      "step01": {
+        "title": "Välj typ av föremål",
+        "desc": "Välj föremålsgrupp, storlek och enhet. Om den saknas i listan, skicka en särskild förfrågan med bilder."
+      },
+      "step02": {
+        "title": "Adress & Tid",
+        "desc": "Systemet kontrollerar adressen, bekräftar tillgängliga tider och visar nödvändiga driftmeddelanden."
+      },
+      "step03": {
+        "title": "Offertbekräftelse",
+        "desc": "Beräknat pris för standardföremål, specialartiklar byter till manuellt offertläge."
+      },
+      "step04": {
+        "title": "Betalning / Slutför",
+        "desc": "Kunden bekräftar betalningsmetod, administratör eller personal accepterar och bekräftar schema."
+      },
+      "step05": {
+        "title": "Spåra & Slutför",
+        "desc": "Spåra insamlings- och bearbetningsstatus, och ge ett omdöme när flödet är klart."
+      }
+    }
+  },
+  "auth": {
+    "badge": "EcoCollect medlemsåtkomst",
+    "sidebarTitle": "Boka utan konto, men att ha ett är mycket bättre",
+    "sidebarSubtitle": "Gäster kan fortfarande boka normalt. Ett konto är bara ett extra lager: spara info, få kuponger och spåra beställningar smidigare.",
+    "benefits": {
+      "voucher": {
+        "title": "Medlemskupong",
+        "desc": "Registrera dig för att få 10 % rabatt på din nästa bokning och kampanjbaserade rabattkoder."
+      },
+      "history": {
+        "title": "Spara adress & orderhistorik",
+        "desc": "Fyll i tidigare använd information automatiskt, vilket gör framtida bokningar snabbare."
+      },
+      "tracking": {
+        "title": "Smidig orderspårning",
+        "desc": "Visa framsteg, e-postbekräftelser and personliga kampanjer i ett och samma konto."
+      }
+    },
+    "suggestion": "För närvarande registrerar sig medlemmar efter första bokningen för att få en kupong till nästa beställning istället för i kassan för att begränsa missbruk.",
+    "login": {
+      "title": "Kontoinloggning",
+      "emailLabel": "E-post för konto",
+      "passwordLabel": "Lösenord",
+      "forgotPassword": "Glömt lösenordet?",
+      "submit": "Logga in",
+      "footer": "Logga in för att automatiskt fylla i din e-post och använda medlemskuponger i framtida bokningar.",
+      "switch": "Inget konto? Skapa konto"
+    },
+    "register": {
+      "title": "Skapa EcoCollect-konto",
+      "nameLabel": "Fullständigt namn",
+      "phoneLabel": "Telefonnummer",
+      "emailLabel": "E-post",
+      "passwordLabel": "Lösenord",
+      "policy": "Jag går med på att få e-postbekräftelser, medlemskuponger och kampanjinfo anpassad till insamlingsbehov.",
+      "submit": "Skapa konto och få erbjudanden",
+      "footer": "Registrering är valfritt för den nuvarande beställningen. Gäster kan fortfarande boka snabbhet om de föredrar det.",
+      "switch": "Har du redan ett konto? Logga in"
+    }
+  },
+  "wasteTypes": {
+    "badge": "Service selection",
+    "title": "Föremål vi samlar in",
+    "subtitle": "",
+    "ctaLabel": "Klicka för att öppna bokningsflödet",
+    "ctaButton": "Välj tjänst",
+    "specialCase": {
+      "badge": "Specialfallshantering",
+      "title": "Hittar du inte ditt föremål i listan?",
+      "desc": "Nytt flöde gör det möjligt att ange anpassad beskrivning, skicka foton och byta föremål till manuellt offertläge istället för att tvinga fram en felaktig kategori.",
+      "button": "Skicka specialförfrågan"
+    },
+    "types": {
+      "furniture": "Möbler",
+      "electronics": "Elektronik",
+      "metals": "Metallskrot",
+      "plastics": "Plast",
+      "paper": "Papper & Kartong",
+      "clothes": "Gamla Kläder",
+      "vehicles": "Gamla Fordon",
+      "other": "Annat / Bygg"
+    },
+    "items": {
+      "furniture": ["Soffa", "Skåp", "Säng", "Skrivbord"],
+      "electronics": ["TV", "Kylskåp", "Tvättmaskin", "AC"],
+      "metals": ["Koppar", "Mässing", "Aluminium", "Rostfritt", "Skrotjärn"],
+      "plastics": ["PET-flaskor", "Hårdplast", "Mjukplast"],
+      "paper": ["Kartong", "Vitt papper", "Tidningspapper"],
+      "clothes": ["Vanliga kläder", "Märkeskläder", "Tygrester"],
+      "vehicles": ["Trasig hoj", "Cykel", "Maskineri"],
+      "other": ["Bråte", "Trasigt tegel", "Annat"]
+    }
+  },
+  "booking": {
+    "badge": "EcoCollect bokningsflöde",
+    "title": "Smart insamlingsschema",
+    "subtitle": "Välj rätt föremål och antal. Vissa skrymmande föremål har storleksalternativ, medan byggavfall anges direkt i kg.",
+    "steps": {
+      "items": "Välj tjänst",
+      "address": "Adress",
+      "schedule": "Schema",
+      "confirm": "Bekräfta"
+    },
+    "searchPlaceholder": "Sök efter föremål: soffa, garderob, elsparkcykel...",
+    "categoryAll": "Alla",
+    "categories": {
+      "furniture": "Möbler",
+      "electronics": "Elektronik",
+      "metals": "Metaller",
+      "plastics": "Plast",
+      "paper": "Papper",
+      "clothes": "Gamla kläder",
+      "vehicles": "Gamla fordon",
+      "other": "Annat"
+    },
+    "services": {
+      "sofa-single": {
+        "name": "Enkel soffa",
+        "desc": "Samla in enkla soffor eller stora fåtöljer."
+      },
+      "sofa-large": {
+        "name": "Dubbelsoffa / L-form",
+        "desc": "Lämpar sig för dubbelsoffor, hörnsoffor eller stora sofformågar."
+      },
+      "wardrobe": {
+        "name": "Garderob",
+        "desc": "Storleksindelad för att spegla korrekt transportlast.",
+        "options": {
+          "small": "Liten",
+          "standard": "Standard",
+          "oversize": "Överstor"
+        }
+      },
+      "kitchen-cabinet": {
+        "name": "Köksskåp / Skoskåp",
+        "desc": "Små skåp, låga hyllor eller skohållare."
+      },
+      "bed": {
+        "name": "Säng / Madrass",
+        "desc": "Gäller sängramar, enkla eller dubbla madrasser."
+      },
+      "tv": {
+        "name": "TV / Skärm",
+        "desc": "TV, skärm eller medelstort visäringsdon."
+      },
+      "fridge": {
+        "name": "Kylskåp",
+        "desc": "Skrymmande kylapparat som kräver särskild hantering."
+      },
+      "washer": {
+        "name": "Tvättmaskin",
+        "desc": "Är lämplig för vanliga hushållstvättmaskiner."
+      },
+      "aircon": {
+        "name": "Gammal luftkonditionering",
+        "desc": "Gammal luftkonditioneringsenhet eller väggmonterat system."
+      },
+      "office-furniture": {
+        "name": "Kontorsskrivbord / Stol",
+        "desc": "Arbetsbord, kontorsstol eller svängstol."
+      },
+      "household-bag": {
+        "name": "Hushållspåsar",
+        "desc": "För förslutna påsar redo för snabb lastning."
+      },
+      "construction": {
+        "name": "Byggavfall",
+        "desc": "Denna kategori anges direkt i kg istället för per styck.",
+        "note": "Användaren anger faktisk vikt i kg för att systemet ska beräkna uppskattad kostnad."
+      },
+      "red-copper": {
+        "name": "Röd koppar",
+        "desc": "Ren koppar, brända koppartrådar."
+      },
+      "yellow-copper": {
+        "name": "Mässing / Gul koppar",
+        "desc": "Maskindelar, mässingsutrustning, gamla kopparrör."
+      },
+      "aluminum": {
+        "name": "Aluminium",
+        "desc": "Aluminiumbalkar, plåtar, burkar, aluminiumramar."
+      },
+      "stainless-steel": {
+        "name": "Rostfritt stål",
+        "desc": "Diskbänkar, rostfria hyllor, rostbeständigt stål."
+      },
+      "iron": {
+        "name": "Skrotjärn",
+        "desc": "Byggjärn, plåtar, trasiga järndörrar, plåtskåp."
+      },
+      "plastic-pet": {
+        "name": "PET-plast (flaskor)",
+        "desc": "Genomskinliga mineralvattenflaskor, läskflaskor."
+      },
+      "plastic-hard": {
+        "name": "Hårdplast (HDPE, PP)",
+        "desc": "Plaststolar, stora plastdunkar, hinkar, baljor."
+      },
+      "plastic-soft": {
+        "name": "Mjukplast",
+        "desc": "Tjocka plastpåsar, pallplast, mjuk förpackning."
+      },
+      "paper-carton": {
+        "name": "Kartong",
+        "desc": "Kartonglådor och wellpapp från varor."
+      },
+      "paper-white": {
+        "name": "Vitt Papper",
+        "desc": "Dokument, kontorspapper A4, skolböcker."
+      },
+      "paper-news": {
+        "name": "Tidningspapper",
+        "desc": "Gamla tidningar, magasin, reklamblad."
+      },
+      "clothes-normal": {
+        "name": "Vanliga kläder",
+        "desc": "Vardagskläder, vanliga gamla kläder, debiteras per kg."
+      },
+      "clothes-premium": {
+        "name": "Märkeskläder / Second-hand",
+        "desc": "Kläder i bra skick, märkesvaror, debiteras per styck."
+      },
+      "clothes-scraps": {
+        "name": "Tygrester",
+        "desc": "Trasiga tyger olämpliga att bära, för återvinning."
+      },
+      "vehicle-motorcycle": {
+        "name": "Trasig Motorcykel",
+        "desc": "Gammal eller trasig motorcykel, svårt skadat fordon."
+      },
+      "vehicle-bicycle": {
+        "name": "Cykel",
+        "desc": "Vanlig eller elektrisk cykel i dåligt skick."
+      },
+      "vehicle-machinery": {
+        "name": "Maskineri",
+        "desc": "Debiteras per kg eller enligt specialoffert."
+      },
+      "custom": {
+        "name": "Andra föremål",
+        "desc": "Använd när kunden vill lägga till ett föremål som inte finns på listan.",
+        "note": "T.ex.: matbord, spälsa, elsåg, reklamskåp, gräsklippare..."
+      }
+    },
+    "unitLabels": {
+      "perItem": "/styck",
+      "perBag": "/påse",
+      "perKg": "/kg"
+    },
+    "noItems": "Inga föremål valda än",
+    "choices": "val",
+    "selectedCount": "{{count}} föremål valda",
+    "quoteLabel": "Manuell offert",
+    "next": "Nästa",
+    "back": "Tillbaka",
+    "submit": "Bekräfta bokning",
+    "labels": {
+      "name": "Fullständigt namn",
+      "email": "E-post",
+      "phone": "Telefonnummer",
+      "street": "Gatuadress",
+      "address": "Detaljerad adress",
+      "district": "Distrikt",
+      "city": "Stad",
+      "notes": "Ytterligare anteckningar",
+      "date": "Välj datum",
+      "time": "Välj tidsfönster",
+      "photo": "Bifoga referensbild",
+      "photoDesc": "Hjälper oss att ge en mer exakt offert för specialartiklar."
+    },
+    "errors": {
+      "name": "Hela namnet är för kort (minst 2 tecken)",
+      "email": "Ogiltig e-postadress",
+      "phone": "Ogiltigt telefonnummer",
+      "street": "Gatuadressen är för kort (minst 5 tecken)",
+      "district": "Vänligen välj ett distrikt",
+      "city": "Vänligen välj en stad"
+    },
+    "handling": {
+      "inside": "Hämtning i hemmet",
+      "outside": "Hämtning vid tomtgräns",
+      "stairs": "Trappbärning"
+    },
+    "payment": {
+      "cash": "Kontant vid hämtning",
+      "online": "Onlinebetalning"
+    },
+    "success": {
+      "title": "Bokningen lyckades",
+      "desc": "Vi har skickat en e-postbekräftelse till {{email}}. Din beställning kommer att prioriteras för grön bearbetning."
+    },
+    "summary": {
+      "title": "Orderöversikt",
+      "items": "Sammanfattning av val"
+    }
+  },
+  "brandStory": {
+    "about": {
+      "eyebrow": "Om oss",
+      "title": "Eco-tech insamlingsplattform för moderna städer",
+      "desc": "EcoCollect hjälper kunder att boka snabba insamlingar, med transparent prissättning och spårning från mottagning till återvinning."
+    },
+    "mission": {
+      "eyebrow": "Uppdrag",
+      "title": "Minska deponi, öka återanvändning",
+      "desc": "Varje beställning dirigeras för att prioritera sortering, återvinning och återanvändning istället för att bara dumpas."
+    },
+    "difference": {
+      "eyebrow": "Skillnaden",
+      "title": "Enkel bokning, tydliga offerter, transparent status",
+      "desc": "Kunderna vet vad de betalar för, personalen vet vad de ska hantera och administratörer har data för att optimera verksamheten."
+    },
+    "usp": {
+      "handling": {
+        "title": "Grön bearbetning",
+        "text": "Dirigeras efter föremålsgrupp för att öka återvinningen och minska deponi."
+      },
+      "operation": {
+        "title": "Smart drift",
+        "text": "Priser beräknas efter typ av föremål, storlek, enhet och komplexitet."
+      },
+      "transparency": {
+        "title": "Transparens hela vägen",
+        "text": "Spåra status från bokning, insamling, bearbetning till slutförande."
+      }
+    },
+    "sidebarTitle": "Ett grönt varumärke med en teknisk och pålitlig känsla.",
+    "cta": "Boka för att uppleva vårt nya flöde"
+  },
+  "pricing": {
+    "badge": "",
+    "title": "Varför välja oss",
+    "subtitle": "",
+    "tableHeader": "Referensprislista",
+    "note": "Priserna ovan är uppskattningar. Slutpriset bekräftas baserat på föremålstyp, storlek och insamlingsförhållanden.",
+    "whyTitle": "Varför välja EcoCollect?",
+    "cta": "Boka nu - Få en offert",
+    "items": {
+      "sofaDouble": "Soffa Dubbel / L-form",
+      "wardrobeLarge": "Stor garderob",
+      "tvMonitor": "TV / Skärm",
+      "bedDouble": "Dubbelsäng + madrass",
+      "washerFridge": "Tvättmaskin / Kylskåp",
+      "construction": "Byggavfall"
+    },
+    "prices": {
+      "sofaDouble": "Från 250 000đ",
+      "wardrobeLarge": "Från 360 000đ",
+      "tvMonitor": "Från 100 000đ",
+      "bedDouble": "Från 320 000đ",
+      "washerFridge": "Från 180 000đ",
+      "construction": "Från 80 000đ/påse"
+    },
+    "reasons": {
+      "realtime": {
+        "title": "Realtidspriser",
+        "desc": "Priset beräknas direkt när du väljer föremål och antal."
+      },
+      "shipping": {
+        "title": "Hämtning hemma",
+        "desc": "Vårt team kommer till dig, du behöver inte transportera själv."
+      },
+      "green": {
+        "title": "Grön bearbetning",
+        "desc": "Prioritera återvinning och återanvändning för att minimera deponi."
+      },
+      "payment": {
+        "title": "Flexibel betalning",
+        "desc": "Kontant eller banköverföring, betala när insamlingen är klar."
+      },
+      "ontime": {
+        "title": "Alltid i tid",
+        "desc": "Vi åtar oss att anlända i ditt valda tidsfönster och meddelar om något ändras."
+      },
+      "insured": {
+        "title": "Försäkrad",
+        "desc": "Dina föremål är skyddade under transport och bearbetning."
+      }
+    }
+  },
+  "reviews": {
+    "badge": "Kundupplevelse",
+    "title": "Kundrecensioner",
+    "ratingLabel": "Betygspoäng",
+    "topService": "Bästa insamlingstjänsten",
+    "greenBiz": "Grönt företag",
+    "securePay": "Säker betalning",
+    "steps": {
+      "book": "Boka på 60 sekunder",
+      "confirm": "Ta emot bekräftelse och schema",
+      "collect": "Personal samlar in och sorterar",
+      "done": "Klart, recension, återvunnet"
+    },
+    "items": [
+      {
+        "name": "Nguyen Minh Anh",
+        "avatar": "👩",
+        "rating": 5,
+        "comment": "Fantastisk service! Teamet anlände i tid och var mycket professionellt. Bra valuta för pengarna.",
+        "date": "2 dagar sedan",
+        "service": "Gammal soffa insamling"
+      },
+      {
+        "name": "Tran Van Hung",
+        "avatar": "👨",
+        "rating": 5,
+        "comment": "Väldigt bekvämt! Bara boka online, inga samtal eller väntan. Rekommenderas varmt!",
+        "date": "1 vecka sedan",
+        "service": "Kylskåp & tvättmaskin insamling"
+      },
+      {
+        "name": "Le Thi Huong",
+        "avatar": "👩",
+        "rating": 5,
+        "comment": "Jag flyttade och hade massor att göra av med. EcoCollect hanterade allt på 1 dag. Tack!",
+        "date": "2 veckor sedan",
+        "service": "Flerartiklar insamling"
+      },
+      {
+        "name": "Pham Quoc Bao",
+        "avatar": "👨",
+        "rating": 4,
+        "comment": "Vänlig personal, transparent prissättning. Rekommenderat till vänner och familj.",
+        "date": "3 veckor sedan",
+        "service": "Gammal säng insamling"
+      },
+      {
+        "name": "Hoang Mai Linh",
+        "avatar": "👩",
+        "rating": 5,
+        "comment": "Lätt att använda, snabb bokning. Mycket professionellt och entusiastiskt team.",
+        "date": "1 månad sedan",
+        "service": "Elektronik insamling"
+      },
+      {
+        "name": "Do Thanh Tung",
+        "avatar": "👨",
+        "rating": 5,
+        "comment": "Första gången jag använde tjänsten och väldigt nöjd. Priset var tydligt från start, inga extra avgifter.",
+        "date": "1 månad sedan",
+        "service": "Kontorsmöbler insamling"
+      }
+    ],
+    "shareExperience": "Dela din upplevelse",
+    "shareSubtitle": "Din feedback hjälper oss att förbättra vår tjänst för alla.",
+    "writeBtn": "Skriv en recension",
+    "yourReview": "Din recension",
+    "selectRating": "Välj betyg",
+    "commentLabel": "Din kommentar",
+    "placeholder": "Berätta om din upplevelse...",
+    "submitBtn": "Skicka recension",
+    "rating5": "Perfekt! Mycket nöjd.",
+    "rating4": "Bra service.",
+    "ratingLow": "Tack för feedbacken."
+  },
+  "common": {
+    "loading": "Laddar...",
+    "error": "Ett fel uppstod",
+    "close": "Stäng",
+    "cancel": "Avbryt"
+  },
+  "languages": {
+    "vi": "Tiếng Việt",
+    "en": "English",
+    "sv": "Svenska"
+  }
+}

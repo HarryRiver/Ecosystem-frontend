@@ -1,0 +1,546 @@
+{
+  "header": {
+    "home": "Home",
+    "howItWorks": "How it works",
+    "wasteTypes": "Waste types",
+    "about": "About us",
+    "pricing": "Why Choose Us",
+    "reviews": "Reviews",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "bookNow": "Book now"
+  },
+  "hero": {
+    "title": "Book junk removal",
+    "titleHighlight": "in 60 seconds",
+    "subtitle": "Get transparent pricing based on waste type, size, and unit. Every order is tracked using modern routing systems.",
+    "badge": "Eco-tech platform for scrap collection, sorting and processing",
+    "ctaBook": "Book Now",
+    "ctaRegister": "Create account for offers",
+    "ctaAbout": "About Us",
+    "quickBookingTitle": "Quick Booking",
+    "quickBookingSubtitle": "Schedule a collection with basic info",
+    "labelWasteType": "Select item type",
+    "labelAddress": "Collection Address",
+    "labelGoal": "Processing Goal",
+    "placeholderAddress": "E.g.: 12 Nguyen Hue, Dist 1, HCMC",
+    "applyToForm": "Apply into detailed form",
+    "goals": {
+      "recycled": "Recycling Priority",
+      "today": "Collect Today"
+    },
+    "quickOptions": {
+      "furniture": "Bulky Furniture",
+      "electronics": "Electronics",
+      "household": "Household Bags",
+      "construction": "Construction Waste",
+      "other": "Other - Manual Quote"
+    },
+    "stats": {
+      "orders": "Processed orders",
+      "recycled": "Items routed for recycling",
+      "satisfaction": "Customer satisfaction"
+    },
+    "guestInfo": "Book as guest",
+    "accountBenefit": "Account needed for saved addresses and vouchers"
+  },
+  "footer": {
+    "ctaTitle": "Ready for a greener collection experience?",
+    "ctaSubtitle": "Book today for a transparent quote, clear sorting and eco-friendly operations.",
+    "ctaButton": "Book Now - Free Quote",
+    "brandDesc": "Professional, fast and eco-friendly collection services for old items.",
+    "linksTitle": "Quick Links",
+    "servicesTitle": "Services",
+    "contactTitle": "Contact",
+    "rights": "© 2024 EcoCollect. All rights reserved.",
+    "links": {
+      "home": "Home",
+      "about": "About Us",
+      "howItWorks": "How It Works",
+      "wasteTypes": "Waste Types",
+      "reviews": "Reviews"
+    },
+    "services": {
+      "furniture": "Furniture Collection",
+      "electronics": "Electronics Collection",
+      "household": "Household Waste",
+      "construction": "Construction Waste",
+      "recycling": "Recycling & Processing"
+    }
+  },
+  "howItWorks": {
+    "badge": "How it works",
+    "title": "How it works",
+    "subtitle": "",
+    "cta": "Start Now",
+    "steps": {
+      "step01": {
+        "title": "Select item type",
+        "desc": "Select item group, size and unit. If not listed, send a special request with photos."
+      },
+      "step02": {
+        "title": "Address & Time",
+        "desc": "System checks address, confirms available times and shows necessary operation notes."
+      },
+      "step03": {
+        "title": "Quote Confirmation",
+        "desc": "Estimated price for standard items, special items switch to manual quote mode."
+      },
+      "step04": {
+        "title": "Payment / Finish",
+        "desc": "Customer confirms payment method, admin or staff accepts and confirms schedule."
+      },
+      "step05": {
+        "title": "Track & Complete",
+        "desc": "Track collection and processing status, and provide a review once completed."
+      }
+    }
+  },
+  "auth": {
+    "badge": "EcoCollect member access",
+    "sidebarTitle": "Book without an account, but having one is much better",
+    "sidebarSubtitle": "Guests can still book normally. An account is just an added layer: save info, get vouchers, and track orders more conveniently.",
+    "benefits": {
+      "voucher": {
+        "title": "Member Voucher",
+        "desc": "Register to receive a 10% discount on your next booking and campaign-based discount codes."
+      },
+      "history": {
+        "title": "Save Address & Order History",
+        "desc": "Automatically refill previously used info, making future bookings faster."
+      },
+      "tracking": {
+        "title": "Convenient Order Tracking",
+        "desc": "View progress, email confirmations, and personalized promotions all in one account."
+      }
+    },
+    "suggestion": "Currently, members register after first booking to receive a voucher for the next order instead of at checkout to limit abuse.",
+    "login": {
+      "title": "Account Login",
+      "emailLabel": "Account Email",
+      "passwordLabel": "Password",
+      "forgotPassword": "Forgot password?",
+      "submit": "Login",
+      "footer": "Login to auto-fill your email and use member vouchers in future bookings.",
+      "switch": "No account? Create account"
+    },
+    "register": {
+      "title": "Create EcoCollect Account",
+      "nameLabel": "Full Name",
+      "phoneLabel": "Phone Number",
+      "emailLabel": "Email",
+      "passwordLabel": "Password",
+      "policy": "I agree to receive order confirmation emails, member vouchers, and promotional info tailored to collection needs.",
+      "submit": "Create account and get offers",
+      "footer": "Registration is optional for the current order. Guests can still book fast if they prefer.",
+      "switch": "Already have an account? Login"
+    }
+  },
+  "wasteTypes": {
+    "badge": "Service selection",
+    "title": "Items We Collect",
+    "subtitle": "",
+    "ctaLabel": "Click to open booking flow",
+    "ctaButton": "Select Service",
+    "specialCase": {
+      "badge": "Special case handling",
+      "title": "Can't find your item on the list?",
+      "desc": "New flow allows entering custom description, sending photos, and switching items to manual quote mode instead of forcing a wrong category.",
+      "button": "Send Special Request"
+    },
+    "types": {
+      "furniture": "Furniture",
+      "electronics": "Electronics",
+      "metals": "Scrap Metals",
+      "plastics": "Plastics",
+      "paper": "Paper & Carton",
+      "clothes": "Old Clothes",
+      "vehicles": "Old Vehicles",
+      "other": "Other / Construction"
+    },
+    "items": {
+      "furniture": ["Sofa", "Cabinet", "Bed", "Desk / Chair"],
+      "electronics": ["TV", "Fridge", "Washing Machine", "AC Unit"],
+      "metals": ["Copper", "Brass", "Aluminum", "Stainless Steel", "Scrap Iron"],
+      "plastics": ["PET Bottles", "Hard Plastics", "Soft Plastics"],
+      "paper": ["Carton", "White Paper", "Newspaper"],
+      "clothes": ["Normal Clothes", "Premium Clothes", "Fabric Scraps"],
+      "vehicles": ["Broken Moto", "Bicycle", "Machinery"],
+      "other": ["Debris", "Broken Bricks", "Custom Quote"]
+    }
+  },
+  "booking": {
+    "badge": "EcoCollect booking flow",
+    "title": "Smart Collection Schedule",
+    "subtitle": "Choose the right item and quantity. Some bulky items have size options, while construction waste is entered directly in kg.",
+    "steps": {
+      "items": "Select Service",
+      "address": "Address",
+      "schedule": "Schedule",
+      "confirm": "Confirm"
+    },
+    "searchPlaceholder": "Search for item: sofa, wardrobe, e-scooter...",
+    "categoryAll": "All",
+    "categories": {
+      "furniture": "Furniture",
+      "electronics": "Electronics",
+      "metals": "Metals",
+      "plastics": "Plastics",
+      "paper": "Paper",
+      "clothes": "Old Clothes",
+      "vehicles": "Old Vehicles",
+      "other": "Other"
+    },
+    "services": {
+      "sofa-single": {
+        "name": "Single Sofa",
+        "desc": "Collect single sofas or large single chairs."
+      },
+      "sofa-large": {
+        "name": "Double Sofa / L-shape",
+        "desc": "Suitable for double sofas, corner sofas or large sofa sets."
+      },
+      "wardrobe": {
+        "name": "Wardrobe",
+        "desc": "Size-classified to reflect correct transport load.",
+        "options": {
+          "small": "Small",
+          "standard": "Standard",
+          "oversize": "Oversize"
+        }
+      },
+      "kitchen-cabinet": {
+        "name": "Kitchen / Shoe Cabinet",
+        "desc": "Small cabinets, low shelves or shoe racks."
+      },
+      "bed": {
+        "name": "Bed / Mattress",
+        "desc": "Applies to bed frames, single or double mattresses."
+      },
+      "tv": {
+        "name": "TV / Monitor",
+        "desc": "TV, monitor or mid-size display device."
+      },
+      "fridge": {
+        "name": "Refrigerator",
+        "desc": "Bulky cooling appliance requiring special handling."
+      },
+      "washer": {
+        "name": "Washing Machine",
+        "desc": "Applies to common household washing machines."
+      },
+      "aircon": {
+        "name": "Old Air Conditioner",
+        "desc": "Old AC unit or wall-mounted air conditioner."
+      },
+      "office-furniture": {
+        "name": "Office Desk / Chair",
+        "desc": "Work desk, office chair or swivel chair."
+      },
+      "household-bag": {
+        "name": "Household Bags",
+        "desc": "For sealed bags ready for quick loading."
+      },
+      "construction": {
+        "name": "Construction Waste",
+        "desc": "This category is entered directly in kg instead of by item.",
+        "note": "User enters actual weight in kg for the system to calculate estimated cost."
+      },
+      "red-copper": {
+        "name": "Red Copper",
+        "desc": "Pure copper, burnt core wire rolls."
+      },
+      "yellow-copper": {
+        "name": "Yellow Copper / Brass",
+        "desc": "Machine parts, brass equipment, old copper pipes."
+      },
+      "aluminum": {
+        "name": "Aluminum",
+        "desc": "Aluminum beams, sheets, cans, aluminum frames."
+      },
+      "stainless-steel": {
+        "name": "Stainless Steel",
+        "desc": "Sinks, stainless steel shelves, rust-resistant steel."
+      },
+      "iron": {
+        "name": "Scrap Iron",
+        "desc": "Construction iron, purlins, broken iron doors, iron cabinets."
+      },
+      "plastic-pet": {
+        "name": "PET Plastic (Bottles)",
+        "desc": "Clear plastic mineral water bottles, soda bottles."
+      },
+      "plastic-hard": {
+        "name": "Hard Plastic (HDPE, PP)",
+        "desc": "Plastic chairs, large plastic jugs, buckets, basins."
+      },
+      "plastic-soft": {
+        "name": "Soft Plastic",
+        "desc": "Thick plastic bags, pallet wraps, soft packaging."
+      },
+      "paper-carton": {
+        "name": "Carton Boxes",
+        "desc": "All types of carton boxes from appliances or goods."
+      },
+      "paper-white": {
+        "name": "White Paper",
+        "desc": "Shredded documents, office A4, school notebooks."
+      },
+      "paper-news": {
+        "name": "Newspaper",
+        "desc": "Old newspapers, magazines, advertising flyers."
+      },
+      "clothes-normal": {
+        "name": "Normal Clothes",
+        "desc": "Everyday wear, regular old clothes, charged per kg."
+      },
+      "clothes-premium": {
+        "name": "Premium / Second-hand",
+        "desc": "Good condition clothes, branded items, charged per item."
+      },
+      "clothes-scraps": {
+        "name": "Fabric Scraps",
+        "desc": "Torn fabrics unsuitable for wearing, meant for recycling."
+      },
+      "vehicle-motorcycle": {
+        "name": "Broken Motorcycle",
+        "desc": "Old or broken motorcycles, severely damaged vehicles."
+      },
+      "vehicle-bicycle": {
+        "name": "Bicycle",
+        "desc": "Regular or electric bicycles in poor condition."
+      },
+      "vehicle-machinery": {
+        "name": "Machinery",
+        "desc": "Charged per kg or custom quoted per full unit."
+      },
+      "custom": {
+        "name": "Other Items",
+        "desc": "Use when customer wants to add an item not on the current list.",
+        "note": "E.g.: dining table, baby crib, electric scooter, billboard, lawnmower..."
+      }
+    },
+    "unitLabels": {
+      "perItem": "/item",
+      "perBag": "/bag",
+      "perKg": "/kg"
+    },
+    "noItems": "No items selected yet",
+    "choices": "choices",
+    "selectedCount": "{{count}} items selected",
+    "quoteLabel": "Manual Quote",
+    "next": "Next",
+    "back": "Back",
+    "submit": "Confirm Booking",
+    "labels": {
+      "name": "Full Name",
+      "email": "Email",
+      "phone": "Phone Number",
+      "street": "Street address",
+      "address": "Specific Address",
+      "district": "District",
+      "city": "City",
+      "notes": "Additional Notes",
+      "date": "Select Date",
+      "time": "Select Time Slot",
+      "photo": "Attach reference photo",
+      "photoDesc": "Helps us give an accurate quote for special items."
+    },
+    "errors": {
+      "name": "Full name is too short (min 2 chars)",
+      "email": "Invalid email address",
+      "phone": "Invalid phone number",
+      "street": "Street address is too short (min 5 chars)",
+      "district": "Please select a district",
+      "city": "Please select a city"
+    },
+    "handling": {
+      "inside": "Full Home Pickup",
+      "outside": "Outside/Curbside Pickup",
+      "stairs": "Stairs Carrying"
+    },
+    "payment": {
+      "cash": "Cash on Collection",
+      "online": "Online Payment"
+    },
+    "success": {
+      "title": "Booking Successful",
+      "desc": "We have sent a confirmation email to {{email}}. Your order will be routed for green processing priority."
+    },
+    "summary": {
+      "title": "Order Summary",
+      "items": "Selection Summary"
+    }
+  },
+  "brandStory": {
+    "about": {
+      "eyebrow": "About Us",
+      "title": "Eco-tech collection platform for modern cities",
+      "desc": "EcoCollect helps customers book fast collections, with transparent pricing and tracking from receipt to recycling."
+    },
+    "mission": {
+      "eyebrow": "Mission",
+      "title": "Reduce landfill, increase reuse",
+      "desc": "Each order is routed to prioritize sorting, recycling, and reuse instead of just being dumped."
+    },
+    "difference": {
+      "eyebrow": "The Difference",
+      "title": "Easy booking, clear quotes, transparent status",
+      "desc": "Customers know what they pay for, staff know what to handle, and admins have data to optimize operations."
+    },
+    "usp": {
+      "handling": {
+        "title": "Green Processing",
+        "text": "Routed by item group to increase recycling and reduce landfill."
+      },
+      "operation": {
+        "title": "Smart Operations",
+        "text": "Prices estimated by item type, size, unit, and complexity."
+      },
+      "transparency": {
+        "title": "End-to-end Transparency",
+        "text": "Track status from booking, collection, processing to completion."
+      }
+    },
+    "sidebarTitle": "A green brand with a tech and reliable feel.",
+    "cta": "Book to experience our new flow"
+  },
+  "pricing": {
+    "badge": "",
+    "title": "Why Choose Us",
+    "subtitle": "",
+    "tableHeader": "Reference Price List",
+    "note": "Prices above are estimates. Final price confirmed based on item type, size, and collection conditions.",
+    "whyTitle": "Why choose EcoCollect?",
+    "cta": "Book Now - Get a Quote",
+    "items": {
+      "sofaDouble": "Sofa Double / L-shape",
+      "wardrobeLarge": "Large Wardrobe",
+      "tvMonitor": "TV / Monitor",
+      "bedDouble": "Double Bed + Mattress",
+      "washerFridge": "Washer / Fridge",
+      "construction": "Construction Waste"
+    },
+    "prices": {
+      "sofaDouble": "From 250,000đ",
+      "wardrobeLarge": "From 360,000đ",
+      "tvMonitor": "From 100,000đ",
+      "bedDouble": "From 320,000đ",
+      "washerFridge": "From 180,000đ",
+      "construction": "From 80,000đ/bag"
+    },
+    "reasons": {
+      "realtime": {
+        "title": "Real-time Pricing",
+        "desc": "Price calculated instantly when you select items and quantity."
+      },
+      "shipping": {
+        "title": "Home Pickup",
+        "desc": "Our team comes to you, no need to transport yourself."
+      },
+      "green": {
+        "title": "Green Processing",
+        "desc": "Prioritize recycling and reuse to minimize landfill waste."
+      },
+      "payment": {
+        "title": "Flexible Payment",
+        "desc": "Cash or bank transfer, pay when collection is done."
+      },
+      "ontime": {
+        "title": "Always On Time",
+        "desc": "We commit to arriving in your chosen time slot, and notify you if anything changes."
+      },
+      "insured": {
+        "title": "Insured",
+        "desc": "Your items are protected during transport and processing."
+      }
+    }
+  },
+  "reviews": {
+    "badge": "Customer experience",
+    "title": "Customer Reviews",
+    "ratingLabel": "Rating score",
+    "topService": "Top collection service",
+    "greenBiz": "Green business",
+    "securePay": "Secure payment",
+    "steps": {
+      "book": "Book in 60 seconds",
+      "confirm": "Receive confirmation & schedule",
+      "collect": "Staff collects and sorts",
+      "done": "Done, review, recycled"
+    },
+    "items": [
+      {
+        "name": "Nguyen Minh Anh",
+        "avatar": "👩",
+        "rating": 5,
+        "comment": "Amazing service! The team arrived on time and was very professional. Great value for the quality.",
+        "date": "2 days ago",
+        "service": "Old sofa collection"
+      },
+      {
+        "name": "Tran Van Hung",
+        "avatar": "👨",
+        "rating": 5,
+        "comment": "Very convenient! Just book online, no calls or waiting. Highly recommended!",
+        "date": "1 week ago",
+        "service": "Fridge & washer collection"
+      },
+      {
+        "name": "Le Thi Huong",
+        "avatar": "👩",
+        "rating": 5,
+        "comment": "I was moving house and had lots of items to dispose of. EcoCollect handled everything in 1 day. Thank you!",
+        "date": "2 weeks ago",
+        "service": "Multi-item collection"
+      },
+      {
+        "name": "Pham Quoc Bao",
+        "avatar": "👨",
+        "rating": 4,
+        "comment": "Friendly staff, transparent pricing. I've recommended to friends and family.",
+        "date": "3 weeks ago",
+        "service": "Old bed collection"
+      },
+      {
+        "name": "Hoang Mai Linh",
+        "avatar": "👩",
+        "rating": 5,
+        "comment": "Easy to use, fast to book. Very professional and enthusiastic team.",
+        "date": "1 month ago",
+        "service": "Electronics collection"
+      },
+      {
+        "name": "Do Thanh Tung",
+        "avatar": "👨",
+        "rating": 5,
+        "comment": "First time using this service and very satisfied. Price was clear from the start, no extra charges.",
+        "date": "1 month ago",
+        "service": "Office furniture collection"
+      }
+    ],
+    "shareExperience": "Share your experience",
+    "shareSubtitle": "Your feedback helps us improve our service for everyone.",
+    "writeBtn": "Write a review",
+    "yourReview": "Your review",
+    "selectRating": "Select rating",
+    "commentLabel": "Your comment",
+    "placeholder": "Tell us about your experience...",
+    "submitBtn": "Submit review",
+    "rating5": "Perfect! Very satisfied.",
+    "rating4": "Great service.",
+    "ratingLow": "Thank you for the feedback."
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "close": "Close",
+    "cancel": "Cancel"
+  },
+  "languages": {
+    "vi": "Tiếng Việt",
+    "en": "English",
+    "sv": "Svenska"
+  }
+}

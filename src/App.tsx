@@ -4,7 +4,7 @@ import './i18n/config';
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { clearAuthSession, restoreAuthSession, updateAccount, type AuthMode, type AuthUser } from '@/lib/auth';
+import { clearAuthSession, updateAccount, type AuthMode, type AuthUser } from '@/lib/auth';
 import {
   readHistory,
   appendHistory,
@@ -18,8 +18,8 @@ import {
 } from '@/lib/store';
 // ─── API Layer ────────────────────────────────────────────────────────────────────────────────
 import { createOrder } from '@/services/orders.service';
-import { logout as apiLogout } from '@/services/auth.service';
-import { getToken } from '@/lib/apiClient';
+import { logout as apiLogout, getMe } from '@/services/auth.service';
+import { getToken, ApiError } from '@/lib/apiClient';
 import type { HandlingMode } from '@/types/api';
 import Header from './components/Header';
 import Hero from './components/Hero';
@@ -75,14 +75,29 @@ function App() {
     };
   }, [isBookingOpen, isAuthOpen, isProfileOpen, isHistoryOpen]);
 
+  // ─── Restore session — có token thì verify với BE, không thì chỉ đọc localStorage ───
   useEffect(() => {
-    const session = restoreAuthSession();
-    if (session && session.name.trim().toLowerCase() === 'hà đức lâm') {
-      session.streetAddress = session.streetAddress || 'Số 9 An Thượng 5';
-      session.district = session.district || 'Ngũ Hành Sơn';
-      session.city = session.city || 'Thành phố Đà Nẵng';
+    const token = getToken();
+    if (!token) {
+      setCurrentUser(null);
+      return;
     }
-    setCurrentUser(session);
+    // Có token: gọi /me để xác minh và lấy user mới nhất
+    getMe()
+      .then((apiUser) => {
+        const user: AuthUser = {
+          name: apiUser.full_name,
+          email: apiUser.email,
+          phone: apiUser.phone,
+          role: apiUser.role,
+        };
+        setCurrentUser(user);
+      })
+      .catch(() => {
+        // Token hết hạn / không hợp lệ → logout
+        clearAuthSession();
+        setCurrentUser(null);
+      });
   }, []);
 
   const openBooking = (prefill?: BookingPrefill) => {
@@ -159,8 +174,24 @@ function App() {
       cash_policy_accepted: payload.payment.cashPolicyAccepted,
     };
 
-    // Gọi BE thật
-    const createdOrder = await createOrder(orderBody);
+    // Gọi BE thật — map lỗi thân thiện cho user
+    let createdOrder: Awaited<ReturnType<typeof createOrder>>;
+    try {
+      createdOrder = await createOrder(orderBody);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        const errorMessages: Record<string, string> = {
+          TIME_SLOT_FULL: 'Khung giờ này đã đầy. Vui lòng chọn giờ khác.',
+          PHONE_BLACKLISTED: 'Số điện thoại này không thể đặt lịch. Liên hệ CSKH để biết thêm.',
+          PREPAID_REQUIRED: 'Tài khoản yêu cầu thanh toán trước (online). Vui lòng chọn huyện khoản.',
+          INVALID_DATE: 'Ngày đặt lịch không hợp lệ. Vui lòng chọn ngày khác.',
+          SERVICE_NOT_FOUND: 'Một số dịch vụ không còn hoạt động. Vui lòng tải lại trang.',
+        };
+        const friendly = err.errorCode ? errorMessages[err.errorCode] : null;
+        throw new Error(friendly ?? err.message ?? 'Đặt lịch thất bại. Vui lòng thử lại.');
+      }
+      throw new Error('Đặt lịch thất bại. Kiểm tra kết nối và thử lại.');
+    }
 
     // ─── Cập nhật store cục bộ (fallback cho HistoryModal đọc) ───────────────
     const today = new Date();

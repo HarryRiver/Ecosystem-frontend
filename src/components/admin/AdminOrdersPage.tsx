@@ -13,6 +13,8 @@ import {
   writeOrders,
 } from '../../lib/store';
 import { cn } from '../../utils/cn';
+// ─── API Layer ────────────────────────────────────────────────────────────────────────────────
+import { updateAdminOrder, markOrderNoShow } from '../../services/admin.service';
 
 /* ─── Icons ──────────────────────────────────────────────────────── */
 function IconCheck({ className }: { className?: string }) {
@@ -477,6 +479,18 @@ export default function AdminOrdersPage() {
     const newAmount = adjustedAmounts[orderId];
     setOrders((prev) => updateOrderStatus(prev, orderId, nextStatus, newAmount));
     setExpandedId(null);
+
+    // ─── Sync lên BE (fire-and-forget) ───
+    if (nextStatus === 'no_show') {
+      markOrderNoShow(orderId).catch((err: unknown) => {
+        console.error('[AdminOrdersPage] markOrderNoShow failed:', err);
+      });
+    } else {
+      type ApiStatus = import('../../types/api').OrderStatus;
+      updateAdminOrder(orderId, { status: nextStatus as ApiStatus }).catch((err: unknown) => {
+        console.error('[AdminOrdersPage] updateAdminOrder failed:', err);
+      });
+    }
   };
 
   const filteredOrders = useMemo(() => {

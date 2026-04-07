@@ -4,10 +4,10 @@ import { useDeferredValue, useMemo, useState } from 'react';
 import { adminAccounts } from '../../data/adminMock';
 import {
   currency,
-  defaultCustomers,
-  defaultOrders,
   getCustomerFacingStatus,
   Order,
+  readCustomers,
+  readOrders,
   statusFilters,
   statusMeta,
 } from '../../lib/store';
@@ -20,9 +20,9 @@ export default function AdminUsersPage() {
 
   const normalizedQuery = deferredQuery.trim().toLowerCase();
 
-  // Use defaultCustomers + defaultOrders as seed (in a full app this would come from store)
-  const customers = defaultCustomers;
-  const orders: Order[] = defaultOrders;
+  // Đọc từ store sống — sẽ phản ánh đơn mới khi khách đặt
+  const customers = readCustomers();
+  const orders: Order[] = readOrders();
 
   const customerRows = useMemo(() => {
     return customers
@@ -110,9 +110,7 @@ export default function AdminUsersPage() {
                 <p>
                   <span className="font-semibold text-[#103B2D]">Email:</span> {admin.email}
                 </p>
-                <p className="mt-2">
-                  <span className="font-semibold text-[#103B2D]">Mật khẩu mock:</span> {admin.password}
-                </p>
+                <p className="mt-2 text-xs text-[#8AA89A]">Thông tin xác thực được bảo mật</p>
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">

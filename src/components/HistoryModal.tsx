@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { type AuthUser } from '@/lib/auth';
 import {
   readHistory,
@@ -10,6 +10,9 @@ import {
   STORAGE_KEYS,
   type HistoryItem,
 } from '@/lib/store';
+import { getToken } from '@/lib/apiClient';
+import { useMyOrders } from '@/hooks/useOrders';
+import { type Order } from '@/types/api';
 
 // Re-export so App.tsx and other importers have zero breaking changes
 export type { HistoryItem };
@@ -26,11 +29,47 @@ export default function HistoryModal({ isOpen, onClose, currentUser }: HistoryMo
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [hoverRating, setHoverRating] = useState<number>(0);
 
-  // Task 1: đọc thẳng từ store (Task 4: multi-tab sync tự động)
+  // Task 1: đọc từ store (fallback khi chưa có token / API chưa chạy)
   const [historyItems, setHistoryItems] = useSyncStore<HistoryItem[]>(
     STORAGE_KEYS.history,
     readHistory(),
   );
+
+  // Task 5: Nếu có token → ưu tiên lấy lịch sử từ API
+  const hasToken = typeof window !== 'undefined' && !!getToken();
+  const { data: apiOrderData } = useMyOrders(
+    hasToken && isOpen ? {} : undefined,
+  );
+
+  // Map API Order → HistoryItem để hiển thị
+  const apiHistoryItems = useMemo<HistoryItem[]>(() => {
+    if (!apiOrderData?.items) return [];
+    return apiOrderData.items.map((o: Order): HistoryItem => ({
+      id: o.id,
+      date: o.booking_date,
+      status:
+        o.status === 'completed' ? 'completed'
+        : o.status === 'cancelled' || o.status === 'no_show' ? 'cancelled'
+        : 'in_progress',
+      customerName: o.customer.name,
+      phone: o.customer.phone,
+      email: o.customer.email,
+      address: `${o.address.street}, ${o.address.district}, ${o.address.province}`,
+      timeSlot: `${o.booking_date} • ${o.time_slot_label ?? o.time_slot_id}`,
+      handlingMode: o.handling_mode,
+      items: o.items.map((item) => ({
+        name: item.custom_item_name ?? item.service_name,
+        quantity: item.quantity,
+        price: item.line_total,
+      })),
+      total: o.final_total ?? o.estimated_total,
+    }));
+  }, [apiOrderData]);
+
+  // Chọn nguồn dữ liệu: API ưu tiên, localStorage là fallback
+  const displayItems: HistoryItem[] = hasToken && apiHistoryItems.length > 0
+    ? apiHistoryItems
+    : historyItems;
 
   // Lazy-seed: nếu store trống, điền seed data
   useEffect(() => {
@@ -104,7 +143,7 @@ export default function HistoryModal({ isOpen, onClose, currentUser }: HistoryMo
                 <p className="text-xs text-[#A7E8B6] uppercase tracking-widest">
                   {selectedOrderId
                     ? `#${selectedOrderId}`
-                    : `${historyItems.length} ${currentLang === 'vi' ? 'yêu cầu đã thực hiện' : 'requests made'}`}
+                    : `${displayItems.length} ${currentLang === 'vi' ? 'yêu cầu đã thực hiện' : 'requests made'}`}
                 </p>
               </div>
             </div>
@@ -131,7 +170,7 @@ export default function HistoryModal({ isOpen, onClose, currentUser }: HistoryMo
 
         {/* Content */}
         <div className="max-h-[70vh] overflow-y-auto p-4 sm:p-6 [scrollbar-gutter:stable] contain-content transform-gpu">
-          {historyItems.length === 0 ? (
+          {displayItems.length === 0 ? (
             <div className="py-20 text-center">
               <span className="text-5xl opacity-20 grayscale">📦</span>
               <p className="mt-4 text-sm font-medium text-[#24483A]/50">
@@ -141,7 +180,7 @@ export default function HistoryModal({ isOpen, onClose, currentUser }: HistoryMo
           ) : selectedOrderId ? (
             // Detailed View
             <div className="animate-fadeIn space-y-6">
-              {historyItems.filter((item) => item.id === selectedOrderId).map((item) => (
+              {displayItems.filter((item) => item.id === selectedOrderId).map((item) => (
                 <div key={item.id} className="space-y-6">
                   <div className="rounded-3xl bg-[#F7FCF8] p-6 border border-[#D6EEDD]">
                     <h3 className="mb-4 text-base font-bold text-[#103B2D]">
@@ -234,7 +273,7 @@ export default function HistoryModal({ isOpen, onClose, currentUser }: HistoryMo
           ) : (
             // List View
             <div className="space-y-4">
-              {historyItems.map((item) => (
+              {displayItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setSelectedOrderId(item.id)}

@@ -307,7 +307,7 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
             </p>
           </div>
           <span className="rounded-full bg-[#EBF7F0] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#2F855A]">
-            Mock data
+            Live
           </span>
         </header>
 

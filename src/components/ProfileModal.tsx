@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type AuthUser } from '@/lib/auth';
+import { updateMe } from '@/services/auth.service';
+import { ApiError } from '@/lib/apiClient';
 
 interface Province {
   code: number;
@@ -113,10 +115,21 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Update global state and persist
+    try {
+      // Gọi API thật PATCH /me
+      await updateMe({
+        full_name: name,
+        phone: phone,
+      });
+    } catch (err) {
+      // API lỗi: chỉ log, vẫn cập nhật local session
+      const msg = err instanceof ApiError ? err.message : 'Lỗi kết nối';
+      console.warn('[ProfileModal] updateMe failed:', msg);
+    } finally {
+      setIsSaving(false);
+    }
+
+    // Cập nhật session local dù API thành công hay không
     if (currentUser) {
       onUpdateUser({
         ...currentUser,
@@ -127,8 +140,6 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
         city,
       });
     }
-    
-    setIsSaving(false);
     setIsEditing(false);
   };
 

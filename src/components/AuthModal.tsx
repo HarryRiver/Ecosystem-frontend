@@ -262,13 +262,15 @@ export default function AuthModal({
             {mode === 'login' ? (
               <div className="space-y-5">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#24483A]">{t('auth.login.emailLabel')}</label>
+                  <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                    {t('auth.login.emailLabel')} <span className="font-normal text-[#789185]">(hoặc Số điện thoại)</span>
+                  </label>
                   <input
-                    type="email"
+                    type="text"
                     value={form.email}
                     onChange={handleFieldChange('email')}
-                    placeholder="ban@company.com"
-                    autoComplete="email"
+                    placeholder="email@example.com hoặc 09xxxxxxxx"
+                    autoComplete="username"
                     disabled={isSubmitting}
                     className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
                   />

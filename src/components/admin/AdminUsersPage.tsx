@@ -3,7 +3,6 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import { adminAccounts } from '../../data/adminMock';
 import {
-<<<<<<< Fe_Lam
   currency,
   defaultCustomers,
   defaultOrders,
@@ -12,14 +11,6 @@ import {
   statusFilters,
   statusMeta,
 } from '../../lib/store';
-=======
-  customers,
-  currency,
-  getCustomerFacingStatus,
-  initialOrders,
-  statusFilters,
-} from '../../data/adminDashboardMock';
->>>>>>> FE
 import { cn } from '../../utils/cn';
 
 export default function AdminUsersPage() {
@@ -29,7 +20,6 @@ export default function AdminUsersPage() {
 
   const normalizedQuery = deferredQuery.trim().toLowerCase();
 
-<<<<<<< Fe_Lam
   // Use defaultCustomers + defaultOrders as seed (in a full app this would come from store)
   const customers = defaultCustomers;
   const orders: Order[] = defaultOrders;
@@ -40,14 +30,6 @@ export default function AdminUsersPage() {
         const customerOrders = orders.filter((order) => order.customerId === customer.id);
         const latestOrder = [...customerOrders].sort((a, b) => b.schedule.date.localeCompare(a.schedule.date))[0];
         const totalSpent = customerOrders.reduce((sum, order) => sum + order.finalAmount, 0);
-=======
-  const customerRows = useMemo(() => {
-    return customers
-      .map((customer) => {
-        const customerOrders = initialOrders.filter((order) => order.customerId === customer.id);
-        const latestOrder = [...customerOrders].sort((a, b) => b.bookingDate.localeCompare(a.bookingDate))[0];
-        const totalSpent = customerOrders.reduce((sum, order) => sum + order.amount, 0);
->>>>>>> FE
 
         return {
           ...customer,
@@ -67,11 +49,7 @@ export default function AdminUsersPage() {
 
         return matchesQuery && matchesStatus;
       });
-<<<<<<< Fe_Lam
   }, [normalizedQuery, statusFilter, customers, orders]);
-=======
-  }, [normalizedQuery, statusFilter]);
->>>>>>> FE
 
   const memberCount = customers.filter((customer) => customer.accountType === 'member').length;
 
@@ -231,11 +209,7 @@ export default function AdminUsersPage() {
                           <div className="font-semibold text-[#103B2D]">{customer.latestOrder.code}</div>
                           <p className="mt-1">{customer.latestOrder.itemSummary}</p>
                           <p className="text-xs text-[#6D877A]">
-<<<<<<< Fe_Lam
                             {customer.latestOrder.schedule.date} • {customer.latestOrder.schedule.timeSlot}
-=======
-                            {customer.latestOrder.bookingDate} • {customer.latestOrder.slot}
->>>>>>> FE
                           </p>
                         </>
                       ) : (
@@ -247,25 +221,10 @@ export default function AdminUsersPage() {
                         <span
                           className={cn(
                             'rounded-full px-3 py-1 text-xs font-semibold',
-<<<<<<< Fe_Lam
                             statusMeta[customer.latestOrder.status].tone
                           )}
                         >
                           {statusMeta[customer.latestOrder.status].label}
-=======
-                            customer.latestOrder ? getCustomerFacingStatus(customer.latestOrder.status).tone : ''
-                          )}
-                        >
-                          {customer.latestOrder.status === 'processing'
-                            ? 'Đang xử lý'
-                            : customer.latestOrder.status === 'delivering'
-                              ? 'Đang giao hàng'
-                              : customer.latestOrder.status === 'completed'
-                                ? 'Đã hoàn thành'
-                                : customer.latestOrder.status === 'cancelled'
-                                  ? 'Đã hủy'
-                                  : 'Không có mặt'}
->>>>>>> FE
                         </span>
                       ) : (
                         <span>-</span>
@@ -292,8 +251,4 @@ export default function AdminUsersPage() {
       </section>
     </div>
   );
-<<<<<<< Fe_Lam
 }
-=======
-}
->>>>>>> FE

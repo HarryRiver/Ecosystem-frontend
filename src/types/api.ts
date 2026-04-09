@@ -29,6 +29,9 @@ export interface ApiUser {
   full_name: string;
   phone: string;
   email: string;
+  address?: string;
+  city?: string;
+  district?: string;
   role: UserRole;
   /** Cờ từ BE: bắt thanh toán online do bùng quá nhiều */
   prepaid_required: boolean;

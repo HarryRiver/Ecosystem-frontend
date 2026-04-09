@@ -37,21 +37,13 @@ export const metadata: Metadata = {
   },
 };
 
-import { Inter } from "next/font/google";
-
-const inter = Inter({
-  subsets: ["latin", "vietnamese"],
-  display: "swap",
-  variable: "--font-inter",
-});
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode;
 }>) {
   return (
-    <html lang="vi" className={inter.variable}>
+    <html lang="vi">
       <body className="font-sans antialiased">{children}</body>
     </html>
   );

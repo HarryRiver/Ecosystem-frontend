@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface WasteTypesProps {
@@ -14,14 +15,67 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
     return Array.isArray(val) ? val : [];
   };
 
-  const wasteTypes = [
+  const [apiServices, setApiServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('http://localhost:8080/api/services')
+      .then((res) => res.json())
+      .then((json) => {
+        const data = json.data; // Bóc đúng cấu trúc { success: true, data: [...] } của đội Backend
+        if (Array.isArray(data)) {
+          setApiServices(data);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch services:', err);
+        setLoading(false);
+      });
+  }, []);
+
+  // Icon map for mapping category codes to emojis
+  const iconMap: Record<string, string> = {
+    furniture: '🛋️',
+    electronics: '📺',
+    metals: '🔩',
+    plastics: '🪣',
+    paper: '📦',
+    clothes: '👕',
+    vehicles: '🛵',
+    other: '🧱',
+  };
+
+  // Helper to format price label natively from API variables
+  const getPriceLabel = (service: any) => {
+    if (service.code === 'bao_gia' || service.code === 'other' || service.pricing_type === 'quote') {
+      return t('booking.quoteLabel');
+    }
+    const formatter = new Intl.NumberFormat('vi-VN');
+    const formattedPrice = formatter.format(service.base_price || 0);
+    const unitMap: Record<string, string> = { item: 'món', kg: 'kg', bag: 'bao' };
+    const unitText = unitMap[service.default_unit] || 'món';
+    return `Từ ${formattedPrice}đ / ${unitText}`;
+  };
+
+  // The 2nd Image rule: Group UNIQUE variants' 'label' as items (pills)
+  const getUniqueVariantLabels = (variants?: any[]) => {
+    if (!variants || !Array.isArray(variants)) return [];
+    // Set automatically removes duplicates (e.g. 3 "Tủ quần áo" sizes become 1 pill)
+    const uniqueLabels = Array.from(new Set(variants.map((v) => v.label)));
+    return uniqueLabels;
+  };
+
+  /*
+  // DỮ LIỆU ẢO (FAKE DATA) - Đã được Comment lại theo yêu cầu
+  const fallbackWasteTypes = [
     {
       id: 'furniture',
       icon: '🛋️',
       name: t('wasteTypes.types.furniture'),
       description: t('booking.categories.furniture'),
       price: 'Từ 100.000đ / món',
-      items: getArray('wasteTypes.items.furniture')
+      items: getArray('wasteTypes.items.furniture'),
     },
     {
       id: 'electronics',
@@ -80,6 +134,17 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
       items: getArray('wasteTypes.items.other')
     }
   ];
+  */
+
+  // Render trực tiếp từ dữ liệu API thật (không dùng fake data nữa)
+  const wasteTypes = apiServices.map((service) => ({
+    id: service.code,
+    icon: iconMap[service.code] || '📦',
+    name: service.name,
+    description: t(`booking.categories.${service.code === 'bao_gia' ? 'other' : service.code}`),
+    price: getPriceLabel(service),
+    items: getUniqueVariantLabels(service.variants),
+  }));
 
   return (
     <section id="waste-types" className="py-20 bg-white">
@@ -97,7 +162,7 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
 
         {/* Waste Types Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-          {wasteTypes.map((type, index) => (
+          {wasteTypes.map((type: any, index: number) => (
             <div
               key={index}
               className="group cursor-pointer rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-[#2F855A] hover:shadow-[0_18px_45px_rgba(16,59,45,0.08)]"
@@ -120,7 +185,7 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
               </p>
 
               <div className="flex flex-wrap gap-2">
-                {type.items.map((item, idx) => (
+                {type.items.map((item: string, idx: number) => (
                   <span
                     key={idx}
                     className="rounded-full bg-white px-2 py-1 text-xs text-[#24483A]"

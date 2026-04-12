@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useMemo, useCallback, type ChangeEvent } f
 import { useTranslation } from 'react-i18next';
 import { type AuthMode, type AuthUser } from '@/lib/auth';
 import { HERO_OPTION_TO_CATEGORY, isHeroQuickOption, useSyncStore, STORAGE_KEYS, defaultPricing } from '@/lib/store';
+import { getServices } from '@/services/catalog.service';
+import type { ApiService, ServiceVariant } from '@/types/api';
 
 interface BookingPrefill {
   address?: string;
@@ -181,6 +183,7 @@ const getBookingDateLabelFormatter = (lang: string) => new Intl.DateTimeFormat(g
 
 const maxUploadImageSizeBytes = 5 * 1024 * 1024;
 
+/*
 const wasteServiceDefs = [
   { id: 'sofa-single', icon: '🛋️', categoryKey: 'furniture', pricingMode: 'fixed' as const, basePrice: 150000, unitLabelKey: 'perItem' },
   { id: 'sofa-large',  icon: '🛋️', categoryKey: 'furniture', pricingMode: 'fixed' as const, basePrice: 250000, unitLabelKey: 'perItem' },
@@ -219,6 +222,7 @@ const wasteServiceDefs = [
   { id: 'vehicle-machinery',  icon: '⚙️', categoryKey: 'vehicles', pricingMode: 'quote' as const },
   { id: 'custom',           icon: '✨', categoryKey: 'other', pricingMode: 'quote' as const },
 ];
+*/
 
 const stairsBaseFee = 50000;
 const stairsPerFloorFee = 30000;
@@ -391,7 +395,118 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
 
   const [livePricing] = useSyncStore(STORAGE_KEYS.pricing, defaultPricing);
 
+  const [apiServices, setApiServices] = useState<ApiService[]>([]);
+  
+  useEffect(() => {
+    if (!isOpen) return;
+    getServices()
+      .then((data) => {
+        if (Array.isArray(data)) setApiServices(data);
+      })
+      .catch((err) => console.error('Failed to fetch services:', err));
+  }, [isOpen]);
+
+  const serviceIconMap: Record<string, string> = {
+    furniture: '🛋️',
+    electronics: '📺',
+    metals: '🔩',
+    plastics: '🪣',
+    paper: '📦',
+    clothes: '👕',
+    vehicles: '🛵',
+    other: '🧱',
+  };
+
+  const variantIconMap: Record<string, string> = {
+    'Bàn / ghế': '🪑',
+    'Giường / nệm': '🛏️',
+    'Tủ bếp / tủ giày': '🗃️',
+    'Tủ quần áo': '🗄️',
+    'Sofa đôi / góc L': '🛋️',
+    'Sofa đơn': '🛋️',
+    'Máy lạnh cũ': '❄️',
+    'Máy giặt': '🪧',
+    'Tủ lạnh': '🧣',
+    'Tivi': '📺',
+    'Sắt phế liệu': '🏗️',
+    'Inox': '🥄',
+    'Nhôm': '🥫',
+    'Đồng vàng': '🟡',
+    'Đồng đỏ': '🔴',
+    'Nhựa dẻo': '🛍️',
+    'Nhựa cứng': '🪣',
+    'Nhựa PET': '🍾',
+    'Giấy báo': '📰',
+    'Giấy trắng': '📄',
+    'Carton': '📦',
+    'Vải vụn': '🧵',
+    'Đồ mặc tiệc/đầm': '👗',
+    'Quần áo thường': '👕',
+    'Máy móc': '⚙️',
+    'Xe đạp': '🚲',
+    'Xe máy hỏng': '🛵',
+    'Báo giá riêng': '✨',
+    'Gạch vỡ': '🧱',
+    'Xà bần': '🗑️',
+  };
+
   const wasteServices = useMemo<WasteService[]>(() => {
+    // If API data is available, parse it
+    if (apiServices.length > 0) {
+      const result: WasteService[] = [];
+      
+      apiServices.forEach(apiService => {
+        const groups = new Map<string, ServiceVariant[]>();
+        
+        apiService.variants?.forEach(v => {
+          if (!v.active) return;
+          const existing = groups.get(v.label) || [];
+          existing.push(v);
+          groups.set(v.label, existing);
+        });
+        
+        groups.forEach((items, label) => {
+          const hasSizes = items.some(i => i.size && i.size.trim() !== '');
+          const minPrice = Math.min(...items.map(i => i.price));
+          const maxPriceCandidate = Math.max(...items.map(i => i.price));
+          const maxPrice = minPrice !== maxPriceCandidate ? maxPriceCandidate : undefined;
+          
+          let options: ServiceOption[] | undefined;
+          if (hasSizes && items.length > 1) {
+            options = items.map(i => ({
+              id: i.id,
+              label: i.size || i.label,
+              price: i.price,
+              unitLabel: i.unit === 'kg' ? '/kg' : i.unit === 'bag' ? '/bag' : '',
+            })).sort((a, b) => a.price - b.price);
+          }
+          
+          const unitL = items[0].unit === 'kg' ? '/kg' : items[0].unit === 'bag' ? '/bag' : '';
+          const pricingMode = apiService.pricing_type === 'quote' ? 'quote' : 
+                              (items[0].unit === 'kg' || items[0].price === 0 ? 'estimate' : 'fixed');
+          
+          result.push({
+            id: items[0].id,
+            name: label,
+            icon: variantIconMap[label] || serviceIconMap[apiService.code] || '📦',
+            description: '',
+            category: apiService.code === 'bao_gia' ? 'other' : apiService.code,
+            pricingMode: pricingMode as PricingMode,
+            basePrice: minPrice,
+            maxPrice: maxPrice,
+            unitLabel: unitL,
+            options,
+          });
+        });
+      });
+
+      result.push({ id: 'custom', name: t('booking.services.custom.name', 'Mô tả riêng'), icon: '✨', description: t('booking.services.custom.desc', 'Khác, Xây dựng...'), category: 'other', pricingMode: 'quote' as const });
+      return result;
+    }
+
+    // Fallback static data
+    // Fallback static data
+    /*
     return wasteServiceDefs.map((def) => {
       const livePriceRec = livePricing.find(p => p.id === def.id);
       const svcT = t(`booking.services.${def.id}`, { returnObjects: true }) as Record<string, any>;
@@ -399,7 +514,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
       const options = def.optionDefs?.map((opt) => ({
         id: opt.id,
         label: t(`booking.services.wardrobe.options.${opt.id}`, opt.id),
-        price: opt.price, // We could also sync option prices if needed later
+        price: opt.price,
         unitLabel: t(`booking.unitLabels.${opt.unitLabelKey}`),
       }));
       return {
@@ -416,7 +531,9 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
         note: svcT?.note,
       };
     });
-  }, [t, livePricing]);
+    */
+    return [];
+  }, [t, livePricing, apiServices]);
 
   const categories = useMemo(() => [
     { key: 'all',         label: t('booking.categoryAll') },

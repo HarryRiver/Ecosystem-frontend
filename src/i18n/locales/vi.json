@@ -542,5 +542,48 @@
     "vi": "Tiếng Việt",
     "en": "English",
     "sv": "Svenska"
+  },
+  "admin": {
+    "sidebar": {
+      "brand": "Admin Dashboard",
+      "statusOnline": "ONLINE",
+      "sections": {
+        "operations": "Nghiệp vụ",
+        "other": "Khác"
+      },
+      "nav": {
+        "users": "Quản lý User",
+        "usersDesc": "Khách hàng & tài khoản",
+        "pricing": "Giá dịch vụ",
+        "pricingDesc": "Điều chỉnh bảng giá",
+        "orders": "Đơn hàng",
+        "ordersDesc": "Xác nhận & chốt đơn"
+      },
+      "actions": {
+        "logout": "Đăng xuất"
+      }
+    },
+    "users": {
+      "pageTitle": "Trang quản lý user",
+      "pageSubtitle": "Kiểm soát hồ sơ khách hàng và tài khoản admin",
+      "pageDesc": "Trang này tập trung vào dữ liệu người dùng: khách vãng lai, thành viên, đơn gần nhất, mức chi tiêu và nhóm tài khoản admin đang dùng để vận hành hệ thống.",
+      "loading": "Đang tải dữ liệu user....",
+      "noData": "Chưa có dữ liệu",
+      "totalUsers": "Tổng người dùng",
+      "totalUsersNote": "{{memberCount}} thành viên / {{guestCount}} khách vãng lai",
+      "warnedUsers": "Khách có cảnh báo",
+      "warnedUsersNote": "Dùng để đánh dấu cần thanh toán trước",
+      "listTitle": "Danh sách người dùng",
+      "listSubtitle": "Quản lý tài khoản khách hàng và đơn gần nhất",
+      "searchPlaceholder": "Tìm theo tên, email hoặc số điện thoại",
+      "table": {
+        "customer": "Khách hàng",
+        "accountType": "Loại tài khoản",
+        "latestOrder": "Đơn gần nhất",
+        "adminStatus": "Trạng thái admin",
+        "customerStatus": "Trạng thái khách thấy",
+        "totalSpent": "Tổng chi"
+      }
+    }
   }
 }

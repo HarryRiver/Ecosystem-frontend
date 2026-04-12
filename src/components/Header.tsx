@@ -37,7 +37,7 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0F3D2E]/85 backdrop-blur-xl">
-      <div className="container mx-auto px-4 py-4">
+      <div className="w-full max-w-[1440px] mx-auto px-4 xl:px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center space-x-2">
@@ -53,7 +53,7 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6">
+          <nav className="hidden xl:flex items-center space-x-3 xl:space-x-5">
             <a href="#home" className="whitespace-nowrap text-sm font-medium text-white transition-colors hover:text-[#8DE0A6]">
               {t('header.home')}
             </a>
@@ -74,7 +74,7 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
             </a>
           </nav>
 
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden items-center gap-2.5 xl:flex">
             <LanguageSwitcher />
             
             {currentUser ? (
@@ -211,13 +211,13 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
               <>
                 <button
                   onClick={() => onAuthClick('login')}
-                  className="rounded-full border border-white/14 bg-white/8 px-5 py-2.5 font-semibold text-white transition-colors hover:bg-white/14"
+                  className="whitespace-nowrap rounded-full border border-white/14 bg-white/8 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/14"
                 >
                   {t('header.login')}
                 </button>
                 <button
                   onClick={() => onAuthClick('register')}
-                  className="rounded-full border border-[#B7F7C8]/40 bg-[#E6FFEE] px-5 py-2.5 font-semibold text-[#103B2D] transition-all duration-300 hover:scale-[1.02]"
+                  className="whitespace-nowrap rounded-full border border-[#B7F7C8]/40 bg-[#E6FFEE] px-4 py-2 text-sm font-semibold text-[#103B2D] transition-all duration-300 hover:scale-[1.02]"
                 >
                   {t('header.register')}
                 </button>
@@ -226,14 +226,14 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
 
             <button
               onClick={onBookingClick}
-              className="rounded-full bg-[#8DE0A6] px-6 py-2.5 font-semibold text-[#103B2D] transition-all duration-300 hover:scale-105 hover:shadow-lg"
+              className="whitespace-nowrap rounded-full bg-[#8DE0A6] px-5 py-2 text-sm font-semibold text-[#103B2D] transition-all duration-300 hover:scale-105 hover:shadow-lg"
             >
               {t('header.bookNow')}
             </button>
           </div>
 
           {/* Mobile Actions Container */}
-          <div className="flex items-center gap-3 md:hidden">
+          <div className="flex items-center gap-3 xl:hidden">
             <LanguageSwitcher />
             {/* Mobile Menu Button */}
             <button
@@ -255,7 +255,7 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <nav className="md:hidden mt-4 pb-4 border-t border-white/20 pt-4 animate-fadeInUp">
+          <nav className="xl:hidden mt-4 pb-4 border-t border-white/20 pt-4 animate-fadeInUp">
             <div className="flex flex-col space-y-4">
               <a href="#home" className="text-white hover:text-[#8DE0A6] transition-colors font-medium">
                 {t('header.home')}

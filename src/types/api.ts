@@ -22,19 +22,22 @@ export interface ApiResponse<T> {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-export type UserRole = 'customer' | 'admin';
+export type UserRole = "customer" | "admin";
 
 export interface ApiUser {
   id: string;
   full_name: string;
   phone: string;
   email: string;
+  address?: string;
+  city?: string;
+  district?: string;
   role: UserRole;
   /** Cờ từ BE: bắt thanh toán online do bùng quá nhiều */
   prepaid_required: boolean;
   is_blacklisted: boolean;
   no_show_count: number;
-  status: 'active' | 'inactive' | 'locked';
+  status: "active" | "inactive" | "locked";
   created_at: string;
   updated_at: string;
 }
@@ -62,9 +65,12 @@ export interface RegisterBody {
 export interface ServiceVariant {
   id: string;
   service_id: string;
+  code: string;
   label: string;
+  size: string | null;
   price: number;
   unit: string;
+  sort_order: number;
   active: boolean;
 }
 
@@ -73,7 +79,7 @@ export interface ApiService {
   code: string;
   name: string;
   category: string;
-  pricing_type: 'fixed' | 'per_kg' | 'per_unit' | 'quote';
+  pricing_type: "fixed" | "per_kg" | "per_unit" | "quote";
   base_price: number;
   default_unit: string;
   active: boolean;
@@ -85,7 +91,7 @@ export interface ApiService {
 export interface TimeSlot {
   id: string;
   start_time: string; // HH:mm
-  end_time: string;   // HH:mm
+  end_time: string; // HH:mm
   max_orders: number;
   active: boolean;
   /** Chỉ có khi gọi kèm ?date= */
@@ -94,7 +100,7 @@ export interface TimeSlot {
 
 // ─── Pricing / Quote ─────────────────────────────────────────────────────────
 
-export type HandlingMode = 'inside' | 'outside' | 'stairs';
+export type HandlingMode = "inside" | "outside" | "stairs";
 
 export interface QuoteItem {
   service_id: string;
@@ -124,15 +130,15 @@ export interface QuoteResult {
 // ─── Orders ───────────────────────────────────────────────────────────────────
 
 export type OrderStatus =
-  | 'draft'
-  | 'pending'
-  | 'confirmed'
-  | 'delivering'
-  | 'completed'
-  | 'cancelled'
-  | 'no_show';
+  | "draft"
+  | "pending"
+  | "confirmed"
+  | "delivering"
+  | "completed"
+  | "cancelled"
+  | "no_show";
 
-export type PaymentMethod = 'online' | 'cash';
+export type PaymentMethod = "online" | "cash";
 
 export interface OrderCustomer {
   name: string;
@@ -170,9 +176,9 @@ export interface Order {
   status: OrderStatus;
   customer: OrderCustomer;
   address: OrderAddress;
-  booking_date: string;       // YYYY-MM-DD
+  booking_date: string; // YYYY-MM-DD
   time_slot_id: string;
-  time_slot_label?: string;   // "08:00 - 10:00"
+  time_slot_label?: string; // "08:00 - 10:00"
   items: OrderItem[];
   handling_mode: HandlingMode;
   stairs_floors?: number;
@@ -220,7 +226,7 @@ export interface Payment {
   order_id: string;
   order_code: string;
   method: PaymentMethod;
-  status: 'pending' | 'paid' | 'failed' | 'refunded';
+  status: "pending" | "paid" | "failed" | "refunded";
   amount: number;
   provider_ref?: string;
   created_at: string;
@@ -242,7 +248,7 @@ export interface UnreadCount {
 
 // ─── Vouchers ────────────────────────────────────────────────────────────────
 
-export type VoucherType = 'percent' | 'fixed';
+export type VoucherType = "percent" | "fixed";
 
 export interface Voucher {
   id: string;

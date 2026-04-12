@@ -68,24 +68,24 @@ export default function Hero({ currentUser, onAuthClick, onBookingClick }: HeroP
               {t('hero.subtitle')}
             </p>
 
-            <div className="mb-10 flex flex-col gap-4 sm:flex-row">
+            <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
               <button
                 onClick={() => onBookingClick()}
-                className="rounded-full bg-[#8DE0A6] px-8 py-4 text-lg font-bold text-[#103B2D] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl"
+                className="whitespace-nowrap rounded-full bg-[#8DE0A6] px-6 py-3.5 font-bold text-[#103B2D] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl"
               >
                 {t('hero.ctaBook')}
               </button>
               {!currentUser && (
                 <button
                   onClick={() => onAuthClick('register')}
-                  className="rounded-full border border-[#8DE0A6]/40 bg-white/8 px-8 py-4 text-lg font-semibold text-white transition-all duration-300 hover:bg-white/14"
+                  className="whitespace-nowrap rounded-full border border-[#8DE0A6]/40 bg-white/8 px-6 py-3.5 font-semibold text-white transition-all duration-300 hover:bg-white/14"
                 >
                   {t('hero.ctaRegister')}
                 </button>
               )}
               <a
                 href="#about"
-                className="rounded-full border border-white/20 bg-transparent px-8 py-4 text-lg font-semibold text-white transition-all duration-300 hover:bg-white/8"
+                className="whitespace-nowrap flex items-center justify-center rounded-full border border-white/20 bg-transparent px-6 py-3.5 font-semibold text-white transition-all duration-300 hover:bg-white/8"
               >
                 {t('hero.ctaAbout')}
               </a>

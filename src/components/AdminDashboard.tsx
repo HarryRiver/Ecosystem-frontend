@@ -1,6 +1,6 @@
 'use client';
 
-import { useDeferredValue, useState, useMemo } from 'react';
+import { useDeferredValue, useEffect, useState, useMemo } from 'react';
 import { cn } from '../utils/cn';
 import { type AuthUser } from '../lib/auth';
 import {
@@ -9,6 +9,7 @@ import {
   OrderStatus,
   statusMeta,
   statusFilters,
+  type CustomerRecord,
   type OrderRecord,
   readOrders,
   readPricing,
@@ -24,7 +25,26 @@ import {
   type HistoryItem,
 } from '../lib/store';
 // ─── API Layer ────────────────────────────────────────────────────────────────────────────────
-import { updateAdminOrder, markOrderNoShow } from '../services/admin.service';
+import {
+  getAdminMetrics,
+  getAdminOrders,
+  getAdminServices,
+  getAdminUsers,
+  updateAdminOrder,
+  updateAdminService,
+  markOrderNoShow,
+} from '../services/admin.service';
+import {
+  findCustomerForOrder,
+  getMetricValue,
+  mapApiOrderToCustomerRecord,
+  mapApiOrderToStoreOrder,
+  mapApiServiceToServicePriceRecord,
+  mapApiUserToCustomerRecord,
+  mapStoreOrderStatusToApiStatus,
+  mergeCustomerRecords,
+} from '../lib/adminApiAdapters';
+import type { AdminMetrics } from '../types/api';
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 type Tab = 'overview' | 'users' | 'pricing' | 'orders';
@@ -99,9 +119,81 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
   // Đọc từ store thật — tự đồng bộ multi-tab qua BroadcastChannel
   const [orders, setOrders] = useSyncStore<OrderRecord[]>(STORAGE_KEYS.orders, readOrders());
   const [servicePricing, setServicePricing] = useSyncStore<ServicePriceRecord[]>(STORAGE_KEYS.pricing, readPricing());
-  const customers = readCustomers();
+  const [customers, setCustomers] = useSyncStore<CustomerRecord[]>(STORAGE_KEYS.customers, readCustomers());
+  const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
+  const [isAdminApiLoading, setIsAdminApiLoading] = useState(false);
+  const [adminApiNotice, setAdminApiNotice] = useState<string | null>(null);
 
   const [selectedPricingCategory, setSelectedPricingCategory] = useState<string>('Tất cả');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAdminApiData() {
+      setIsAdminApiLoading(true);
+
+      const [metricsResult, ordersResult, usersResult, servicesResult] =
+        await Promise.allSettled([
+          getAdminMetrics(),
+          getAdminOrders({ page: 1, limit: 200 }),
+          getAdminUsers({ role: 'customer', page: 1, limit: 200 }),
+          getAdminServices({ page: 1, limit: 200 }),
+        ]);
+
+      if (cancelled) return;
+
+      let hasFailure = false;
+      let nextCustomers = readCustomers();
+
+      if (metricsResult.status === 'fulfilled') {
+        setMetrics(metricsResult.value);
+      } else {
+        hasFailure = true;
+        console.error('[Admin] API failed:', metricsResult.reason);
+      }
+
+      if (ordersResult.status === 'fulfilled') {
+        const nextOrders = ordersResult.value.items.map(mapApiOrderToStoreOrder);
+        setOrders(nextOrders);
+        nextCustomers = mergeCustomerRecords(
+          nextCustomers,
+          ordersResult.value.items.map(mapApiOrderToCustomerRecord),
+        );
+      } else {
+        hasFailure = true;
+        console.error('[Admin] API failed:', ordersResult.reason);
+      }
+
+      if (usersResult.status === 'fulfilled') {
+        nextCustomers = mergeCustomerRecords(
+          nextCustomers,
+          usersResult.value.items.map(mapApiUserToCustomerRecord),
+        );
+      } else {
+        hasFailure = true;
+        console.error('[Admin] API failed:', usersResult.reason);
+      }
+
+      if (servicesResult.status === 'fulfilled') {
+        setServicePricing(servicesResult.value.items.map(mapApiServiceToServicePriceRecord));
+      } else {
+        hasFailure = true;
+        console.error('[Admin] API failed:', servicesResult.reason);
+      }
+
+      setCustomers(nextCustomers);
+      setAdminApiNotice(
+        hasFailure ? 'Chưa có dữ liệu' : null,
+      );
+      setIsAdminApiLoading(false);
+    }
+
+    void loadAdminApiData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const groupedPricing = useMemo(() => {
     const groups: Record<string, ServicePriceRecord[]> = {};
@@ -151,38 +243,56 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
     writeHistory(updatedHistory);
 
     // 2) Gọi API thật (fire-and-forget: lỗi chỉ log, không cần rollback)
+    const onSyncSuccess = (apiOrder: Awaited<ReturnType<typeof updateAdminOrder>>) => {
+      const nextOrder = mapApiOrderToStoreOrder(apiOrder);
+      setOrders((cur: OrderRecord[]) =>
+        cur.map((order: OrderRecord) => (order.id === orderId ? nextOrder : order)),
+      );
+    };
+
     if (nextStatus === 'no_show') {
-      markOrderNoShow(orderId).catch((err: unknown) => {
-        console.error('[Admin] markOrderNoShow failed:', err);
+      markOrderNoShow(orderId).then(onSyncSuccess).catch((error: unknown) => {
+        console.error('[Admin] API failed:', error);
+        setAdminApiNotice('Cập nhật API thất bại. UI đã giữ thay đổi local.');
       });
     } else {
-      // Cast sang OrderStatus của api.ts (no_show đã xử lý riêng ở trên)
-      type ApiOrderStatus = import('../types/api').OrderStatus;
-      updateAdminOrder(orderId, { status: nextStatus as ApiOrderStatus }).catch((err: unknown) => {
-        console.error('[Admin] updateAdminOrder failed:', err);
-      });
+      updateAdminOrder(orderId, { status: mapStoreOrderStatusToApiStatus(nextStatus) })
+        .then(onSyncSuccess)
+        .catch((error: unknown) => {
+          console.error('[Admin] API failed:', error);
+          setAdminApiNotice('Cập nhật API thất bại. UI đã giữ thay đổi local.');
+        });
     }
   };
 
   const adjustServicePrice = (serviceId: string, delta: number) => {
+    const service = servicePricing.find((item) => item.id === serviceId);
+    const nextPrice = Math.max(0, (service?.price ?? 0) + delta);
+
     setServicePricing((cur: ServicePriceRecord[]) => {
       const next = cur.map((s: ServicePriceRecord) => s.id === serviceId
-        ? { ...s, price: Math.max(0, s.price + delta) } : s);
+        ? { ...s, price: nextPrice } : s);
       writePricing(next);
       return next;
     });
+    updateAdminService(serviceId, { base_price: nextPrice })
+      .then(() => setAdminApiNotice(null))
+      .catch((error: unknown) => {
+        console.error('[Admin] API failed:', error);
+        setAdminApiNotice('Cập nhật giá API thất bại. UI đã giữ thay đổi local.');
+      });
   };
 
   const getAdminAction = (order: OrderRecord) => {
     if (order.status === 'processing') return { label: 'Xác nhận đơn', helper: 'Chuyển sang đang giao hàng.', onClick: () => updateOrderStatusSync(order.id, 'delivering'), tone: 'bg-[#103B2D] text-white' };
     if (order.status === 'delivering') return { label: 'Hoàn thành đơn', helper: 'Chốt đơn sau khi giao / thu gom xong.', onClick: () => updateOrderStatusSync(order.id, 'completed'), tone: 'bg-[#2F855A] text-white' };
-    if (order.status === 'no_show')   return { label: 'Xác nhận no-show', helper: 'Ghi nhận để cảnh báo khách này.', onClick: () => updateOrderStatusSync(order.id, 'cancelled'), tone: 'bg-rose-700 text-white' };
+    if (order.status === 'no_show')   return null;
     return null;
   };
 
   const customerRows = customers
     .map((c) => {
-      const cOrders = orders.filter((o) => o.customerId === c.id);
+      const cOrders = orders.filter((o) => findCustomerForOrder(o, [c]));
       const latest  = [...cOrders].sort((a, b) => b.schedule.date.localeCompare(a.schedule.date))[0];
       return { ...c, latestOrder: latest, ordersCount: cOrders.length, totalSpent: cOrders.reduce((s, o) => s + o.finalAmount, 0) };
     })
@@ -197,7 +307,9 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
     count: orders.filter((o) => o.status === id).length,
   }));
 
-  const totalRevenue  = orders.reduce((s, o) => s + o.finalAmount, 0);
+  const localRevenue = orders.reduce((s, o) => s + o.finalAmount, 0);
+  const totalRevenue  = getMetricValue(metrics, 'total_revenue', localRevenue);
+  const totalOrders = getMetricValue(metrics, 'total_orders', orders.length);
   const memberCount   = customers.filter((c) => c.accountType === 'member').length;
   const pendingCount  = orders.filter((o) => ['processing', 'delivering'].includes(o.status)).length;
 
@@ -206,7 +318,7 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
     <div className="flex min-h-screen bg-[#F4FAF5] text-[#103B2D]">
 
       {/* ══ SIDEBAR ══════════════════════════════════════════════════════ */}
-      <aside className="flex w-64 shrink-0 flex-col gap-3 border-r border-[#DFF0E5] bg-white p-4 shadow-[4px_0_30px_rgba(16,59,45,0.06)] lg:sticky lg:top-0 lg:h-screen">
+      <aside className="hidden w-64 shrink-0 flex-col gap-3 border-r border-[#DFF0E5] bg-white p-4 shadow-[4px_0_30px_rgba(16,59,45,0.06)] lg:sticky lg:top-0 lg:flex lg:h-screen">
 
         {/* Brand */}
         <div className="mb-1 flex items-center gap-3 rounded-[20px] bg-[linear-gradient(135deg,#0d2f23,#103B2D)] px-4 py-3">
@@ -291,27 +403,41 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
       <main className="flex-1 overflow-y-auto">
 
         {/* Top bar */}
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[#DFF0E5] bg-white/90 px-8 py-4 backdrop-blur-sm">
-          <div>
-            <h1 className="text-2xl font-bold text-[#103B2D]">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[#DFF0E5] bg-white/90 px-4 py-3 backdrop-blur-sm lg:px-8 lg:py-4">
+          <div className="min-w-0 flex-1 pr-4">
+            <h1 className="truncate text-xl font-bold text-[#103B2D] lg:text-2xl">
               {activeTab === 'overview' && 'Tổng quan'}
               {activeTab === 'users'    && 'Quản lý khách hàng'}
               {activeTab === 'pricing'  && 'Bảng giá dịch vụ'}
               {activeTab === 'orders'   && 'Quản lý đơn hàng'}
             </h1>
-            <p className="mt-0.5 text-sm text-[#6D877A]">
+            <p className="mt-0.5 truncate text-xs text-[#6D877A] lg:text-sm">
               {activeTab === 'overview' && 'Số liệu & tình trạng hoạt động'}
               {activeTab === 'users'    && `${customerRows.length} khách hàng`}
               {activeTab === 'pricing'  && 'Điều chỉnh giá trực tiếp'}
               {activeTab === 'orders'   && `${pendingCount} đơn cần xử lý`}
             </p>
           </div>
-          <span className="rounded-full bg-[#EBF7F0] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#2F855A]">
-            Live
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="hidden rounded-full bg-[#EBF7F0] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#2F855A] sm:inline-block">
+              Live
+            </span>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 transition-colors hover:bg-red-100 lg:hidden"
+            >
+              <IconLogout />
+            </button>
+          </div>
         </header>
 
-        <div className="p-6 lg:p-8">
+        <div className="p-4 pb-24 lg:p-8">
+          {(isAdminApiLoading || adminApiNotice) && (
+            <div className="mb-5 rounded-[20px] border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-800">
+              {isAdminApiLoading ? 'Đang tải dữ liệu admin từ API...' : adminApiNotice}
+            </div>
+          )}
 
           {/* ══ TAB: OVERVIEW ═══════════════════════════════════════════ */}
           {activeTab === 'overview' && (
@@ -320,7 +446,7 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {[
                   { label: 'Tổng khách hàng', value: customers.length, sub: `${memberCount} thành viên`, icon: '👥', tone: 'from-emerald-400 to-teal-500' },
-                  { label: 'Tổng đơn hàng', value: orders.length, sub: `${orders.filter(o => o.status === 'completed').length} đã hoàn thành`, icon: '📦', tone: 'from-violet-400 to-purple-500' },
+                  { label: 'Tổng đơn hàng', value: totalOrders, sub: `${orders.filter(o => o.status === 'completed').length} đã hoàn thành`, icon: '📦', tone: 'from-violet-400 to-purple-500' },
                   { label: 'Chờ xử lý', value: pendingCount, sub: 'Cần xác nhận hoặc chốt', icon: '⏳', tone: 'from-amber-400 to-orange-500' },
                   { label: 'Doanh thu', value: currency.format(totalRevenue), sub: `${orders.filter(o => o.status === 'no_show').length} no-show`, icon: '💰', tone: 'from-sky-400 to-blue-500' },
                 ].map((card) => (
@@ -381,14 +507,14 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
           {activeTab === 'users' && (
             <div className="animate-fadeIn space-y-4">
               {/* Search + filter bar */}
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Tìm theo tên, email, số điện thoại..."
-                  className="min-w-[260px] flex-1 rounded-full border border-[#DFF0E5] bg-white px-4 py-2.5 text-sm outline-none shadow-sm transition-colors focus:border-[#2F855A]"
+                  className="w-full sm:flex-1 sm:min-w-[260px] rounded-full border border-[#DFF0E5] bg-white px-4 py-2.5 text-sm outline-none shadow-sm transition-colors focus:border-[#2F855A]"
                 />
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 justify-start">
                   {statusFilters.map((f) => (
                     <button key={f.id} type="button" onClick={() => setStatusFilter(f.id)}
                       className={cn('rounded-full px-4 py-2 text-sm font-semibold transition-colors', statusFilter === f.id ? 'bg-[#103B2D] text-white shadow-sm' : 'bg-white border border-[#DFF0E5] text-[#476458] hover:bg-[#F7FCF8]')}>
@@ -590,6 +716,34 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
 
         </div>
       </main>
+
+      {/* ══ MOBILE BOTTOM NAV ══════════════════════════════════════════ */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex border-t border-[#DFF0E5] bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_24px_rgba(16,59,45,0.06)] lg:hidden">
+        {NAV_ITEMS.map(({ id, label }) => {
+          const isActive = activeTab === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={cn(
+                'relative flex flex-1 flex-col items-center justify-center gap-1.5 py-3 transition-colors',
+                isActive ? 'text-[#103B2D]' : 'text-[#8AA89A] hover:text-[#476458]'
+              )}
+            >
+              {isActive && (
+                <span className="absolute left-1/2 top-0 h-[3px] w-8 -translate-x-1/2 rounded-b-full bg-[#2F855A]" />
+              )}
+              <NavIcon id={id} active={isActive} />
+              <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+              {id === 'orders' && pendingCount > 0 && (
+                <span className="absolute right-3 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[9px] font-bold text-white ring-2 ring-white">
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

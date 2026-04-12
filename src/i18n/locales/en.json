@@ -542,5 +542,48 @@
     "vi": "Tiếng Việt",
     "en": "English",
     "sv": "Svenska"
+  },
+  "admin": {
+    "sidebar": {
+      "brand": "Admin Dashboard",
+      "statusOnline": "ONLINE",
+      "sections": {
+        "operations": "Operations",
+        "other": "Other"
+      },
+      "nav": {
+        "users": "User Management",
+        "usersDesc": "Customers & Accounts",
+        "pricing": "Pricing",
+        "pricingDesc": "Adjust service prices",
+        "orders": "Orders",
+        "ordersDesc": "Confirm & finalize"
+      },
+      "actions": {
+        "logout": "Logout"
+      }
+    },
+    "users": {
+      "pageTitle": "User Management",
+      "pageSubtitle": "Control customer profiles and admin accounts",
+      "pageDesc": "This page focuses on user data: guests, members, latest orders, spending, and admin accounts operating the system.",
+      "loading": "Loading user data....",
+      "noData": "No data available",
+      "totalUsers": "Total Users",
+      "totalUsersNote": "{{memberCount}} members / {{guestCount}} guests",
+      "warnedUsers": "Warned Customers",
+      "warnedUsersNote": "Used to flag accounts requiring prepayment",
+      "listTitle": "User List",
+      "listSubtitle": "Manage customer accounts and latest orders",
+      "searchPlaceholder": "Search by name, email or phone",
+      "table": {
+        "customer": "Customer",
+        "accountType": "Account Type",
+        "latestOrder": "Latest Order",
+        "adminStatus": "Admin Status",
+        "customerStatus": "Customer View Status",
+        "totalSpent": "Total Spent"
+      }
+    }
   }
 }

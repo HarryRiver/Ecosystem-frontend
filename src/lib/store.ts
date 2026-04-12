@@ -95,7 +95,10 @@ export interface HistoryItem {
   rating?: number;
 }
 
-const HISTORY_SEED: HistoryItem[] = [
+const HISTORY_SEED: HistoryItem[] = [];
+
+/*
+const HISTORY_SEED_MOCK: HistoryItem[] = [
   {
     id: 'EC-9482',
     date: '03/04/2026',
@@ -129,6 +132,7 @@ const HISTORY_SEED: HistoryItem[] = [
     total: 270000,
   },
 ];
+*/
 
 // ─── Customer / User Schema ───────────────────────────────────────────────────
 
@@ -183,15 +187,23 @@ export function isHeroQuickOption(value: string): value is HeroQuickOption {
 // ─── Storage Keys ─────────────────────────────────────────────────────────────
 
 export const STORAGE_KEYS = {
-  orders:    'ecocollect.store.orders',
-  customers: 'ecocollect.store.customers',
+  orders:    'ecocollect.store.orders.v2',
+  customers: 'ecocollect.store.customers.v2',
   pricing:   'ecocollect.store.pricing.v3',
   history:   'ecocollect.store.history.v2',
 } as const;
 
+const LEGACY_STORAGE_KEYS = {
+  orders:    'ecocollect.store.orders',
+  customers: 'ecocollect.store.customers',
+} as const;
+
 // ─── Default / Seed Data ─────────────────────────────────────────────────────
 
-export const defaultCustomers: CustomerRecord[] = [
+export const defaultCustomers: CustomerRecord[] = [];
+
+/*
+export const defaultCustomersMock: CustomerRecord[] = [
   {
     id: 'CUS-01',
     name: 'Nguyễn Văn A',
@@ -247,10 +259,14 @@ export const defaultCustomers: CustomerRecord[] = [
     noShowCount: 0,
   },
 ];
+*/
 
+export const defaultOrders: Order[] = [];
+
+/*
 const NOW = new Date().toISOString();
 
-export const defaultOrders: Order[] = [
+export const defaultOrdersMock: Order[] = [
   {
     id: 'EC-240401',
     code: 'EC240401',
@@ -404,6 +420,7 @@ export const defaultOrders: Order[] = [
     updatedAt: NOW,
   },
 ];
+*/
 
 export const defaultPricing: ServicePriceRecord[] = [
   { id: 'sofa-single', name: 'Sofa đơn', unitLabel: '/món', category: 'Nội thất', price: 150000, note: 'Giá chuẩn cho món đơn' },
@@ -442,6 +459,16 @@ function canUseStorage() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 }
 
+function clearLegacyAdminStorage() {
+  if (!canUseStorage()) return;
+  try {
+    window.localStorage.removeItem(LEGACY_STORAGE_KEYS.orders);
+    window.localStorage.removeItem(LEGACY_STORAGE_KEYS.customers);
+  } catch {
+    // ignore cleanup failures
+  }
+}
+
 function readJson<T>(key: string, fallback: T): T {
   if (!canUseStorage()) return fallback;
   try {
@@ -465,6 +492,7 @@ function writeJson<T>(key: string, value: T) {
 // ─── Orders API ───────────────────────────────────────────────────────────────
 
 export function readOrders(): Order[] {
+  clearLegacyAdminStorage();
   return readJson<Order[]>(STORAGE_KEYS.orders, defaultOrders);
 }
 
@@ -525,6 +553,7 @@ export function appendHistory(items: HistoryItem[], newItem: HistoryItem): Histo
 // ─── Customers API ────────────────────────────────────────────────────────────
 
 export function readCustomers(): CustomerRecord[] {
+  clearLegacyAdminStorage();
   return readJson<CustomerRecord[]>(STORAGE_KEYS.customers, defaultCustomers);
 }
 
@@ -535,7 +564,8 @@ export function writeCustomers(customers: CustomerRecord[]) {
 // ─── Pricing API ──────────────────────────────────────────────────────────────
 
 export function readPricing(): ServicePriceRecord[] {
-  return readJson<ServicePriceRecord[]>(STORAGE_KEYS.pricing, defaultPricing);
+  const saved = readJson<ServicePriceRecord[]>(STORAGE_KEYS.pricing, defaultPricing);
+  return saved.length === 0 ? defaultPricing : saved;
 }
 
 export function writePricing(pricing: ServicePriceRecord[]) {

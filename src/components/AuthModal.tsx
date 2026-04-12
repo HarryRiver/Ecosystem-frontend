@@ -48,6 +48,8 @@ export default function AuthModal({
   const [form, setForm] = useState<AuthFormState>(initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const benefitCards = [
     {
@@ -73,11 +75,13 @@ export default function AuthModal({
   useEffect(() => {
     if (!isOpen) {
       setErrorMessage('');
+      setFieldErrors({});
       setIsSubmitting(false);
       setForm((currentForm) => ({
         ...currentForm,
         password: '',
       }));
+      setShowPassword(false);
     }
   }, [isOpen]);
 
@@ -87,6 +91,7 @@ export default function AuthModal({
     }
 
     setErrorMessage('');
+    setFieldErrors({});
   }, [isOpen, mode]);
 
   const isEmailValid = emailPattern.test(form.email.trim());
@@ -99,12 +104,30 @@ export default function AuthModal({
       : isNameValid && isPhoneValid && isEmailValid && isPasswordValid && form.acceptPolicy;
 
   const handleFieldChange = (field: keyof AuthFormState) => (event: ChangeEvent<HTMLInputElement>) => {
-    const nextValue = field === 'acceptPolicy' ? event.target.checked : event.target.value;
+    let nextValue: string | boolean = field === 'acceptPolicy' ? event.target.checked : event.target.value;
+    let skipClearError = false;
+
+    if (field === 'password' && typeof nextValue === 'string') {
+      if (/[^\x20-\x7E]/.test(nextValue)) {
+        nextValue = nextValue.replace(/[^\x20-\x7E]/g, '');
+        setFieldErrors((prev) => ({ ...prev, password: 'Vui lòng tắt gõ Tiếng Việt để nhập mật khẩu' }));
+        skipClearError = true;
+      }
+    }
 
     setForm((currentForm) => ({
       ...currentForm,
       [field]: nextValue,
     }));
+
+    // Clear field-specific error when user starts typing
+    if (fieldErrors[field] && !skipClearError) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
 
     if (errorMessage !== '') {
       setErrorMessage('');
@@ -123,7 +146,9 @@ export default function AuthModal({
   const resetForm = () => {
     setForm(initialFormState);
     setErrorMessage('');
+    setFieldErrors({});
     setIsSubmitting(false);
+    setShowPassword(false);
   };
 
   const handleForgotPassword = () => {
@@ -136,6 +161,42 @@ export default function AuthModal({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    // Per-field validation for register mode
+    if (mode === 'register') {
+      const errors: Record<string, string> = {};
+      if (!form.name.trim()) errors.name = 'Vui lòng nhập họ và tên';
+      if (!form.phone.trim()) errors.phone = 'Vui lòng nhập số điện thoại';
+      if (!form.email.trim()) {
+        errors.email = 'Vui lòng nhập Email';
+      } else if (!emailPattern.test(form.email.trim())) {
+        errors.email = 'Email không đúng định dạng';
+      }
+      if (!form.password.trim()) errors.password = 'Vui lòng nhập mật khẩu';
+      
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        return;
+      }
+      setFieldErrors({});
+    }
+
+    // Per-field validation for login mode
+    if (mode === 'login') {
+      const errors: Record<string, string> = {};
+      if (!form.email.trim()) {
+        errors.email = 'Vui lòng nhập Email';
+      } else if (!emailPattern.test(form.email.trim())) {
+        errors.email = 'Email không đúng định dạng';
+      }
+      if (!form.password.trim()) errors.password = 'Vui lòng nhập mật khẩu';
+
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        return;
+      }
+      setFieldErrors({});
+    }
 
     if (!isFormValid) {
       setErrorMessage(getAuthValidationMessage(mode));
@@ -194,7 +255,7 @@ export default function AuthModal({
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#08110D]/72 p-4 backdrop-blur-md">
       <div className="grid w-full max-w-5xl overflow-hidden rounded-[32px] bg-white shadow-[0_32px_120px_rgba(0,0,0,0.28)] lg:grid-cols-[0.94fr_1.06fr]">
-        <aside className="bg-[linear-gradient(155deg,_#0F3D2E_0%,_#134B38_52%,_#1E6B4E_100%)] p-7 text-white">
+        <aside className="hidden lg:block bg-[linear-gradient(155deg,_#0F3D2E_0%,_#134B38_52%,_#1E6B4E_100%)] p-7 text-white">
           <div className="inline-flex items-center rounded-full border border-white/12 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#B7F7C8]">
             {t('auth.badge')}
           </div>
@@ -222,10 +283,7 @@ export default function AuthModal({
         <div className="p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2F855A]">
-                Account UI
-              </p>
-              <h3 className="mt-2 text-3xl font-bold text-[#103B2D]">
+              <h3 className="text-3xl font-bold text-[#103B2D]">
                 {mode === 'login' ? t('auth.login.title') : t('auth.register.title')}
               </h3>
             </div>
@@ -272,8 +330,11 @@ export default function AuthModal({
                     placeholder="email@example.com hoặc 09xxxxxxxx"
                     autoComplete="username"
                     disabled={isSubmitting}
-                    className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
+                    className={`w-full rounded-[24px] border bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.email ? 'border-red-400' : 'border-[#D6EEDD]'}`}
                   />
+                  {fieldErrors.email && (
+                    <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.email}</p>
+                  )}
                   <p className="mt-2 text-xs text-[#5D776A]">
                     Gợi ý: Dùng <code className="font-semibold text-[#103B2D]">admin@ecocollect.vn</code> (pass: admin123) để vào trang quản trị.
                   </p>
@@ -289,15 +350,31 @@ export default function AuthModal({
                       {t('auth.login.forgotPassword')}
                     </button>
                   </div>
-                  <input
-                    type="password"
-                    value={form.password}
-                    onChange={handleFieldChange('password')}
-                    placeholder="......"
-                    autoComplete="current-password"
-                    disabled={isSubmitting}
-                    className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={form.password}
+                      onChange={handleFieldChange('password')}
+                      placeholder="......"
+                      autoComplete="current-password"
+                      disabled={isSubmitting}
+                      className={`w-full rounded-[24px] border bg-[#F7FCF8] px-4 py-4 pr-12 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.password ? 'border-red-400' : 'border-[#D6EEDD]'}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7A9287] hover:text-[#2F855A] transition-colors"
+                    >
+                      {showPassword ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                      )}
+                    </button>
+                  </div>
+                  {fieldErrors.password && (
+                    <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.password}</p>
+                  )}
                 </div>
               </div>
             ) : (
@@ -311,8 +388,11 @@ export default function AuthModal({
                     placeholder="Name"
                     autoComplete="name"
                     disabled={isSubmitting}
-                    className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
+                    className={`w-full rounded-[24px] border bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.name ? 'border-red-400' : 'border-[#D6EEDD]'}`}
                   />
+                  {fieldErrors.name && (
+                    <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.name}</p>
+                  )}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
@@ -324,8 +404,11 @@ export default function AuthModal({
                       placeholder="0901234567"
                       autoComplete="tel"
                       disabled={isSubmitting}
-                      className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
+                      className={`w-full rounded-[24px] border bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.phone ? 'border-red-400' : 'border-[#D6EEDD]'}`}
                     />
+                    {fieldErrors.phone && (
+                      <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.phone}</p>
+                    )}
                   </div>
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-[#24483A]">{t('auth.register.emailLabel')}</label>
@@ -336,21 +419,40 @@ export default function AuthModal({
                       placeholder="ban@company.com"
                       autoComplete="email"
                       disabled={isSubmitting}
-                      className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
+                      className={`w-full rounded-[24px] border bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.email ? 'border-red-400' : 'border-[#D6EEDD]'}`}
                     />
+                    {fieldErrors.email && (
+                      <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.email}</p>
+                    )}
                   </div>
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-[#24483A]">{t('auth.register.passwordLabel')}</label>
-                  <input
-                    type="password"
-                    value={form.password}
-                    onChange={handleFieldChange('password')}
-                    placeholder="......"
-                    autoComplete="new-password"
-                    disabled={isSubmitting}
-                    className="w-full rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2]"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={form.password}
+                      onChange={handleFieldChange('password')}
+                      placeholder="......"
+                      autoComplete="new-password"
+                      disabled={isSubmitting}
+                      className={`w-full rounded-[24px] border bg-[#F7FCF8] px-4 py-4 pr-12 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.password ? 'border-red-400' : 'border-[#D6EEDD]'}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7A9287] hover:text-[#2F855A] transition-colors"
+                    >
+                      {showPassword ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                      )}
+                    </button>
+                  </div>
+                  {fieldErrors.password && (
+                    <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.password}</p>
+                  )}
                 </div>
                 <label className="flex items-start gap-3 rounded-[24px] border border-[#D6EEDD] bg-[#F9FCFA] p-4 text-sm text-[#476458]">
                   <input

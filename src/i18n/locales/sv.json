@@ -542,5 +542,48 @@
     "vi": "Tiếng Việt",
     "en": "English",
     "sv": "Svenska"
+  },
+  "admin": {
+    "sidebar": {
+      "brand": "Admin Dashboard",
+      "statusOnline": "ONLINE",
+      "sections": {
+        "operations": "Verksamhet",
+        "other": "Övrigt"
+      },
+      "nav": {
+        "users": "Användarhantering",
+        "usersDesc": "Kunder & konton",
+        "pricing": "Prissättning",
+        "pricingDesc": "Justera tjänstepriser",
+        "orders": "Beställningar",
+        "ordersDesc": "Bekräfta och slutför"
+      },
+      "actions": {
+        "logout": "Logga ut"
+      }
+    },
+    "users": {
+      "pageTitle": "Användarhantering",
+      "pageSubtitle": "Hantera kundprofiler och adminkonton",
+      "pageDesc": "Denna sida fokuserar på användardata: gäster, medlemmar, senaste beställningar, utgifter och adminkonton som driver systemet.",
+      "loading": "Laddar användardata....",
+      "noData": "Ingen data tillgänglig",
+      "totalUsers": "Totalt antal användare",
+      "totalUsersNote": "{{memberCount}} medlemmar / {{guestCount}} gäster",
+      "warnedUsers": "Varnade Kunder",
+      "warnedUsersNote": "Används för att markera konton som kräver förskottsbetalning",
+      "listTitle": "Användarlista",
+      "listSubtitle": "Hantera kundkonton och senaste beställningar",
+      "searchPlaceholder": "Sök med namn, e-post eller telefonnummer",
+      "table": {
+        "customer": "Kund",
+        "accountType": "Kontotyp",
+        "latestOrder": "Senaste order",
+        "adminStatus": "Admin-status",
+        "customerStatus": "Kundens statusvy",
+        "totalSpent": "Totalt spenderat"
+      }
+    }
   }
 }

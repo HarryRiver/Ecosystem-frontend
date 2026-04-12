@@ -8,7 +8,10 @@ export interface AdminAccount {
   shift: string;
 }
 
-export const adminAccounts: AdminAccount[] = [
+export const adminAccounts: AdminAccount[] = [];
+
+/*
+export const adminAccountsMock: AdminAccount[] = [
   {
     id: 'ADM-01',
     name: 'Lan Nguyễn',
@@ -37,6 +40,7 @@ export const adminAccounts: AdminAccount[] = [
     shift: '09:00 - 18:00',
   },
 ];
+*/
 
 export function findAdminAccount(email: string, password: string) {
   const normalizedEmail = email.trim().toLowerCase();

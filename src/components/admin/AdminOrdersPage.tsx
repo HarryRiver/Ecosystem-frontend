@@ -3,18 +3,32 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   currency,
-  defaultCustomers,
+  CustomerRecord,
   Order,
   OrderStatus,
+  readCustomers,
   readOrders,
   statusFilters,
   statusMeta,
   updateOrderStatus,
+  writeCustomers,
   writeOrders,
 } from '../../lib/store';
 import { cn } from '../../utils/cn';
 // ─── API Layer ────────────────────────────────────────────────────────────────────────────────
-import { updateAdminOrder, markOrderNoShow } from '../../services/admin.service';
+import {
+  getAdminOrders,
+  updateAdminOrder,
+  markOrderNoShow,
+  type UpdateAdminOrderBody,
+} from '../../services/admin.service';
+import {
+  findCustomerForOrder,
+  mapApiOrderToCustomerRecord,
+  mapApiOrderToStoreOrder,
+  mapStoreOrderStatusToApiStatus,
+  mergeCustomerRecords,
+} from '../../lib/adminApiAdapters';
 
 /* ─── Icons ──────────────────────────────────────────────────────── */
 function IconCheck({ className }: { className?: string }) {
@@ -77,20 +91,23 @@ function IconCalendar({ className }: { className?: string }) {
 /* ─── Detail Panel ───────────────────────────────────────────────── */
 function OrderDetailPanel({
   order,
+  customer,
   adjustedAmount,
   onAdjustedAmountChange,
   onConfirm,
   onReject,
   onComplete,
+  onNoShow,
 }: {
   order: Order;
+  customer?: CustomerRecord;
   adjustedAmount: number;
   onAdjustedAmountChange: (val: number) => void;
   onConfirm: () => void;
   onReject: () => void;
   onComplete: () => void;
+  onNoShow: () => void;
 }) {
-  const customer = defaultCustomers.find((c) => c.id === order.customerId);
   const [priceInput, setPriceInput] = useState(String(adjustedAmount));
   const [confirmingReject, setConfirmingReject] = useState(false);
 
@@ -319,6 +336,17 @@ function OrderDetailPanel({
             {order.status === 'delivering' && (
               <button
                 type="button"
+                onClick={onNoShow}
+                className="flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-semibold text-rose-700 transition-all hover:bg-rose-100"
+              >
+                <IconX className="h-4 w-4" />
+                Khách không có mặt
+              </button>
+            )}
+
+            {order.status === 'delivering' && (
+              <button
+                type="button"
                 onClick={onComplete}
                 className="flex items-center gap-2 rounded-full bg-[#2F855A] px-5 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
               >
@@ -342,15 +370,12 @@ function OrderDetailPanel({
             )}
 
             {order.status === 'no_show' && (
-              <button
-                type="button"
-                onClick={onReject}
-                className="flex items-center gap-2 rounded-full bg-rose-700 px-5 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
-              >
+              <span className="flex items-center gap-2 rounded-full bg-rose-700 px-5 py-3 text-sm font-semibold text-white">
                 <IconX className="h-4 w-4" />
-                Ghi nhận No-show
-              </button>
+                No-show đã ghi nhận
+              </span>
             )}
+
           </div>
         </div>
       </div>
@@ -361,24 +386,27 @@ function OrderDetailPanel({
 /* ─── Order Card ─────────────────────────────────────────────────── */
 function OrderCard({
   order,
+  customer,
   isExpanded,
   onToggle,
   onConfirm,
   onReject,
   onComplete,
+  onNoShow,
   adjustedAmount,
   onAdjustedAmountChange,
 }: {
   order: Order;
+  customer?: CustomerRecord;
   isExpanded: boolean;
   onToggle: () => void;
   onConfirm: () => void;
   onReject: () => void;
   onComplete: () => void;
+  onNoShow: () => void;
   adjustedAmount: number;
   onAdjustedAmountChange: (val: number) => void;
 }) {
-  const customer = defaultCustomers.find((c) => c.id === order.customerId);
   const meta = statusMeta[order.status];
 
   const urgencyBorder =
@@ -446,11 +474,13 @@ function OrderCard({
         <div className="border-t border-[#EFF6F1] px-5 pb-5">
           <OrderDetailPanel
             order={order}
+            customer={customer}
             adjustedAmount={adjustedAmount}
             onAdjustedAmountChange={onAdjustedAmountChange}
             onConfirm={onConfirm}
             onReject={onReject}
             onComplete={onComplete}
+            onNoShow={onNoShow}
           />
         </div>
       )}
@@ -463,12 +493,49 @@ export default function AdminOrdersPage() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
   const [orders, setOrders] = useState<Order[]>(() => readOrders());
+  const [customers, setCustomers] = useState<CustomerRecord[]>(() => readCustomers());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [adjustedAmounts, setAdjustedAmounts] = useState<Record<string, number>>(
     () => Object.fromEntries(readOrders().map((o) => [o.id, o.finalAmount]))
   );
+  const [isLoading, setIsLoading] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLowerCase();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setIsLoading(true);
+    getAdminOrders({ page: 1, limit: 200 })
+      .then((response) => {
+        if (cancelled) return;
+        const nextOrders = response.items.map(mapApiOrderToStoreOrder);
+        const nextCustomers = mergeCustomerRecords(
+          readCustomers(),
+          response.items.map(mapApiOrderToCustomerRecord),
+        );
+
+        setOrders(nextOrders);
+        setCustomers(nextCustomers);
+        setAdjustedAmounts(Object.fromEntries(nextOrders.map((o) => [o.id, o.finalAmount])));
+        writeOrders(nextOrders);
+        writeCustomers(nextCustomers);
+        setSyncError(null);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        console.error('[Admin] API failed:', error);
+        setSyncError('Chưa có dữ liệu');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Persist to store whenever orders change
   useEffect(() => {
@@ -476,26 +543,48 @@ export default function AdminOrdersPage() {
   }, [orders]);
 
   const handleStatusChange = (orderId: string, nextStatus: OrderStatus) => {
-    const newAmount = adjustedAmounts[orderId];
+    const currentOrder = orders.find((order) => order.id === orderId);
+    const newAmount = adjustedAmounts[orderId] ?? currentOrder?.finalAmount ?? 0;
     setOrders((prev) => updateOrderStatus(prev, orderId, nextStatus, newAmount));
     setExpandedId(null);
+    setSyncError(null);
 
     // ─── Sync lên BE (fire-and-forget) ───
+    const onSyncSuccess = (apiOrder: Awaited<ReturnType<typeof updateAdminOrder>>) => {
+      const nextOrder = mapApiOrderToStoreOrder(apiOrder);
+      setOrders((prev) =>
+        prev.map((order) => (order.id === orderId ? nextOrder : order)),
+      );
+      setAdjustedAmounts((prev) => ({ ...prev, [orderId]: nextOrder.finalAmount }));
+    };
+
     if (nextStatus === 'no_show') {
-      markOrderNoShow(orderId).catch((err: unknown) => {
-        console.error('[AdminOrdersPage] markOrderNoShow failed:', err);
+      markOrderNoShow(orderId).then(onSyncSuccess).catch((error: unknown) => {
+        console.error('[Admin] API failed:', error);
+        setSyncError('Cập nhật API thất bại. UI đã giữ thay đổi local.');
       });
     } else {
-      type ApiStatus = import('../../types/api').OrderStatus;
-      updateAdminOrder(orderId, { status: nextStatus as ApiStatus }).catch((err: unknown) => {
-        console.error('[AdminOrdersPage] updateAdminOrder failed:', err);
+      const body: UpdateAdminOrderBody = {
+        status: mapStoreOrderStatusToApiStatus(nextStatus),
+      };
+
+      if (nextStatus === 'completed') {
+        body.final_total = newAmount;
+        if (currentOrder && currentOrder.finalAmount !== newAmount) {
+          body.adjustment_reason = 'Admin price adjustment';
+        }
+      }
+
+      updateAdminOrder(orderId, body).then(onSyncSuccess).catch((error: unknown) => {
+        console.error('[Admin] API failed:', error);
+        setSyncError('Cập nhật API thất bại. UI đã giữ thay đổi local.');
       });
     }
   };
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      const customer = defaultCustomers.find((c) => c.id === order.customerId);
+      const customer = findCustomerForOrder(order, customers);
       const matchesQuery =
         normalizedQuery === '' ||
         order.code.toLowerCase().includes(normalizedQuery) ||
@@ -505,7 +594,7 @@ export default function AdminOrdersPage() {
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
       return matchesQuery && matchesStatus;
     });
-  }, [normalizedQuery, orders, statusFilter]);
+  }, [customers, normalizedQuery, orders, statusFilter]);
 
   const statusSummary = (Object.entries(statusMeta) as [OrderStatus, { label: string; tone: string }][]).map(
     ([status, meta]) => ({
@@ -521,7 +610,7 @@ export default function AdminOrdersPage() {
   return (
     <div className="space-y-8">
       {/* ── Hero banner ── */}
-      <section className="rounded-[32px] bg-[linear-gradient(135deg,_#103B2D_0%,_#18543F_100%)] p-6 text-white shadow-[0_28px_80px_rgba(16,59,45,0.18)]">
+      <section className="hidden md:block rounded-[32px] bg-[linear-gradient(135deg,_#103B2D_0%,_#18543F_100%)] p-6 text-white shadow-[0_28px_80px_rgba(16,59,45,0.18)]">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#A7E8B6]">
           Trang kiểm tra đơn hàng
         </p>
@@ -540,7 +629,9 @@ export default function AdminOrdersPage() {
       </section>
 
       {/* ── Status summary cards ── */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+
+
+      <div className="hidden md:grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {statusSummary.map((item) => (
           <button
             key={item.id}
@@ -591,9 +682,9 @@ export default function AdminOrdersPage() {
 
       {/* ── Order list ── */}
       <div className="space-y-4">
-        {filteredOrders.length === 0 && (
+        {!isLoading && filteredOrders.length === 0 && (
           <div className="rounded-[28px] border border-[#D7ECDD] bg-white py-16 text-center text-[#6D877A]">
-            Không tìm thấy đơn nào phù hợp
+            {orders.length === 0 ? 'Chưa có dữ liệu' : 'Không tìm thấy đơn nào phù hợp'}
           </div>
         )}
 
@@ -601,6 +692,7 @@ export default function AdminOrdersPage() {
           <OrderCard
             key={order.id}
             order={order}
+            customer={findCustomerForOrder(order, customers)}
             isExpanded={expandedId === order.id}
             onToggle={() => setExpandedId(expandedId === order.id ? null : order.id)}
             adjustedAmount={adjustedAmounts[order.id] ?? order.finalAmount}
@@ -610,6 +702,7 @@ export default function AdminOrdersPage() {
             onConfirm={() => handleStatusChange(order.id, 'delivering')}
             onReject={() => handleStatusChange(order.id, 'cancelled')}
             onComplete={() => handleStatusChange(order.id, 'completed')}
+            onNoShow={() => handleStatusChange(order.id, 'no_show')}
           />
         ))}
       </div>

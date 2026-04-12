@@ -35,7 +35,7 @@ export default function LanguageSwitcher() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-full border border-white/14 bg-white/8 px-3 py-1.5 text-sm font-medium text-white transition-all hover:bg-white/14"
+        className="flex shrink-0 w-max items-center gap-2 rounded-full border border-white/14 bg-white/8 px-3 py-1.5 text-sm font-medium text-white transition-all hover:bg-white/14"
         aria-label="Chọn ngôn ngữ"
       >
         <img
@@ -57,7 +57,7 @@ export default function LanguageSwitcher() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-40 origin-top-right overflow-hidden rounded-2xl border border-white/16 bg-[#0F3D2E]/95 shadow-2xl backdrop-blur-xl animate-fadeInScale">
+        <div className="absolute z-50 right-0 mt-2 w-40 origin-top-right overflow-hidden rounded-2xl border border-white/16 bg-[#0F3D2E]/95 shadow-2xl backdrop-blur-xl animate-fadeInScale">
           <div className="py-1">
             {languages.map((lang) => (
               <button

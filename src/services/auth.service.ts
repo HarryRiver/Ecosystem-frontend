@@ -71,7 +71,7 @@ export async function getMe(): Promise<ApiUser> {
 // ─── PATCH /me ───────────────────────────────────────────────────────────────
 
 export type UpdateMeBody = Partial<
-  Pick<ApiUser, 'full_name' | 'phone' | 'email'>
+  Pick<ApiUser, 'full_name' | 'phone' | 'email' | 'address' | 'city' | 'district'>
 >;
 
 /**

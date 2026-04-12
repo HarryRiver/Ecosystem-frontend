@@ -28,6 +28,7 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
   const currentLang = i18n.language;
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   
   // Local state for profile info
   const [name, setName] = useState('');
@@ -54,6 +55,7 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
       setDistrict(currentUser.district || '');
       setCity(currentUser.city || '');
     }
+    setErrorMessage('');
   }, [currentUser, isOpen]);
 
   // Fetch provinces immediately when modal opens
@@ -115,32 +117,40 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
 
   const handleSave = async () => {
     setIsSaving(true);
-    try {
-      // Gọi API thật PATCH /me
-      await updateMe({
-        full_name: name,
-        phone: phone,
-      });
-    } catch (err) {
-      // API lỗi: chỉ log, vẫn cập nhật local session
-      const msg = err instanceof ApiError ? err.message : 'Lỗi kết nối';
-      console.warn('[ProfileModal] updateMe failed:', msg);
-    } finally {
-      setIsSaving(false);
-    }
+    setErrorMessage('');
 
-    // Cập nhật session local dù API thành công hay không
-    if (currentUser) {
-      onUpdateUser({
-        ...currentUser,
-        name,
+    try {
+      if (!currentUser) return;
+
+      const updatedProfile = await updateMe({
+        full_name: name,
         phone,
-        streetAddress,
+        address: streetAddress,
         district,
         city,
       });
+
+      onUpdateUser({
+        ...currentUser,
+        name: updatedProfile.full_name,
+        email: updatedProfile.email,
+        phone: updatedProfile.phone,
+        role: updatedProfile.role,
+        streetAddress: updatedProfile.address,
+        district: updatedProfile.district,
+        city: updatedProfile.city,
+      });
+
+      setIsEditing(false);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : 'Không thể lưu hồ sơ lúc này. Vui lòng thử lại.',
+      );
+    } finally {
+      setIsSaving(false);
     }
-    setIsEditing(false);
   };
 
   const handleCancel = () => {
@@ -152,6 +162,7 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
       setDistrict(currentUser.district || '');
       setCity(currentUser.city || '');
     }
+    setErrorMessage('');
     setIsEditing(false);
   };
 
@@ -194,6 +205,12 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
 
         {/* Content */}
         <div className="max-h-[70vh] overflow-y-auto p-6 sm:p-8 space-y-6 [scrollbar-gutter:stable] contain-content transform-gpu">
+          {errorMessage ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              {errorMessage}
+            </div>
+          ) : null}
+
           <div className="space-y-4">
             {/* Name Field (Read-only for demo) */}
             <div className="group rounded-2xl border border-[#D6EEDD] bg-[#F7FCF8] p-4 transition-all">

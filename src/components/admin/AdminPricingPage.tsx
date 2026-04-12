@@ -18,12 +18,15 @@ export default function AdminPricingPage() {
   }, [servicePricing]);
 
   const adjustServicePrice = (serviceId: string, delta: number) => {
+    const service = servicePricing.find((item) => item.id === serviceId);
+    const nextPrice = Math.max(0, (service?.price ?? 0) + delta);
+
     setServicePricing((currentServices) =>
       currentServices.map((service) =>
         service.id === serviceId
           ? {
               ...service,
-              price: Math.max(0, service.price + delta),
+              price: nextPrice,
             }
           : service
       )
@@ -31,12 +34,14 @@ export default function AdminPricingPage() {
   };
 
   const updateServicePrice = (serviceId: string, nextPrice: number) => {
+    const sanitizedPrice = isNaN(nextPrice) ? 0 : Math.max(0, nextPrice);
+
     setServicePricing((currentServices) =>
       currentServices.map((service) =>
         service.id === serviceId
           ? {
               ...service,
-              price: isNaN(nextPrice) ? 0 : Math.max(0, nextPrice),
+              price: sanitizedPrice,
             }
           : service
       )
@@ -66,7 +71,7 @@ export default function AdminPricingPage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-[32px] border border-[#D7ECDD] bg-[linear-gradient(135deg,_#103B2D_0%,_#18543F_100%)] p-6 text-white shadow-[0_28px_80px_rgba(16,59,45,0.18)]">
+      <section className="hidden md:block rounded-[32px] border border-[#D7ECDD] bg-[linear-gradient(135deg,_#103B2D_0%,_#18543F_100%)] p-6 text-white shadow-[0_28px_80px_rgba(16,59,45,0.18)]">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#A7E8B6]">Trang cập nhật giá</p>
         <h1 className="mt-3 text-4xl font-bold">Điều chỉnh bảng giá dịch vụ thu gom</h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-white/78">
@@ -75,10 +80,10 @@ export default function AdminPricingPage() {
         </p>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="hidden md:grid gap-4 md:grid-cols-3">
         {[
           { label: 'Tổng dịch vụ đang quản lý', value: servicePricing.length, note: 'Bao gồm nội thất, điện tử và nhóm đặc thù' },
-          { label: 'Giá trung bình', value: currency.format(averagePrice), note: 'Tính trên danh sách mock hiện tại' },
+          { label: 'Giá trung bình', value: currency.format(averagePrice), note: 'Tính trên danh sách giá hiện tại' },
           { label: 'Nhóm có kiểm tra thực tế', value: servicePricing.filter((service) => service.unitLabel === '/kg').length, note: 'Cần staff xác nhận lại khi tới hiện trường' },
         ].map((card) => (
           <section
@@ -97,9 +102,6 @@ export default function AdminPricingPage() {
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">Bảng giá dịch vụ</p>
             <h2 className="mt-2 text-2xl font-bold">Cập nhật giá cả theo từng hạng mục</h2>
-          </div>
-          <div className="rounded-full bg-[#F3FBF5] px-4 py-2 text-sm text-[#476458]">
-            Thay đổi được lưu ngay vào store — user thấy khi mở BookingModal
           </div>
         </div>
 

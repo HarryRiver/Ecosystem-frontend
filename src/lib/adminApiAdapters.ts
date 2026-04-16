@@ -12,6 +12,16 @@ import type {
   ServicePriceRecord,
 } from '@/lib/store';
 
+export function getPaginatedItems<T>(
+  value: { items?: T[] } | T[] | null | undefined,
+): T[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  return Array.isArray(value?.items) ? value.items : [];
+}
+
 const API_TO_STORE_STATUS: Record<ApiOrderStatus, StoreOrderStatus> = {
   draft: 'processing',
   pending: 'processing',

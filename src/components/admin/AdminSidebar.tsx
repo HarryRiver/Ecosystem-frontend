@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { mapApiOrderToStoreOrder } from '../../lib/adminApiAdapters';
+import { getPaginatedItems, mapApiOrderToStoreOrder } from '../../lib/adminApiAdapters';
 import { readOrders, STORAGE_KEYS, type Order, useSyncStore } from '../../lib/store';
 import { getAdminOrders } from '../../services/admin.service';
 import { cn } from '../../utils/cn';
@@ -114,7 +114,7 @@ export default function AdminSidebar({
     getAdminOrders({ page: 1, limit: 200 })
       .then((response) => {
         if (cancelled) return;
-        setOrders(response.items.map(mapApiOrderToStoreOrder));
+        setOrders(getPaginatedItems(response).map(mapApiOrderToStoreOrder));
       })
       .catch((error: unknown) => {
         console.error('[Admin] API failed:', error);

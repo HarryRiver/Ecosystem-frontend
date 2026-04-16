@@ -12,6 +12,8 @@ interface BookingPrefill {
   selectedWaste?: string;
 }
 
+export type BookingSubmitHandler = (payload: BookingSubmissionPayload) => Promise<string | void>;
+
 interface BookingModalProps {
   currentUser: AuthUser | null;
   isOpen: boolean;
@@ -27,6 +29,7 @@ type PaymentMethod = 'cash' | 'transfer';
 
 export interface BookingSubmissionItem {
   id: string;
+  serviceId?: string;
   name: string;
   icon: string;
   pricingMode: PricingMode;
@@ -82,7 +85,7 @@ export interface BookingSubmissionPayload {
   };
 }
 
-export type BookingSubmitHandler = (payload: BookingSubmissionPayload) => Promise<void> | void;
+
 
 interface AvailableDateOption {
   value: string;
@@ -116,6 +119,7 @@ interface ServiceOption {
 
 interface WasteService {
   id: string;
+  serviceId?: string;
   name: string;
   icon: string;
   description: string;
@@ -130,6 +134,7 @@ interface WasteService {
 
 interface SelectedWasteItem {
   id: string;
+  serviceId?: string;
   name: string;
   icon: string;
   pricingMode: PricingMode;
@@ -330,6 +335,7 @@ function createSelectedItem(service: WasteService, optionId?: string): SelectedW
 
   return {
     id: service.id,
+    serviceId: service.serviceId,
     name: service.name,
     icon: service.icon,
     pricingMode: service.pricingMode,
@@ -417,38 +423,6 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
     other: '🧱',
   };
 
-  const variantIconMap: Record<string, string> = {
-    'Bàn / ghế': '🪑',
-    'Giường / nệm': '🛏️',
-    'Tủ bếp / tủ giày': '🗃️',
-    'Tủ quần áo': '🗄️',
-    'Sofa đôi / góc L': '🛋️',
-    'Sofa đơn': '🛋️',
-    'Máy lạnh cũ': '❄️',
-    'Máy giặt': '🪧',
-    'Tủ lạnh': '🧣',
-    'Tivi': '📺',
-    'Sắt phế liệu': '🏗️',
-    'Inox': '🥄',
-    'Nhôm': '🥫',
-    'Đồng vàng': '🟡',
-    'Đồng đỏ': '🔴',
-    'Nhựa dẻo': '🛍️',
-    'Nhựa cứng': '🪣',
-    'Nhựa PET': '🍾',
-    'Giấy báo': '📰',
-    'Giấy trắng': '📄',
-    'Carton': '📦',
-    'Vải vụn': '🧵',
-    'Đồ mặc tiệc/đầm': '👗',
-    'Quần áo thường': '👕',
-    'Máy móc': '⚙️',
-    'Xe đạp': '🚲',
-    'Xe máy hỏng': '🛵',
-    'Báo giá riêng': '✨',
-    'Gạch vỡ': '🧱',
-    'Xà bần': '🗑️',
-  };
 
   const wasteServices = useMemo<WasteService[]>(() => {
     // If API data is available, parse it
@@ -487,8 +461,9 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
           
           result.push({
             id: items[0].id,
+            serviceId: apiService.id,
             name: label,
-            icon: variantIconMap[label] || serviceIconMap[apiService.code] || '📦',
+            icon: items[0].icon || serviceIconMap[apiService.code] || '📦',
             description: '',
             category: apiService.code === 'bao_gia' ? 'other' : apiService.code,
             pricingMode: pricingMode as PricingMode,
@@ -571,6 +546,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
   const [stairsFloors, _setStairsFloors] = useState(2);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [orderCodeFromApi, setOrderCodeFromApi] = useState<string>('');
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [provinces, setProvinces] = useState<Province[]>([]);
@@ -823,6 +799,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
       services: {
         items: selectedItems.map((item) => ({
           id: item.id,
+          serviceId: item.serviceId,
           name: item.name,
           icon: item.icon,
           pricingMode: item.pricingMode,
@@ -875,11 +852,16 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
     setSubmitError(null);
 
     try {
-      await onSubmit(buildSubmissionPayload());
+      const returnedCode = await onSubmit(buildSubmissionPayload());
 
       if (!isMountedRef.current || activeSubmitIdRef.current !== submitId) {
         return;
       }
+
+      if (typeof returnedCode === 'string') {
+        setOrderCodeFromApi(returnedCode);
+      }
+
 
       setIsSuccess(true);
     } catch (error) {
@@ -1192,7 +1174,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                 <div className="mt-4 flex items-center gap-2 rounded-full border border-[#C3E5CE] bg-[#F3FBF5] px-5 py-2">
                   <span className="text-xs font-bold uppercase tracking-widest text-[#6D877A]">Mã đơn hàng</span>
                   <span className="font-mono text-lg font-bold text-[#103B2D]">
-                    EC-{Math.random().toString(36).slice(2, 8).toUpperCase()}
+                    {orderCodeFromApi || `EC-${Math.random().toString(36).slice(2, 8).toUpperCase()}`}
                   </span>
                 </div>
               </div>

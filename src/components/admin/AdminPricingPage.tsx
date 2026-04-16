@@ -7,10 +7,43 @@ import {
   ServicePriceRecord,
   writePricing,
 } from '../../lib/store';
+import {
+  getPaginatedItems,
+  mapApiServiceToServicePriceRecord,
+} from '../../lib/adminApiAdapters';
+import { getAdminServices, updateAdminService } from '../../services/admin.service';
 
 export default function AdminPricingPage() {
   const [servicePricing, setServicePricing] = useState<ServicePriceRecord[]>(() => readPricing());
   const [selectedCategory, setSelectedCategory] = useState<string>('Tất cả');
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiNotice, setApiNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setIsLoading(true);
+    getAdminServices({ page: 1, limit: 200 })
+      .then((response) => {
+        if (cancelled) return;
+        const nextPricing = getPaginatedItems(response).map(mapApiServiceToServicePriceRecord);
+        setServicePricing(nextPricing);
+        writePricing(nextPricing);
+        setApiNotice(null);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        console.error('[Admin] API failed:', error);
+        setApiNotice('Không tải được bảng giá từ API. Đang giữ dữ liệu cục bộ nếu có.');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Persist to store whenever pricing changes
   useEffect(() => {
@@ -31,6 +64,13 @@ export default function AdminPricingPage() {
           : service
       )
     );
+
+    updateAdminService(serviceId, { base_price: nextPrice })
+      .then(() => setApiNotice(null))
+      .catch((error: unknown) => {
+        console.error('[Admin] API failed:', error);
+        setApiNotice('Cập nhật giá API thất bại. UI đã giữ thay đổi cục bộ.');
+      });
   };
 
   const updateServicePrice = (serviceId: string, nextPrice: number) => {
@@ -46,6 +86,13 @@ export default function AdminPricingPage() {
           : service
       )
     );
+
+    updateAdminService(serviceId, { base_price: sanitizedPrice })
+      .then(() => setApiNotice(null))
+      .catch((error: unknown) => {
+        console.error('[Admin] API failed:', error);
+        setApiNotice('Cập nhật giá API thất bại. UI đã giữ thay đổi cục bộ.');
+      });
   };
 
   const averagePrice = useMemo(() => {
@@ -98,6 +145,12 @@ export default function AdminPricingPage() {
       </div>
 
       <section className="rounded-[32px] border border-[#D7ECDD] bg-white p-6 shadow-[0_18px_45px_rgba(16,59,45,0.06)]">
+        {(isLoading || apiNotice) && (
+          <div className="mb-5 rounded-[20px] border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-800">
+            {isLoading ? 'Đang tải bảng giá từ API...' : apiNotice}
+          </div>
+        )}
+
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">Bảng giá dịch vụ</p>
@@ -123,6 +176,12 @@ export default function AdminPricingPage() {
         </div>
 
         <div className="mt-8 flex flex-col gap-12">
+          {!isLoading && servicePricing.length === 0 && (
+            <div className="rounded-[28px] border border-[#D7ECDD] bg-[#F9FCFA] py-16 text-center text-[#6D877A]">
+              Chưa có dữ liệu bảng giá.
+            </div>
+          )}
+
           {Object.entries(groupedPricing)
             .filter(([category]) => selectedCategory === 'Tất cả' || category === selectedCategory)
             .map(([category, services]) => (

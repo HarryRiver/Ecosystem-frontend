@@ -24,6 +24,7 @@ import {
 } from '../../services/admin.service';
 import {
   findCustomerForOrder,
+  getPaginatedItems,
   mapApiOrderToCustomerRecord,
   mapApiOrderToStoreOrder,
   mapStoreOrderStatusToApiStatus,
@@ -510,10 +511,11 @@ export default function AdminOrdersPage() {
     getAdminOrders({ page: 1, limit: 200 })
       .then((response) => {
         if (cancelled) return;
-        const nextOrders = response.items.map(mapApiOrderToStoreOrder);
+        const apiOrders = getPaginatedItems(response);
+        const nextOrders = apiOrders.map(mapApiOrderToStoreOrder);
         const nextCustomers = mergeCustomerRecords(
           readCustomers(),
-          response.items.map(mapApiOrderToCustomerRecord),
+          apiOrders.map(mapApiOrderToCustomerRecord),
         );
 
         setOrders(nextOrders);
@@ -526,7 +528,7 @@ export default function AdminOrdersPage() {
       .catch((error: unknown) => {
         if (cancelled) return;
         console.error('[Admin] API failed:', error);
-        setSyncError('Chưa có dữ liệu');
+        setSyncError('Không tải được dữ liệu đơn hàng từ API. Đang giữ dữ liệu cục bộ nếu có.');
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -629,6 +631,11 @@ export default function AdminOrdersPage() {
       </section>
 
       {/* ── Status summary cards ── */}
+      {(isLoading || syncError) && (
+        <div className="rounded-[20px] border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-800">
+          {isLoading ? 'Đang tải dữ liệu đơn hàng từ API...' : syncError}
+        </div>
+      )}
 
 
       <div className="hidden md:grid gap-4 md:grid-cols-2 xl:grid-cols-5">

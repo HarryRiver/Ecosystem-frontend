@@ -90,25 +90,58 @@ export async function cancelOrder(
 // ─── POST /orders/:id/images ─────────────────────────────────────────────────
 
 /**
- * Khách upload ảnh rác / đồ cồng kềnh trước khi vận chuyển.
- * Dùng FormData, `image_role` = 'before'.
+ * Khách upload trực tiếp ảnh rác / đồ cồng kềnh lên Cloudinary (Cách 2)
+ * sau đó đẩy URL trả về xuống Backend theo dạng chuẩn JSON.
  */
 export async function uploadOrderImages(
   id: string,
   files: File[],
 ): Promise<{ urls: string[] }> {
-  const form = new FormData();
-  files.forEach((file) => form.append('images', file));
-  form.append('image_role', 'before');
+  // Lấy Cloud Name và Upload Preset từ Env hoặc có thể tuỳ chọn hardcode tại đây
+  // Vì hiện tại NextJS dùng NEXT_PUBLIC_...
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
-  const response = await apiClient.post<{ urls: string[] }>(
-    `/orders/${id}/images`,
-    form,
-    {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    },
-  );
-  return response.data;
+  if (!cloudName || !uploadPreset) {
+    console.error("Chưa cấu hình NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME hoặc NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET");
+    throw new Error('Chưa cấu hình máy chủ lưu trữ ảnh Cloudinary trong hệ thống.');
+  }
+
+  const uploadedUrls: string[] = [];
+
+  // Tải từng ảnh lên Cloudinary
+  for (const file of files) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset); // Unsigned preset
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`Cloudinary Upload lỗi: ${err.error?.message || res.statusText}`);
+    }
+
+    const data = await res.json();
+    uploadedUrls.push(data.secure_url);
+  }
+
+  // Khai báo payload như BE mong đợi: @Body('images') images: CreateOrderImageDto[]
+  const payload = {
+    images: uploadedUrls.map(url => ({
+      file_url: url,
+      image_role: 'customer_upload'
+    }))
+  };
+
+  // Gửi mảng JSON xuống API backend
+  // Vì request mặc định của axios là application/json, BE sẽ nhận dạng đúng
+  await apiClient.post(`/orders/${id}/images`, payload);
+
+  return { urls: uploadedUrls };
 }
 
 // ─── POST /orders/:id/payment-intent ─────────────────────────────────────────

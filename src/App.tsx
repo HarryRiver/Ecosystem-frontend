@@ -17,7 +17,7 @@ import {
   type Order,
 } from '@/lib/store';
 // ─── API Layer ────────────────────────────────────────────────────────────────────────────────
-import { createOrder } from '@/services/orders.service';
+import { createOrder, uploadOrderImages } from '@/services/orders.service';
 import { logout as apiLogout, getMe } from '@/services/auth.service';
 import { getToken, ApiError } from '@/lib/apiClient';
 import type { HandlingMode } from '@/types/api';
@@ -160,7 +160,8 @@ function App() {
       booking_date: payload.schedule.date,
       time_slot_id: timeSlotIdFallback,
       items: payload.services.items.map((item) => ({
-        service_id: item.id,
+        service_id: item.serviceId || item.id, // now item.serviceId is correctly populated
+        service_variant_id: item.selectedOptionId || item.id, // fallback to item.id since item.id itself is the variant ID in our UI structure
         quantity: item.quantity,
         measurement_value: item.measurementValue,
         custom_item_name:
@@ -178,6 +179,15 @@ function App() {
     let createdOrder: Awaited<ReturnType<typeof createOrder>>;
     try {
       createdOrder = await createOrder(orderBody);
+
+      // Upload ảnh nếu có (Cách 2 - Cloudinary)
+      if (payload.attachments.imageFile) {
+        try {
+          await uploadOrderImages(createdOrder.id.toString(), [payload.attachments.imageFile]);
+        } catch (uploadErr) {
+          console.error('Không thể upload ảnh kèm theo đơn, nhưng đơn đã tạo thành công:', uploadErr);
+        }
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         const errorMessages: Record<string, string> = {
@@ -260,6 +270,8 @@ function App() {
       writeOrders(next);
       return next;
     });
+
+    return sharedCode;
   };
 
   // Admin guard — render admin dashboard instead of landing page

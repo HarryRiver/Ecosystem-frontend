@@ -70,6 +70,7 @@ export interface ServiceVariant {
   size: string | null;
   price: number;
   unit: string;
+  icon: string | null;
   sort_order: number;
   active: boolean;
 }

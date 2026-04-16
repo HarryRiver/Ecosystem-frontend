@@ -11,7 +11,11 @@ import {
   statusMeta,
   writeCustomers,
 } from '../../lib/store';
-import { findCustomerForOrder, mapApiUserToCustomerRecord } from '../../lib/adminApiAdapters';
+import {
+  findCustomerForOrder,
+  getPaginatedItems,
+  mapApiUserToCustomerRecord,
+} from '../../lib/adminApiAdapters';
 import { getAdminUsers } from '../../services/admin.service';
 import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
@@ -37,7 +41,7 @@ export default function AdminUsersPage() {
     getAdminUsers({ role: 'customer', page: 1, limit: 200 })
       .then((response) => {
         if (cancelled) return;
-        const nextCustomers = response.items.map(mapApiUserToCustomerRecord);
+        const nextCustomers = getPaginatedItems(response).map(mapApiUserToCustomerRecord);
         setCustomers(nextCustomers);
         writeCustomers(nextCustomers);
         setApiNotice(null);
@@ -45,7 +49,7 @@ export default function AdminUsersPage() {
       .catch((error: unknown) => {
         if (cancelled) return;
         console.error('[Admin] API failed:', error);
-        setApiNotice(t('admin.users.noData', 'Chưa có dữ liệu'));
+        setApiNotice('Không tải được dữ liệu người dùng từ API. Đang giữ dữ liệu cục bộ nếu có.');
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -136,6 +140,12 @@ export default function AdminUsersPage() {
       </div>
 
       <section className="rounded-[32px] border border-[#D7ECDD] bg-white p-6 shadow-[0_18px_45px_rgba(16,59,45,0.06)]">
+        {(isLoading || apiNotice) && (
+          <div className="mb-5 rounded-[20px] border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-800">
+            {isLoading ? t('admin.users.loading', 'Đang tải dữ liệu user....') : apiNotice}
+          </div>
+        )}
+
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">

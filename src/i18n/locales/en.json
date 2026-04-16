@@ -486,38 +486,6 @@
         "comment": "Very convenient! Just book online, no calls or waiting. Highly recommended!",
         "date": "1 week ago",
         "service": "Fridge & washer collection"
-      },
-      {
-        "name": "Le Thi Huong",
-        "avatar": "👩",
-        "rating": 5,
-        "comment": "I was moving house and had lots of items to dispose of. EcoCollect handled everything in 1 day. Thank you!",
-        "date": "2 weeks ago",
-        "service": "Multi-item collection"
-      },
-      {
-        "name": "Pham Quoc Bao",
-        "avatar": "👨",
-        "rating": 4,
-        "comment": "Friendly staff, transparent pricing. I've recommended to friends and family.",
-        "date": "3 weeks ago",
-        "service": "Old bed collection"
-      },
-      {
-        "name": "Hoang Mai Linh",
-        "avatar": "👩",
-        "rating": 5,
-        "comment": "Easy to use, fast to book. Very professional and enthusiastic team.",
-        "date": "1 month ago",
-        "service": "Electronics collection"
-      },
-      {
-        "name": "Do Thanh Tung",
-        "avatar": "👨",
-        "rating": 5,
-        "comment": "First time using this service and very satisfied. Price was clear from the start, no extra charges.",
-        "date": "1 month ago",
-        "service": "Office furniture collection"
       }
     ],
     "shareExperience": "Share your experience",

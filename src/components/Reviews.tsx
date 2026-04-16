@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type AuthUser } from '@/lib/auth';
 import { readHistory, type HistoryItem } from '@/lib/store';
+import apiClient from '@/lib/apiClient';
 
 interface ReviewItem {
   id?: string;
@@ -17,8 +18,83 @@ interface ReviewItem {
   isCustom?: boolean;
 }
 
+interface ReviewApiItem {
+  id: number | string;
+  reviewer_name?: string | null;
+  reviewer_email?: string | null;
+  rating: number;
+  comment?: string | null;
+  created_at?: string | null;
+}
+
 interface ReviewsProps {
   currentUser: AuthUser | null;
+}
+
+const userReviewsStorageKey = 'ecocollect_user_reviews';
+
+function getReviewFingerprint(review: ReviewItem) {
+  return [
+    review.name.trim().toLowerCase(),
+    review.rating,
+    review.comment.trim().toLowerCase(),
+  ].join('|');
+}
+
+function dedupeReviews(reviews: ReviewItem[]) {
+  const seen = new Set<string>();
+
+  return reviews.filter((review) => {
+    const fingerprint = getReviewFingerprint(review);
+    if (seen.has(fingerprint)) {
+      return false;
+    }
+
+    seen.add(fingerprint);
+    return true;
+  });
+}
+
+function readStoredUserReviews() {
+  const savedReviews = localStorage.getItem(userReviewsStorageKey);
+
+  if (!savedReviews) {
+    return [] as ReviewItem[];
+  }
+
+  try {
+    const parsedReviews = JSON.parse(savedReviews);
+    return Array.isArray(parsedReviews) ? parsedReviews : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredUserReviews(reviews: ReviewItem[]) {
+  localStorage.setItem(userReviewsStorageKey, JSON.stringify(dedupeReviews(reviews)));
+}
+
+function removeServerBackedLocalReviews(serverReviews: ReviewItem[], userReviews: ReviewItem[]) {
+  const serverFingerprints = new Set(serverReviews.map(getReviewFingerprint));
+  return userReviews.filter((review) => !serverFingerprints.has(getReviewFingerprint(review)));
+}
+
+function mapServerReview(review: ReviewApiItem, currentLang: string): ReviewItem {
+  const name = review.reviewer_name || 'Anonymous';
+  const createdAt = review.created_at ? new Date(review.created_at) : null;
+
+  return {
+    id: `server-${review.id}`,
+    name,
+    avatar: name.charAt(0).toUpperCase(),
+    rating: review.rating,
+    comment: review.comment || '',
+    date: createdAt && !Number.isNaN(createdAt.getTime())
+      ? createdAt.toLocaleDateString(currentLang === 'vi' ? 'vi-VN' : 'en-US')
+      : '',
+    service: currentLang === 'vi' ? 'Khách hàng' : 'Customer',
+    isCustom: true,
+  };
 }
 
 export default function Reviews({ currentUser }: ReviewsProps) {
@@ -28,9 +104,10 @@ export default function Reviews({ currentUser }: ReviewsProps) {
   // State for all reviews
   const [allReviews, setAllReviews] = useState<ReviewItem[]>([]);
 
-  // Task 5: new review form — chỉ hiện cho user có completed order chưa đánh giá
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState('');
+  const [reviewerName, setReviewerName] = useState('');
+  const [reviewerEmail, setReviewerEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   // Task 5: completed order cần review
@@ -40,16 +117,7 @@ export default function Reviews({ currentUser }: ReviewsProps) {
   // Initialize reviews from translations + Task 5: from completed orders
   useEffect(() => {
     const defaultReviews = t('reviews.items', { returnObjects: true }) as ReviewItem[];
-    const savedReviews = localStorage.getItem('ecocollect_user_reviews');
-
-    let userReviews: ReviewItem[] = [];
-    if (savedReviews) {
-      try {
-        userReviews = JSON.parse(savedReviews);
-      } catch {
-        userReviews = [];
-      }
-    }
+    let userReviews = readStoredUserReviews();
 
     // Task 5: Pull completed orders từ history của user hiện tại
     // và tự động tạo review nếu user đã rate trong HistoryModal
@@ -91,39 +159,69 @@ export default function Reviews({ currentUser }: ReviewsProps) {
       }
     }
 
-    setAllReviews([...userReviews, ...defaultReviews]);
+    // Lấy reviews từ DB và gộp vào (Real DB + LocalStorage Auto + Mock)
+    apiClient.get('/reviews').then((res) => {
+      const serverReviews = (res.data as ReviewApiItem[]).map((review) => mapServerReview(review, currentLang));
+      const unsyncedUserReviews = removeServerBackedLocalReviews(serverReviews, userReviews);
+      if (unsyncedUserReviews.length !== userReviews.length) {
+        writeStoredUserReviews(unsyncedUserReviews);
+      }
+      setAllReviews(dedupeReviews([...serverReviews, ...unsyncedUserReviews, ...defaultReviews]));
+    }).catch(() => {
+      setAllReviews(dedupeReviews([...userReviews, ...defaultReviews]));
+    });
+
   }, [t, currentUser, currentLang]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !newComment.trim()) return;
+    if (!newComment.trim()) return;
 
     setIsSubmitting(true);
+
+    const finalName = currentUser ? currentUser.name : (reviewerName || 'Khách');
+    const finalEmail = currentUser ? currentUser.email : reviewerEmail;
+
+    let shouldPersistLocally = false;
+
+    try {
+      const response = await apiClient.post<ReviewApiItem>('/reviews', {
+        rating: newRating,
+        comment: newComment,
+        reviewer_name: finalName,
+        reviewer_email: finalEmail,
+      });
+      const savedReview = mapServerReview(response.data, currentLang);
+      setAllReviews((prev) => dedupeReviews([savedReview, ...prev]));
+    } catch (error) {
+      shouldPersistLocally = true;
+      console.error('Failed to submit review to backend:', error);
+    }
+
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     const newReview: ReviewItem = {
       id: `rev-${Date.now()}`,
       orderId: pendingOrderId ?? undefined,
-      name: currentUser.name,
-      avatar: currentUser.name.charAt(0).toUpperCase(),
+      name: finalName,
+      avatar: finalName.charAt(0).toUpperCase(),
       rating: newRating,
       comment: newComment,
       date: currentLang === 'vi' ? 'Vừa xong' : currentLang === 'sv' ? 'Alldeles nyss' : 'Just now',
-      service: currentLang === 'vi' ? 'Khách hàng thành viên' : 'Member customer',
+      service: currentLang === 'vi' ? 'Khách hàng' : 'Customer',
       isCustom: true,
     };
 
-    const savedReviews = localStorage.getItem('ecocollect_user_reviews');
-    let existingUserReviews: ReviewItem[] = [];
-    if (savedReviews) {
-      try { existingUserReviews = JSON.parse(savedReviews); } catch { /* ignore */ }
+    if (shouldPersistLocally) {
+      const updatedUserReviews = [newReview, ...readStoredUserReviews()];
+      writeStoredUserReviews(updatedUserReviews);
+      setAllReviews((prev) => dedupeReviews([newReview, ...prev]));
     }
-    const updatedUserReviews = [newReview, ...existingUserReviews];
-    localStorage.setItem('ecocollect_user_reviews', JSON.stringify(updatedUserReviews));
 
-    setAllReviews((prev) => [newReview, ...prev]);
     setNewComment('');
     setNewRating(5);
+    setReviewerName('');
+    setReviewerEmail('');
     setIsSubmitting(false);
     setShowForm(false);
     setPendingOrderId(null);
@@ -143,110 +241,144 @@ export default function Reviews({ currentUser }: ReviewsProps) {
           </h2>
         </div>
 
-        {/* Task 5: Review prompt chỉ hiện khi có completed order chưa đánh giá */}
-        {currentUser && pendingOrderId && (
-          <div className="max-w-6xl mx-auto mb-12">
-            {!showForm ? (
-              <div className="bg-white/50 backdrop-blur-md border border-[#2F855A]/10 rounded-3xl p-8 text-center animate-fadeIn">
-                <h3 className="text-xl font-bold text-[#103B2D] mb-2">{t('reviews.shareExperience')}</h3>
-                <p className="text-gray-500 mb-2">{t('reviews.shareSubtitle')}</p>
-                {pendingOrderLabel && (
-                  <p className="text-sm text-[#2F855A] font-semibold mb-6">
-                    {currentLang === 'vi' ? 'Đánh giá đơn hàng: ' : 'Rate order: '}
-                    <span className="font-bold">{pendingOrderLabel}</span>
-                  </p>
-                )}
+        {/* Write Review Action or Prompt */}
+        <div className="max-w-6xl mx-auto mb-12">
+          {!showForm ? (
+            <div className="text-center">
+              {currentUser && pendingOrderId ? (
+                <div className="bg-white/50 backdrop-blur-md border border-[#2F855A]/10 rounded-3xl p-8 text-center animate-fadeIn inline-block w-full">
+                  <h3 className="text-xl font-bold text-[#103B2D] mb-2">{t('reviews.shareExperience')}</h3>
+                  <p className="text-gray-500 mb-2">{t('reviews.shareSubtitle')}</p>
+                  {pendingOrderLabel && (
+                    <p className="text-sm text-[#2F855A] font-semibold mb-6">
+                      {currentLang === 'vi' ? 'Đánh giá đơn hàng: ' : 'Rate order: '}
+                      <span className="font-bold">{pendingOrderLabel}</span>
+                    </p>
+                  )}
+                  <button
+                    onClick={() => setShowForm(true)}
+                    className="bg-[#2F855A] text-white px-8 py-3.5 rounded-full font-semibold hover:bg-[#236746] transition-all hover:shadow-lg active:scale-95"
+                  >
+                    {t('reviews.writeBtn')}
+                  </button>
+                </div>
+              ) : (
                 <button
                   onClick={() => setShowForm(true)}
                   className="bg-[#2F855A] text-white px-8 py-3.5 rounded-full font-semibold hover:bg-[#236746] transition-all hover:shadow-lg active:scale-95"
                 >
-                  {t('reviews.writeBtn')}
+                  {currentLang === 'vi' ? 'Viết đánh giá của bạn' : 'Write a review'}
+                </button>
+              )}
+            </div>
+          ) : (
+            <form
+              onSubmit={handleSubmitReview}
+              className="bg-white rounded-[24px] p-8 shadow-sm border border-gray-100 animate-fadeInUp relative overflow-hidden"
+            >
+              <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
+                <div>
+                  <h3 className="text-xl font-bold text-[#103B2D] tracking-tight">{t('reviews.yourReview')}</h3>
+                  <div className="h-0.5 w-8 bg-[#8BBFA3] mt-1" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="text-gray-400 hover:text-gray-600 font-bold text-sm tracking-wide transition-colors"
+                >
+                  HỦY
                 </button>
               </div>
-            ) : (
-              <form
-                onSubmit={handleSubmitReview}
-                className="bg-white rounded-[40px] p-10 shadow-[0_30px_100px_rgba(16,59,45,0.12)] border border-[#2F855A]/5 animate-fadeInUp relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 w-64 h-64 bg-[#2F855A]/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
 
-                <div className="relative flex items-center justify-between mb-10">
+              {!currentUser && (
+                <div className="grid md:grid-cols-2 gap-6 mb-8">
                   <div>
-                    <h3 className="text-2xl font-bold text-[#103B2D] tracking-tight">{t('reviews.yourReview')}</h3>
-                    <div className="h-1 w-8 bg-[#2F855A] rounded-full mt-1.5 opacity-60" />
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                      Họ tên
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={reviewerName}
+                      onChange={(e) => setReviewerName(e.target.value)}
+                      placeholder="Nhập họ tên của bạn..."
+                      className="w-full bg-[#F5FBF6] border border-transparent focus:border-[#2F855A]/30 rounded-[16px] px-5 py-4 text-sm text-[#103B2D] font-medium outline-none transition-all placeholder:text-gray-300"
+                    />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowForm(false)}
-                    className="group flex items-center gap-2 text-gray-400 hover:text-red-500 transition-all font-bold text-sm uppercase tracking-widest"
-                  >
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">✕</span>
-                    {t('common.cancel')}
-                  </button>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={reviewerEmail}
+                      onChange={(e) => setReviewerEmail(e.target.value)}
+                      placeholder="Nhập email của bạn..."
+                      className="w-full bg-[#F5FBF6] border border-transparent focus:border-[#2F855A]/30 rounded-[16px] px-5 py-4 text-sm text-[#103B2D] font-medium outline-none transition-all placeholder:text-gray-300"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="grid lg:grid-cols-2 gap-8">
+                {/* Left: Star Rating */}
+                <div className="flex flex-col">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                    ĐÁNH GIÁ SAO
+                  </label>
+                  <div className="bg-[#F5FBF6] rounded-[20px] flex-1 min-h-[140px] flex flex-col items-center justify-center p-6 border-transparent border transition-all hover:border-[#2F855A]/20 cursor-pointer">
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setNewRating(star)}
+                          onMouseEnter={() => !isSubmitting && setNewRating(star)}
+                          className="text-4xl transition-transform hover:scale-110 focus:outline-none"
+                        >
+                          <span className={star <= newRating ? 'text-[#FFC107]' : 'text-gray-200'}>★</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-sm font-bold text-[#2F855A] mt-4 min-h-[1.25rem]">
+                      {newRating === 5 ? 'Tuyệt vời' : newRating >= 4 ? t('reviews.rating4') : t('reviews.ratingLow')}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="relative grid lg:grid-cols-12 gap-12">
-                  {/* Left: Star Rating */}
-                  <div className="lg:col-span-5 space-y-6">
-                    <label className="block text-[11px] font-bold text-[#103B2D]/60 uppercase tracking-[0.15em] font-sans">{t('reviews.selectRating')}</label>
-                    <div className="bg-[#F7FCF8] rounded-[32px] p-8 border border-[#D6EEDD]/50 flex flex-col items-center justify-center space-y-4 shadow-inner">
-                      <div className="flex gap-3">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            type="button"
-                            onClick={() => setNewRating(star)}
-                            onMouseEnter={() => !isSubmitting && setNewRating(star)}
-                            className="text-4xl transition-all hover:scale-125 focus:outline-none filter drop-shadow-sm"
-                          >
-                            <span className={star <= newRating ? 'text-yellow-400' : 'text-gray-200'}>★</span>
-                          </button>
-                        ))}
-                      </div>
-                      <p className="text-sm font-bold text-[#2F855A] animate-fadeIn min-h-[1.25rem]">
-                        {newRating === 5 ? t('reviews.rating5') : newRating >= 4 ? t('reviews.rating4') : t('reviews.ratingLow')}
-                      </p>
+                {/* Right: Comment */}
+                <div className="flex flex-col">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                    NHẬN XÉT
+                  </label>
+                  <div className="relative group flex-1">
+                    <textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Chia sẻ cảm nhận của bạn..."
+                      className="w-full h-full min-h-[140px] bg-[#F5FBF6] border border-transparent rounded-[20px] p-6 text-sm text-[#103B2D] font-medium placeholder:text-gray-300 outline-none focus:border-[#2F855A]/30 transition-all resize-none leading-relaxed"
+                      required
+                    />
+                    <div className="absolute bottom-4 right-5 text-[10px] font-bold text-gray-300 uppercase tracking-widest pointer-events-none">
+                      {newComment.length} CHARS
                     </div>
                   </div>
-
-                  {/* Right: Comment */}
-                  <div className="lg:col-span-7 space-y-6">
-                    <label className="block text-[11px] font-bold text-[#103B2D]/60 uppercase tracking-[0.15em] font-sans">{t('reviews.commentLabel')}</label>
-                    <div className="relative group">
-                      <textarea
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder={t('reviews.placeholder')}
-                        className="w-full h-44 bg-[#F7FCF8] border-2 border-[#D6EEDD]/50 rounded-[32px] p-6 text-[#103B2D] font-medium placeholder:text-gray-300 outline-none focus:border-[#2F855A] focus:bg-white focus:shadow-[0_15px_40px_rgba(47,133,90,0.1)] transition-all resize-none leading-relaxed"
-                        required
-                      />
-                      <div className="absolute bottom-4 right-6 text-[10px] font-black text-gray-300 uppercase tracking-widest pointer-events-none">
-                        {newComment.length} chars
-                      </div>
-                    </div>
-                  </div>
                 </div>
+              </div>
 
-                <div className="relative mt-12 flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !newComment.trim()}
-                    className="relative group bg-[#103B2D] text-white px-14 py-4 rounded-full font-bold uppercase tracking-[0.1em] text-sm shadow-[0_15px_35px_rgba(16,59,45,0.15)] hover:bg-[#18543F] hover:shadow-[0_20px_45px_rgba(16,59,45,0.25)] transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-30 disabled:translate-y-0 disabled:shadow-none flex items-center gap-3 overflow-hidden"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="h-4 w-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                        <span>{t('common.loading')}</span>
-                      </>
-                    ) : (
-                      <span className="relative z-10">{t('reviews.submitBtn')}</span>
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        )}
+              <div className="mt-8 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !newComment.trim() || (!currentUser && (!reviewerName || !reviewerEmail))}
+                  className="bg-[#B7C7B9] text-white px-8 py-3 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-[#2F855A] hover:shadow-lg transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                >
+                  {isSubmitting ? t('common.loading') : 'GỬI ĐÁNH GIÁ'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
 
         {/* Reviews Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -258,17 +390,16 @@ export default function Reviews({ currentUser }: ReviewsProps) {
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-4">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-inner ${review.isCustom ? 'bg-[#103B2D] text-white' : 'bg-[#EAF8EE] text-[#2F855A]'}`}>
-                    {review.avatar}
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-inner bg-[#EAF8EE] text-[#2F855A]">
+                    <svg className="w-6 h-6" fill="none" strokeWidth="2" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    </svg>
                   </div>
                   <div>
                     <h4 className="font-bold text-[#103B2D] group-hover:text-[#2F855A] transition-colors">{review.name}</h4>
                     <p className="text-xs text-gray-400 font-medium">{review.date}</p>
                   </div>
                 </div>
-                {review.isCustom && (
-                  <span className="bg-[#2F855A] text-white text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-tighter shadow-sm">Your feedback</span>
-                )}
               </div>
 
               {/* Rating */}
@@ -281,10 +412,7 @@ export default function Reviews({ currentUser }: ReviewsProps) {
               {/* Comment */}
               <p className="text-[#303030]/80 leading-relaxed mb-6 italic min-h-[4.5rem]">"{review.comment}"</p>
 
-              {/* Service Tag */}
-              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${review.isCustom ? 'bg-[#103B2D] text-white' : 'bg-[#2F855A]/8 text-[#2F855A]'}`}>
-                <span className="opacity-70">📦</span> {review.service}
-              </div>
+
             </div>
           ))}
         </div>

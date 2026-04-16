@@ -32,10 +32,19 @@ import {
   getAdminUsers,
   updateAdminOrder,
   updateAdminService,
+  deleteAdminService,
   markOrderNoShow,
+  getServiceVariants,
+  updateServiceVariant,
+  deleteServiceVariant,
+  getAdminReviews,
+  deleteAdminReview,
+  createAdminReview,
+  updateAdminReview,
 } from '../services/admin.service';
 import {
   findCustomerForOrder,
+  getPaginatedItems,
   getMetricValue,
   mapApiOrderToCustomerRecord,
   mapApiOrderToStoreOrder,
@@ -47,7 +56,7 @@ import {
 import type { AdminMetrics } from '../types/api';
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
-type Tab = 'overview' | 'users' | 'pricing' | 'orders';
+type Tab = 'overview' | 'users' | 'services' | 'pricing' | 'orders' | 'reviews';
 
 interface AdminDashboardProps {
   currentUser?: AuthUser | null;
@@ -95,14 +104,34 @@ function IconLogout() {
 const NAV_ITEMS: { id: Tab; label: string; desc: string; badge?: number }[] = [
   { id: 'overview', label: 'Tổng quan', desc: 'Số liệu & tóm tắt' },
   { id: 'users',    label: 'Khách hàng', desc: 'Quản lý tài khoản' },
+  { id: 'services', label: 'Dịch vụ', desc: 'Danh mục & sản phẩm' },
   { id: 'pricing',  label: 'Bảng giá', desc: 'Cập nhật giá dịch vụ' },
   { id: 'orders',   label: 'Đơn hàng', desc: 'Xác nhận & chốt đơn' },
+  { id: 'reviews',  label: 'Đánh giá', desc: 'Phản hồi từ khách' },
 ];
+
+function IconServices({ active }: { active?: boolean }) {
+  return (
+    <svg className={cn('h-5 w-5 transition-colors', active ? 'text-[#2F855A]' : 'text-[#6D877A]')} fill="none" strokeWidth={1.8} stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+    </svg>
+  );
+}
+
+function IconReviews({ active }: { active?: boolean }) {
+  return (
+    <svg className={cn('h-5 w-5 transition-colors', active ? 'text-[#2F855A]' : 'text-[#6D877A]')} fill="none" strokeWidth={1.8} stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+    </svg>
+  );
+}
 
 function NavIcon({ id, active }: { id: Tab; active?: boolean }) {
   if (id === 'overview') return <IconDashboard active={active} />;
   if (id === 'users')    return <IconUsers active={active} />;
+  if (id === 'services') return <IconServices active={active} />;
   if (id === 'pricing')  return <IconPricing active={active} />;
+  if (id === 'reviews')  return <IconReviews active={active} />;
   return <IconOrders active={active} />;
 }
 
@@ -121,8 +150,69 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
   const [servicePricing, setServicePricing] = useSyncStore<ServicePriceRecord[]>(STORAGE_KEYS.pricing, readPricing());
   const [customers, setCustomers] = useSyncStore<CustomerRecord[]>(STORAGE_KEYS.customers, readCustomers());
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
+  const [apiRawServices, setApiRawServices] = useState<any[]>([]);
+  const [selectedApiServiceGroup, setSelectedApiServiceGroup] = useState<any | null>(null);
+  const [selectedApiServiceVariants, setSelectedApiServiceVariants] = useState<any[] | null>(null);
+  const [isLoadingVariants, setIsLoadingVariants] = useState(false);
   const [isAdminApiLoading, setIsAdminApiLoading] = useState(false);
   const [adminApiNotice, setAdminApiNotice] = useState<string | null>(null);
+  const [adminReviews, setAdminReviews] = useState<any[]>([]);
+  const [isAdminReviewsLoading, setIsAdminReviewsLoading] = useState(false);
+  const [reviewModal, setReviewModal] = useState<{ id?: string | number, reviewer_name: string, reviewer_email: string, rating: number, comment: string } | null>(null);
+
+  const handleSaveReview = async () => {
+    if (!reviewModal) return;
+    try {
+      if (reviewModal.id) {
+        const res = await updateAdminReview(reviewModal.id, reviewModal);
+        setAdminReviews(cur => cur.map(r => r.id === reviewModal.id ? res : r));
+      } else {
+        const res = await createAdminReview(reviewModal);
+        setAdminReviews(cur => [res, ...cur]);
+      }
+      setReviewModal(null);
+    } catch (err) { alert('Lỗi khi lưu đánh giá!'); }
+  };
+  
+  useEffect(() => {
+    if (activeTab === 'reviews') {
+      setIsAdminReviewsLoading(true);
+      getAdminReviews().then(data => {
+        setAdminReviews(data);
+      }).catch(err => {
+        console.error(err);
+      }).finally(() => setIsAdminReviewsLoading(false));
+    }
+  }, [activeTab]);
+
+  // Modal states for Editing so it looks beautiful
+  const [editServiceModal, setEditServiceModal] = useState<{ id: string; currentName: string } | null>(null);
+  const [editVariantModal, setEditVariantModal] = useState<{ id: string; label: string; code: string; size: string; price: number; active: boolean; } | null>(null);
+
+  const handleSaveService = async () => {
+    if (!editServiceModal) return;
+    try {
+      const res = await updateAdminService(editServiceModal.id, { name: editServiceModal.currentName });
+      setApiRawServices((cur) => cur.map(c => c.id === editServiceModal.id ? { ...c, name: res.name } : c));
+      setEditServiceModal(null);
+    } catch (err) { alert('Lỗi khi lưu tên dịch vụ!'); }
+  };
+
+  const handleSaveVariant = async () => {
+    if (!editVariantModal) return;
+    try {
+      const payload = {
+        label: editVariantModal.label,
+        code: editVariantModal.code,
+        size: editVariantModal.size,
+        price: editVariantModal.price,
+        active: editVariantModal.active,
+      };
+      const res = await updateServiceVariant(editVariantModal.id, payload);
+      setSelectedApiServiceVariants((cur) => (cur || []).map(item => item.id === editVariantModal.id ? res : item));
+      setEditVariantModal(null);
+    } catch (err) { alert('Lỗi cập nhật sản phẩm!'); }
+  };
 
   const [selectedPricingCategory, setSelectedPricingCategory] = useState<string>('Tất cả');
 
@@ -142,48 +232,59 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
 
       if (cancelled) return;
 
-      let hasFailure = false;
+      const failedResources: string[] = [];
+      let loadedAnyAdminData = false;
       let nextCustomers = readCustomers();
 
       if (metricsResult.status === 'fulfilled') {
         setMetrics(metricsResult.value);
+        loadedAnyAdminData = true;
       } else {
-        hasFailure = true;
+        failedResources.push('thống kê');
         console.error('[Admin] API failed:', metricsResult.reason);
       }
 
       if (ordersResult.status === 'fulfilled') {
-        const nextOrders = ordersResult.value.items.map(mapApiOrderToStoreOrder);
+        const apiOrders = getPaginatedItems(ordersResult.value);
+        loadedAnyAdminData = loadedAnyAdminData || apiOrders.length > 0;
+        const nextOrders = apiOrders.map(mapApiOrderToStoreOrder);
         setOrders(nextOrders);
         nextCustomers = mergeCustomerRecords(
           nextCustomers,
-          ordersResult.value.items.map(mapApiOrderToCustomerRecord),
+          apiOrders.map(mapApiOrderToCustomerRecord),
         );
       } else {
-        hasFailure = true;
+        failedResources.push('đơn hàng');
         console.error('[Admin] API failed:', ordersResult.reason);
       }
 
       if (usersResult.status === 'fulfilled') {
+        const apiUsers = getPaginatedItems(usersResult.value);
+        loadedAnyAdminData = loadedAnyAdminData || apiUsers.length > 0;
         nextCustomers = mergeCustomerRecords(
           nextCustomers,
-          usersResult.value.items.map(mapApiUserToCustomerRecord),
+          apiUsers.map(mapApiUserToCustomerRecord),
         );
       } else {
-        hasFailure = true;
+        failedResources.push('khách hàng');
         console.error('[Admin] API failed:', usersResult.reason);
       }
 
       if (servicesResult.status === 'fulfilled') {
-        setServicePricing(servicesResult.value.items.map(mapApiServiceToServicePriceRecord));
+        const apiServices = getPaginatedItems(servicesResult.value);
+        loadedAnyAdminData = loadedAnyAdminData || apiServices.length > 0;
+        setApiRawServices(apiServices);
+        setServicePricing(apiServices.map(mapApiServiceToServicePriceRecord));
       } else {
-        hasFailure = true;
+        failedResources.push('dịch vụ');
         console.error('[Admin] API failed:', servicesResult.reason);
       }
 
       setCustomers(nextCustomers);
       setAdminApiNotice(
-        hasFailure ? 'Chưa có dữ liệu' : null,
+        failedResources.length > 0 && !loadedAnyAdminData
+          ? `Không tải được dữ liệu admin: ${failedResources.join(', ')}.`
+          : null,
       );
       setIsAdminApiLoading(false);
     }
@@ -408,14 +509,18 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
             <h1 className="truncate text-xl font-bold text-[#103B2D] lg:text-2xl">
               {activeTab === 'overview' && 'Tổng quan'}
               {activeTab === 'users'    && 'Quản lý khách hàng'}
+              {activeTab === 'services' && 'Danh mục sản phẩm'}
               {activeTab === 'pricing'  && 'Bảng giá dịch vụ'}
               {activeTab === 'orders'   && 'Quản lý đơn hàng'}
+              {activeTab === 'reviews'  && 'Quản lý Đánh Giá'}
             </h1>
             <p className="mt-0.5 truncate text-xs text-[#6D877A] lg:text-sm">
               {activeTab === 'overview' && 'Số liệu & tình trạng hoạt động'}
               {activeTab === 'users'    && `${customerRows.length} khách hàng`}
+              {activeTab === 'services' && 'Các nhóm dịch vụ hiện có'}
               {activeTab === 'pricing'  && 'Điều chỉnh giá trực tiếp'}
               {activeTab === 'orders'   && `${pendingCount} đơn cần xử lý`}
+              {activeTab === 'reviews'  && 'Phản hồi từ khách hàng'}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -588,6 +693,214 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
             </div>
           )}
 
+          {/* ══ TAB: SERVICES ════════════════════════════════════════════ */}
+          {activeTab === 'services' && selectedApiServiceGroup && (
+            <div className="animate-fadeIn space-y-4">
+              <button
+                onClick={() => setSelectedApiServiceGroup(null)}
+                className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-[#476458] hover:text-[#2F855A] transition-colors"
+              >
+                ← Quay lại danh mục
+              </button>
+              
+              <div className="rounded-[24px] border border-[#DFF0E5] bg-white p-6 shadow-[0_8px_30px_rgba(16,59,45,0.05)]">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-[#103B2D]">{selectedApiServiceGroup.name} <span className="text-[#8AA89A] text-lg font-medium ml-2">({selectedApiServiceGroup.category === 'other' ? 'Khác' : selectedApiServiceGroup.category})</span></h2>
+                  <p className="text-sm text-[#476458] mt-1">Danh sách các sản phẩm/biến thể thuộc nhóm dịch vụ này.</p>
+                </div>
+
+                {isLoadingVariants ? (
+                  <div className="py-12 text-center text-[#8AA89A] font-medium animate-pulse">
+                    Đang tải danh sách sản phẩm...
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-[#EEF8F1]">
+                          <th className="px-4 py-3 font-bold uppercase tracking-[0.14em] text-[#8AA89A] text-[11px]">Sản phẩm / Món</th>
+                          <th className="px-4 py-3 font-bold uppercase tracking-[0.14em] text-[#8AA89A] text-[11px]">Mã (Code)</th>
+                          <th className="px-4 py-3 font-bold uppercase tracking-[0.14em] text-[#8AA89A] text-[11px]">Kích cỡ</th>
+                          <th className="px-4 py-3 font-bold uppercase tracking-[0.14em] text-[#8AA89A] text-[11px]">Giá tiền</th>
+                          <th className="px-4 py-3 font-bold uppercase tracking-[0.14em] text-[#8AA89A] text-[11px]">Trạng thái</th>
+                          <th className="px-4 py-3 font-bold uppercase tracking-[0.14em] text-[#8AA89A] text-[11px]">Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(selectedApiServiceVariants || []).map((v: any, i: number) => {
+                          const unitMap: any = { item: 'món', kg: 'kg', bag: 'bao' };
+                          const unit = unitMap[v.unit] || 'món';
+                          return (
+                            <tr key={v.id} className={cn('border-b border-[#F0F7F2] transition-colors hover:bg-[#F7FCF8]', i % 2 === 1 && 'bg-[#FAFCFB]')}>
+                              <td className="px-4 py-4">
+                                <div className="flex items-center gap-3">
+                                  {v.icon && <span className="text-xl">{v.icon}</span>}
+                                  <span className="font-semibold text-[#103B2D]">{v.label}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-4 text-[#6D877A] font-mono text-xs">{v.code}</td>
+                              <td className="px-4 py-4 text-[#476458]">{v.size || '—'}</td>
+                              <td className="px-4 py-4 font-bold text-[#103B2D]">
+                                {v.price > 0 ? `${currency.format(v.price)} / ${unit}` : <span className="text-[#8AA89A]">Báo giá riêng</span>}
+                              </td>
+                              <td className="px-4 py-4">
+                                <span className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-bold', v.active ? 'bg-[#EBF7F0] text-[#2F855A]' : 'bg-[#F2F2F2] text-[#8AA89A]')}>
+                                  {v.active ? 'Đang hoạt động' : 'Tạm ẩn'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => setEditVariantModal({ 
+                                      id: v.id, 
+                                      label: v.label,
+                                      code: v.code || '',
+                                      size: v.size || '',
+                                      price: v.price || 0,
+                                      active: v.active !== false
+                                    })}
+                                    className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[11px] font-bold hover:bg-blue-100 transition-colors"
+                                  >
+                                    Cập nhật
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      if (!window.confirm(`Xóa món "${v.label}"?`)) return;
+                                      try {
+                                        await deleteServiceVariant(v.id);
+                                        setSelectedApiServiceVariants((cur) => (cur || []).filter(item => item.id !== v.id));
+                                      } catch (err) { alert('Lỗi khi xóa!'); }
+                                    }}
+                                    className="px-2 py-1 bg-red-50 text-red-600 rounded text-[11px] font-bold hover:bg-red-100"
+                                  >
+                                    Xóa
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {(!selectedApiServiceVariants || selectedApiServiceVariants.length === 0) && (
+                          <tr>
+                            <td colSpan={6} className="px-4 py-8 text-center text-[#8AA89A]">Không có sản phẩm nào.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'services' && !selectedApiServiceGroup && (
+            <div className="animate-fadeIn space-y-4">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {apiRawServices.map((service: any) => {
+                  const iconMap: Record<string, string> = {
+                    furniture: '🛋️',
+                    electronics: '📺',
+                    metals: '🔩',
+                    plastics: '🪣',
+                    paper: '📦',
+                    clothes: '👕',
+                    vehicles: '🛵',
+                    other: '🧱',
+                  };
+                  const icon = iconMap[service.code] || '📦';
+                  const description = service.category === 'other' ? 'Khác' : (service.name || 'Danh mục');
+                  const getPriceLabel = (s: any) => {
+                    if (s.pricing_type === 'quote') return 'Cần báo giá';
+                    const formater = new Intl.NumberFormat('vi-VN');
+                    const unitMap: any = { item: 'món', kg: 'kg', bag: 'bao' };
+                    return `Từ ${formater.format(s.base_price || 0)}đ / ${unitMap[s.default_unit] || 'món'}`;
+                  };
+                  const priceLabel = getPriceLabel(service);
+                  const variants = Array.from(new Set((service.variants || []).map((v: any) => v.label)));
+
+                  return (
+                    <article
+                      key={service.id}
+                      onClick={() => {
+                        setSelectedApiServiceGroup(service);
+                        setSelectedApiServiceVariants(null);
+                        setIsLoadingVariants(true);
+                        getServiceVariants(service.id).then((vars) => {
+                          setSelectedApiServiceVariants(vars);
+                          setIsLoadingVariants(false);
+                        }).catch(e => {
+                          console.error(e);
+                          setIsLoadingVariants(false);
+                        });
+                      }}
+                      className="group cursor-pointer flex flex-col rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-[#2F855A] hover:shadow-[0_18px_45px_rgba(16,59,45,0.08)]"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-3xl shadow-sm transition-transform duration-300 group-hover:scale-110">
+                          {icon}
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="rounded-full bg-[#E7F8EC] px-3 py-1 text-sm font-bold text-[#2F855A] transition-colors">
+                            {priceLabel}
+                          </span>
+                          <div className="flex gap-2 opacity-50 hover:opacity-100 transition-opacity">
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditServiceModal({ id: service.id, currentName: service.name });
+                              }}
+                              className="text-[10px] font-bold text-blue-600 cursor-pointer bg-blue-50 px-2 py-0.5 rounded hover:bg-blue-100 transition-colors"
+                            >
+                              Sửa tên
+                            </span>
+                            <span 
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!window.confirm(`Xóa nhóm ${service.name}?`)) return;
+                                try {
+                                  await deleteAdminService(service.id);
+                                  setApiRawServices(cur => cur.filter(c => c.id !== service.id));
+                                } catch(err) { alert('Có thể có lỗi ràng buộc khóa ngoại (constraint error). Vui lòng xóa các sp con trước!'); }
+                              }}
+                              className="text-[10px] font-bold text-red-600 cursor-pointer bg-red-50 px-2 py-0.5 rounded"
+                            >
+                              Xóa
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <h3 className="mb-2 mt-2 text-xl font-bold text-[#103B2D]">
+                        {service.name}
+                      </h3>
+                      <p className="mb-4 text-sm text-[#8AA89A] font-medium tracking-wide">
+                        {description}
+                      </p>
+
+                      <div className="flex flex-wrap gap-2 flex-1 mb-6 content-start">
+                        {variants.map((item: any, idx: number) => (
+                          <span
+                            key={idx}
+                            className="rounded-full bg-white border border-[#E8F5EC] px-3 py-1.5 text-xs font-semibold text-[#476458]"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+
+                      <button className="flex w-full items-center justify-between border-t border-[#D6EEDD] pt-4 opacity-75">
+                        <span className="text-[11px] uppercase tracking-wider font-semibold text-[#8AA89A]">
+                          Quản lý các sản phẩm con
+                        </span>
+                        <span className="text-sm font-bold text-[#2F855A]">Cập nhật</span>
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* ══ TAB: PRICING ════════════════════════════════════════════ */}
           {activeTab === 'pricing' && (
             <div className="animate-fadeIn space-y-4">
@@ -714,6 +1027,77 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
             </div>
           )}
 
+          {/* ══ TAB: REVIEWS ═════════════════════════════════════════════ */}
+          {activeTab === 'reviews' && (
+            <div className="animate-fadeIn space-y-4">
+              <div className="mb-4 flex flex-wrap gap-4 items-center justify-between">
+                <h2 className="text-lg font-bold text-[#103B2D]">Danh sách đánh giá</h2>
+                <button
+                  onClick={() => setReviewModal({ reviewer_name: '', reviewer_email: '', rating: 5, comment: '' })}
+                  className="rounded-full bg-[#103B2D] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  + Thêm đánh giá
+                </button>
+              </div>
+
+              {isAdminReviewsLoading ? (
+                <div className="py-12 text-center text-[#8AA89A] font-medium animate-pulse">
+                  Đang tải danh sách đánh giá...
+                </div>
+              ) : adminReviews.length === 0 ? (
+                <div className="py-12 text-center text-[#8AA89A] font-medium">
+                  Chưa có đánh giá nào từ khách hàng.
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {adminReviews.map((review) => (
+                    <div key={review.id} className="rounded-[24px] border border-[#DFF0E5] bg-white p-5 shadow-[0_8px_30px_rgba(16,59,45,0.05)] relative flex flex-col">
+                      <div className="absolute right-4 top-4 flex gap-2">
+                        <button
+                          onClick={() => setReviewModal({
+                            id: review.id,
+                            reviewer_name: review.reviewer_name,
+                            reviewer_email: review.reviewer_email,
+                            rating: review.rating,
+                            comment: review.comment
+                          })}
+                          className="w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 font-bold transition-colors text-xs"
+                          title="Sửa"
+                        >
+                          ✎
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm('Xóa đánh giá này?')) return;
+                            try {
+                              await deleteAdminReview(review.id);
+                              setAdminReviews(cur => cur.filter(r => r.id !== review.id));
+                            } catch (e) { alert('Lỗi xóa đánh giá') }
+                          }}
+                          className="w-7 h-7 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 font-bold transition-colors"
+                          title="Xóa"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="flex items-center space-x-1 text-yellow-400 mb-3">
+                        {[...Array(5)].map((_, i) => (
+                          <span key={i} className={i < review.rating ? 'text-yellow-400' : 'text-gray-200'}>★</span>
+                        ))}
+                      </div>
+                      <p className="text-[#303030]/80 italic mb-4 flex-1 text-sm leading-relaxed">"{review.comment}"</p>
+                      <div className="border-t border-[#F0F7F2] pt-3 mt-auto">
+                        <p className="font-bold text-[#103B2D] text-sm">{review.reviewer_name}</p>
+                        <p className="text-xs text-[#8AA89A]">{review.reviewer_email}</p>
+                        <p className="text-[10px] uppercase font-bold text-[#6D877A] mt-2 tracking-widest">{new Date(review.created_at).toLocaleString('vi-VN')}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </main>
 
@@ -744,6 +1128,183 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
           );
         })}
       </nav>
+      {/* ══ MODALS ═════════════════════════════════════════════ */}
+      {editServiceModal && (
+        <div className="fixed inset-0 z-[100] flex animate-fadeIn items-center justify-center bg-[#103B2D]/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-[24px] bg-white p-6 shadow-[0_30px_60px_rgba(16,59,45,0.15)] transform transition-transform duration-200">
+            <h3 className="mb-4 text-xl font-bold text-[#103B2D]">Đổi tên Dịch vụ</h3>
+            <input 
+              autoFocus
+              className="w-full rounded-xl border border-[#DFF0E5] bg-[#FAFCFB] px-4 py-3 text-[#103B2D] focus:border-[#2F855A] focus:outline-none focus:ring-4 focus:ring-[#2F855A]/10 font-bold placeholder:font-normal placeholder:text-[#8AA89A]"
+              value={editServiceModal.currentName}
+              placeholder="Nhập tên dịch vụ mới..."
+              onChange={(e) => setEditServiceModal({ ...editServiceModal, currentName: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveService();
+                if (e.key === 'Escape') setEditServiceModal(null);
+              }}
+            />
+            <div className="mt-6 flex gap-3">
+              <button 
+                onClick={() => setEditServiceModal(null)}
+                className="flex-[0.4] rounded-full bg-[#F2F2F2] py-2.5 font-bold text-[#6D877A] hover:bg-[#E5E5E5] transition-colors"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={handleSaveService}
+                className="flex-[0.6] rounded-full bg-[#2F855A] py-2.5 font-bold text-white hover:bg-[#246946] transition-colors"
+              >
+                Lưu thay đổi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editVariantModal && (
+        <div className="fixed inset-0 z-[100] flex animate-fadeIn items-center justify-center bg-[#103B2D]/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[24px] bg-white p-6 shadow-[0_30px_60px_rgba(16,59,45,0.15)] transform transition-transform duration-200">
+            <h3 className="mb-4 text-xl font-bold text-[#103B2D]">Cập nhật Sản phẩm</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold text-[#6D877A] uppercase tracking-wider mb-1 block">Tên sản phẩm / Món</label>
+                <input 
+                  className="w-full rounded-xl border border-[#DFF0E5] bg-[#FAFCFB] px-4 py-2.5 text-[#103B2D] focus:border-[#2F855A] focus:outline-none focus:ring-4 focus:ring-[#2F855A]/10 font-bold placeholder:font-normal text-sm"
+                  value={editVariantModal.label}
+                  onChange={(e) => setEditVariantModal({ ...editVariantModal, label: e.target.value })}
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold text-[#6D877A] uppercase tracking-wider mb-1 block">Mã (Code)</label>
+                  <input 
+                    className="w-full rounded-xl border border-[#DFF0E5] bg-[#FAFCFB] px-4 py-2.5 text-[#103B2D] focus:border-[#2F855A] focus:outline-none focus:ring-4 focus:ring-[#2F855A]/10 font-mono text-xs"
+                    value={editVariantModal.code}
+                    onChange={(e) => setEditVariantModal({ ...editVariantModal, code: e.target.value })}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold text-[#6D877A] uppercase tracking-wider mb-1 block">Kích cỡ</label>
+                  <input 
+                    className="w-full rounded-xl border border-[#DFF0E5] bg-[#FAFCFB] px-4 py-2.5 text-[#103B2D] focus:border-[#2F855A] focus:outline-none focus:ring-4 focus:ring-[#2F855A]/10 text-sm"
+                    value={editVariantModal.size}
+                    placeholder=" VD: Cỡ lớn, Nhỏ..."
+                    onChange={(e) => setEditVariantModal({ ...editVariantModal, size: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-[#6D877A] uppercase tracking-wider mb-1 block">Giá tiền</label>
+                <div className="relative">
+                  <input 
+                    type="number" min={0} step={1000}
+                    className="w-full rounded-xl border border-[#DFF0E5] bg-[#FAFCFB] px-4 py-2.5 text-[#103B2D] focus:border-[#2F855A] focus:outline-none focus:ring-4 focus:ring-[#2F855A]/10 font-bold"
+                    value={editVariantModal.price || ''}
+                    onChange={(e) => setEditVariantModal({ ...editVariantModal, price: parseInt(e.target.value) || 0 })}
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[#8AA89A] pointer-events-none">VND</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <input 
+                  type="checkbox" 
+                  id="activeVariant"
+                  checked={editVariantModal.active}
+                  onChange={(e) => setEditVariantModal({ ...editVariantModal, active: e.target.checked })}
+                  className="h-4 w-4 rounded border-[#DFF0E5] text-[#2F855A] focus:ring-[#2F855A]/20 transition-colors"
+                />
+                <label htmlFor="activeVariant" className="text-sm font-bold text-[#103B2D] cursor-pointer selection:bg-transparent">
+                  Đang hoạt động (Hiển thị cho khách)
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button 
+                onClick={() => setEditVariantModal(null)}
+                className="flex-[0.4] rounded-full bg-[#F2F2F2] py-2.5 font-bold text-[#6D877A] hover:bg-[#E5E5E5] transition-colors"
+               >
+                Hủy
+              </button>
+              <button 
+                onClick={handleSaveVariant}
+                className="flex-[0.6] rounded-full bg-[#185BD6] py-2.5 font-bold text-white hover:bg-[#1242A0] transition-colors"
+              >
+                Lưu Thay đổi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reviewModal && (
+        <div className="fixed inset-0 z-[100] flex animate-fadeIn items-center justify-center bg-[#103B2D]/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[24px] bg-white p-6 shadow-[0_30px_60px_rgba(16,59,45,0.15)] transform transition-transform duration-200">
+            <h3 className="mb-4 text-xl font-bold text-[#103B2D]">{reviewModal.id ? 'Sửa đánh giá' : 'Thêm đánh giá mới'}</h3>
+            
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold text-[#6D877A] uppercase tracking-wider mb-1 block">Tên khách hàng</label>
+                  <input 
+                    className="w-full rounded-xl border border-[#DFF0E5] bg-[#FAFCFB] px-4 py-2.5 text-[#103B2D] focus:border-[#2F855A] focus:outline-none focus:ring-4 focus:ring-[#2F855A]/10 text-sm font-bold"
+                    value={reviewModal.reviewer_name}
+                    onChange={(e) => setReviewModal({ ...reviewModal, reviewer_name: e.target.value })}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold text-[#6D877A] uppercase tracking-wider mb-1 block">Email</label>
+                  <input 
+                    className="w-full rounded-xl border border-[#DFF0E5] bg-[#FAFCFB] px-4 py-2.5 text-[#103B2D] focus:border-[#2F855A] focus:outline-none focus:ring-4 focus:ring-[#2F855A]/10 text-sm"
+                    value={reviewModal.reviewer_email}
+                    onChange={(e) => setReviewModal({ ...reviewModal, reviewer_email: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-[#6D877A] uppercase tracking-wider mb-1 block">Số sao (1-5)</label>
+                <input 
+                  type="number" min={1} max={5}
+                  className="w-full rounded-xl border border-[#DFF0E5] bg-[#FAFCFB] px-4 py-2.5 text-[#103B2D] focus:border-[#2F855A] focus:outline-none focus:ring-4 focus:ring-[#2F855A]/10 font-bold"
+                  value={reviewModal.rating}
+                  onChange={(e) => setReviewModal({ ...reviewModal, rating: parseInt(e.target.value) || 5 })}
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-[#6D877A] uppercase tracking-wider mb-1 block">Nội dung đánh giá</label>
+                <textarea 
+                  rows={4}
+                  className="w-full rounded-xl border border-[#DFF0E5] bg-[#FAFCFB] px-4 py-2.5 text-[#103B2D] focus:border-[#2F855A] focus:outline-none focus:ring-4 focus:ring-[#2F855A]/10 text-sm"
+                  value={reviewModal.comment}
+                  onChange={(e) => setReviewModal({ ...reviewModal, comment: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button 
+                onClick={() => setReviewModal(null)}
+                className="flex-[0.4] rounded-full bg-[#F2F2F2] py-2.5 font-bold text-[#6D877A] hover:bg-[#E5E5E5] transition-colors"
+               >
+                Hủy
+              </button>
+              <button 
+                onClick={handleSaveReview}
+                className="flex-[0.6] rounded-full bg-[#185BD6] py-2.5 font-bold text-white hover:bg-[#1242A0] transition-colors"
+              >
+                Lưu Thay đổi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

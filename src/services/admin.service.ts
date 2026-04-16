@@ -170,6 +170,10 @@ export async function updateAdminService(
   return response.data;
 }
 
+export async function deleteAdminService(id: string): Promise<void> {
+  await apiClient.delete(`/admin/services/${id}`);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // IV. QUẢN LÝ BIẾN THỂ DỊCH VỤ
 // ═══════════════════════════════════════════════════════════════
@@ -202,6 +206,8 @@ export async function createServiceVariant(
 
 export interface UpdateVariantBody {
   label?: string;
+  code?: string;
+  size?: string;
   price?: number;
   unit?: string;
   active?: boolean;
@@ -216,6 +222,10 @@ export async function updateServiceVariant(
     body,
   );
   return response.data;
+}
+
+export async function deleteServiceVariant(variantId: string): Promise<void> {
+  await apiClient.delete(`/admin/service-variants/${variantId}`);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -384,3 +394,27 @@ export async function sendAdminNotification(
 ): Promise<void> {
   await apiClient.post('/admin/notifications/send', body);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// X. QUẢN LÝ REVIEWS (Admin)
+// ═══════════════════════════════════════════════════════════════
+
+export async function getAdminReviews(): Promise<any[]> {
+  const response = await apiClient.get<any[]>('/reviews');
+  return response.data;
+}
+
+export async function createAdminReview(payload: any): Promise<any> {
+  const response = await apiClient.post<any>('/reviews', payload);
+  return response.data;
+}
+
+export async function updateAdminReview(id: string | number, payload: any): Promise<any> {
+  const response = await apiClient.patch<any>(`/reviews/${id}`, payload);
+  return response.data;
+}
+
+export async function deleteAdminReview(id: string | number): Promise<void> {
+  await apiClient.delete(`/reviews/${id}`);
+}
+

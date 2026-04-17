@@ -22,6 +22,15 @@ interface AuthFormState {
   acceptPolicy: boolean;
 }
 
+type AuthPanel = 'credentials' | 'forgotPassword';
+type ForgotPasswordStep = 'email' | 'otp' | 'password' | 'done';
+
+interface ForgotPasswordFormState {
+  otp: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 const initialFormState: AuthFormState = {
   name: '',
   phone: '',
@@ -30,11 +39,25 @@ const initialFormState: AuthFormState = {
   acceptPolicy: true,
 };
 
+const initialForgotPasswordFormState: ForgotPasswordFormState = {
+  otp: '',
+  newPassword: '',
+  confirmPassword: '',
+};
+
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phonePattern = /^(0|\+84)\d{9,10}$/;
+const forgotPasswordMockAccount = {
+  email: 'tester@ecocollect.vn',
+  otp: '123456',
+};
 
 function normalizePhone(phone: string) {
   return phone.replace(/\s+/g, '').trim();
+}
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
 }
 
 export default function AuthModal({
@@ -48,8 +71,14 @@ export default function AuthModal({
   const [form, setForm] = useState<AuthFormState>(initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [activePanel, setActivePanel] = useState<AuthPanel>('credentials');
+  const [forgotPasswordStep, setForgotPasswordStep] = useState<ForgotPasswordStep>('email');
+  const [forgotPasswordForm, setForgotPasswordForm] = useState<ForgotPasswordFormState>(initialForgotPasswordFormState);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showResetPasswordConfirm, setShowResetPasswordConfirm] = useState(false);
 
   const benefitCards = [
     {
@@ -72,9 +101,17 @@ export default function AuthModal({
       : t('common.error');
   }
 
+  function resetForgotPasswordFlow() {
+    setForgotPasswordStep('email');
+    setForgotPasswordForm(initialForgotPasswordFormState);
+    setShowResetPassword(false);
+    setShowResetPasswordConfirm(false);
+  }
+
   useEffect(() => {
     if (!isOpen) {
       setErrorMessage('');
+      setSuccessMessage('');
       setFieldErrors({});
       setIsSubmitting(false);
       setForm((currentForm) => ({
@@ -82,6 +119,8 @@ export default function AuthModal({
         password: '',
       }));
       setShowPassword(false);
+      setActivePanel('credentials');
+      resetForgotPasswordFlow();
     }
   }, [isOpen]);
 
@@ -91,9 +130,29 @@ export default function AuthModal({
     }
 
     setErrorMessage('');
+    setSuccessMessage('');
     setFieldErrors({});
+    setActivePanel('credentials');
+    resetForgotPasswordFlow();
   }, [isOpen, mode]);
 
+  const isForgotPasswordPanel = activePanel === 'forgotPassword';
+  const forgotPasswordDescription =
+    forgotPasswordStep === 'otp'
+      ? t('auth.forgot.otpDescription')
+      : forgotPasswordStep === 'password'
+        ? t('auth.forgot.passwordDescription')
+        : forgotPasswordStep === 'done'
+          ? ''
+          : t('auth.forgot.description');
+  const forgotPasswordSubmitLabel =
+    forgotPasswordStep === 'otp'
+      ? t('auth.forgot.verifyOtp')
+      : forgotPasswordStep === 'password'
+        ? t('auth.forgot.savePassword')
+        : forgotPasswordStep === 'done'
+          ? t('auth.forgot.backToLogin')
+          : t('auth.forgot.submit');
   const isEmailValid = emailPattern.test(form.email.trim());
   const isPasswordValid = form.password.trim().length >= 6;
   const isNameValid = form.name.trim().length >= 2;
@@ -132,35 +191,195 @@ export default function AuthModal({
     if (errorMessage !== '') {
       setErrorMessage('');
     }
+
+    if (successMessage !== '') {
+      setSuccessMessage('');
+    }
   };
 
+  const handleForgotPasswordFieldChange =
+    (field: keyof ForgotPasswordFormState) => (event: ChangeEvent<HTMLInputElement>) => {
+      let nextValue = event.target.value;
+      let skipClearError = false;
+
+      if (field === 'otp') {
+        nextValue = nextValue.replace(/\D/g, '').slice(0, forgotPasswordMockAccount.otp.length);
+      }
+
+      if (field !== 'otp' && /[^\x20-\x7E]/.test(nextValue)) {
+        nextValue = nextValue.replace(/[^\x20-\x7E]/g, '');
+        setFieldErrors((prev) => ({
+          ...prev,
+          [field]: t('auth.forgot.passwordAsciiOnly'),
+        }));
+        skipClearError = true;
+      }
+
+      setForgotPasswordForm((currentForm) => ({
+        ...currentForm,
+        [field]: nextValue,
+      }));
+
+      if (fieldErrors[field] && !skipClearError) {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next[field];
+          return next;
+        });
+      }
+
+      if (errorMessage !== '') {
+        setErrorMessage('');
+      }
+
+      if (successMessage !== '') {
+        setSuccessMessage('');
+      }
+    };
+
   const handleModeSwitch = (nextMode: AuthMode) => {
-    if (nextMode === mode) {
+    if (nextMode === mode && activePanel === 'credentials') {
       return;
     }
 
     setErrorMessage('');
-    onModeChange(nextMode);
+    setSuccessMessage('');
+    setFieldErrors({});
+    setActivePanel('credentials');
+    resetForgotPasswordFlow();
+
+    if (nextMode !== mode) {
+      onModeChange(nextMode);
+    }
   };
 
   const resetForm = () => {
     setForm(initialFormState);
     setErrorMessage('');
+    setSuccessMessage('');
     setFieldErrors({});
     setIsSubmitting(false);
     setShowPassword(false);
+    setActivePanel('credentials');
+    resetForgotPasswordFlow();
   };
 
   const handleForgotPassword = () => {
-    if (!isEmailValid) {
-      setErrorMessage(mode === 'login' ? 'Nhập email tài khoản trước' : '');
-      return;
-    }
-    setErrorMessage('Tính năng quên mật khẩu đang được phát triển.');
+    setErrorMessage('');
+    setSuccessMessage('');
+    setFieldErrors({});
+    setShowPassword(false);
+    setActivePanel('forgotPassword');
+    resetForgotPasswordFlow();
+  };
+
+  const handleUseForgotPasswordMock = () => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      email: forgotPasswordMockAccount.email,
+    }));
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.email;
+      return next;
+    });
+    setErrorMessage('');
+    setSuccessMessage('');
+  };
+
+  const handleUseForgotPasswordMockOtp = () => {
+    setForgotPasswordForm((currentForm) => ({
+      ...currentForm,
+      otp: forgotPasswordMockAccount.otp,
+    }));
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.otp;
+      return next;
+    });
+    setErrorMessage('');
+    setSuccessMessage('');
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (isForgotPasswordPanel) {
+      const errors: Record<string, string> = {};
+      const normalizedEmail = normalizeEmail(form.email);
+
+      if (forgotPasswordStep === 'email') {
+        if (!normalizedEmail) {
+          errors.email = t('auth.forgot.emailRequired');
+        } else if (!emailPattern.test(normalizedEmail)) {
+          errors.email = t('auth.forgot.emailInvalid');
+        } else if (normalizedEmail !== forgotPasswordMockAccount.email) {
+          errors.email = t('auth.forgot.mockNotFound');
+        }
+
+        if (Object.keys(errors).length > 0) {
+          setFieldErrors(errors);
+          setSuccessMessage('');
+          return;
+        }
+
+        setFieldErrors({});
+        setErrorMessage('');
+        setSuccessMessage(t('auth.forgot.otpSent'));
+        setForgotPasswordStep('otp');
+        return;
+      }
+
+      if (forgotPasswordStep === 'otp') {
+        if (!forgotPasswordForm.otp.trim()) {
+          errors.otp = t('auth.forgot.otpRequired');
+        } else if (forgotPasswordForm.otp !== forgotPasswordMockAccount.otp) {
+          errors.otp = t('auth.forgot.otpInvalid');
+        }
+
+        if (Object.keys(errors).length > 0) {
+          setFieldErrors(errors);
+          setSuccessMessage('');
+          return;
+        }
+
+        setFieldErrors({});
+        setErrorMessage('');
+        setSuccessMessage('');
+        setForgotPasswordStep('password');
+        return;
+      }
+
+      if (forgotPasswordStep === 'password') {
+        if (forgotPasswordForm.newPassword.trim().length < 6) {
+          errors.newPassword = t('auth.forgot.newPasswordInvalid');
+        }
+
+        if (!forgotPasswordForm.confirmPassword.trim()) {
+          errors.confirmPassword = t('auth.forgot.confirmPasswordRequired');
+        } else if (forgotPasswordForm.confirmPassword !== forgotPasswordForm.newPassword) {
+          errors.confirmPassword = t('auth.forgot.confirmPasswordMismatch');
+        }
+
+        if (Object.keys(errors).length > 0) {
+          setFieldErrors(errors);
+          setSuccessMessage('');
+          return;
+        }
+
+        setFieldErrors({});
+        setErrorMessage('');
+        setSuccessMessage('');
+        setForgotPasswordStep('done');
+        return;
+      }
+
+      if (forgotPasswordStep === 'done') {
+        handleModeSwitch('login');
+        setSuccessMessage('');
+        return;
+      }
+    }
 
     // Per-field validation for register mode
     if (mode === 'register') {
@@ -254,7 +473,7 @@ export default function AuthModal({
 
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#08110D]/72 p-4 backdrop-blur-md">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-[32px] bg-white shadow-[0_32px_120px_rgba(0,0,0,0.28)] lg:grid-cols-[0.94fr_1.06fr]">
+      <div className="grid w-full max-w-5xl max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden rounded-[32px] bg-white shadow-[0_32px_120px_rgba(0,0,0,0.28)] lg:grid-cols-[0.94fr_1.06fr]">
         <aside className="hidden lg:block bg-[linear-gradient(155deg,_#0F3D2E_0%,_#134B38_52%,_#1E6B4E_100%)] p-7 text-white">
           <div className="inline-flex items-center rounded-full border border-white/12 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#B7F7C8]">
             {t('auth.badge')}
@@ -284,8 +503,17 @@ export default function AuthModal({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-3xl font-bold text-[#103B2D]">
-                {mode === 'login' ? t('auth.login.title') : t('auth.register.title')}
+                {isForgotPasswordPanel
+                  ? t('auth.forgot.title')
+                  : mode === 'login'
+                    ? t('auth.login.title')
+                    : t('auth.register.title')}
               </h3>
+              {isForgotPasswordPanel && (
+                <p className="mt-3 max-w-md text-sm leading-6 text-[#476458]">
+                  {forgotPasswordDescription}
+                </p>
+              )}
             </div>
             <button
               type="button"
@@ -298,26 +526,236 @@ export default function AuthModal({
             </button>
           </div>
 
-          <div className="mt-6 inline-flex rounded-full bg-[#F3F8F4] p-1">
-            {[
-              { key: 'login' as const, label: t('header.login') },
-              { key: 'register' as const, label: t('header.register') },
-            ].map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => handleModeSwitch(item.key)}
-                className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
-                  mode === item.key ? 'bg-[#103B2D] text-white' : 'text-[#476458]'
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+          {!isForgotPasswordPanel && (
+            <div className="mt-6 inline-flex rounded-full bg-[#F3F8F4] p-1">
+              {[
+                { key: 'login' as const, label: t('header.login') },
+                { key: 'register' as const, label: t('header.register') },
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => handleModeSwitch(item.key)}
+                  className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
+                    mode === item.key ? 'bg-[#103B2D] text-white' : 'text-[#476458]'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-          <form className="mt-7" onSubmit={handleSubmit} noValidate>
-            {mode === 'login' ? (
+          <form className={isForgotPasswordPanel ? 'mt-6' : 'mt-7'} onSubmit={handleSubmit} noValidate>
+            {isForgotPasswordPanel ? (
+              <div className="space-y-5">
+                {forgotPasswordStep !== 'done' && (
+                  <div className="grid grid-cols-3 gap-2 text-xs font-semibold text-[#789185]">
+                    {[
+                      { key: 'email', label: t('auth.forgot.stepEmail') },
+                      { key: 'otp', label: t('auth.forgot.stepOtp') },
+                      { key: 'password', label: t('auth.forgot.stepPassword') },
+                    ].map((item) => {
+                      const stepOrder: ForgotPasswordStep[] = ['email', 'otp', 'password'];
+                      const isActiveStep = forgotPasswordStep === item.key;
+                      const isCompletedStep =
+                        stepOrder.indexOf(item.key as ForgotPasswordStep) < stepOrder.indexOf(forgotPasswordStep);
+
+                      return (
+                        <div
+                          key={item.key}
+                          className={`rounded-[8px] border px-3 py-2 text-center ${
+                            isActiveStep
+                              ? 'border-[#2F855A] bg-[#F0FBF3] text-[#103B2D]'
+                              : isCompletedStep
+                                ? 'border-[#BFE8CB] bg-white text-[#2F855A]'
+                                : 'border-[#E2ECE6] bg-white'
+                          }`}
+                        >
+                          {item.label}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {forgotPasswordStep === 'email' && (
+                  <>
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                        {t('auth.forgot.emailLabel')} <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={form.email}
+                        onChange={handleFieldChange('email')}
+                        placeholder="name@email.com"
+                        autoComplete="email"
+                        disabled={isSubmitting}
+                        className={`w-full rounded-[16px] border bg-white px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.email ? 'border-red-400' : 'border-[#B7C5BC]'}`}
+                      />
+                      {fieldErrors.email && (
+                        <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.email}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleUseForgotPasswordMock}
+                      className="flex w-full items-center justify-between gap-3 rounded-[8px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-left transition-colors hover:border-[#2F855A] hover:bg-[#F0FBF3]"
+                    >
+                      <span>
+                        <span className="block text-xs font-semibold uppercase text-[#789185]">
+                          {t('auth.forgot.mockLabel')}
+                        </span>
+                        <span className="mt-1 block text-sm font-semibold text-[#103B2D]">
+                          {forgotPasswordMockAccount.email}
+                        </span>
+                      </span>
+                      <span className="shrink-0 rounded-[8px] bg-white px-3 py-1.5 text-xs font-semibold text-[#2F855A]">
+                        {t('auth.forgot.useMock')}
+                      </span>
+                    </button>
+                  </>
+                )}
+
+                {forgotPasswordStep === 'otp' && (
+                  <>
+                    <div className="rounded-[8px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-sm text-[#476458]">
+                      {t('auth.forgot.sentTo')}{' '}
+                      <span className="font-semibold text-[#103B2D]">{normalizeEmail(form.email)}</span>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                        {t('auth.forgot.otpLabel')} <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={forgotPasswordForm.otp}
+                        onChange={handleForgotPasswordFieldChange('otp')}
+                        placeholder="123456"
+                        autoComplete="one-time-code"
+                        disabled={isSubmitting}
+                        className={`w-full rounded-[16px] border bg-white px-4 py-4 text-center text-lg font-semibold tracking-[0.18em] outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.otp ? 'border-red-400' : 'border-[#B7C5BC]'}`}
+                      />
+                      {fieldErrors.otp && (
+                        <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.otp}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleUseForgotPasswordMockOtp}
+                      className="flex w-full items-center justify-between gap-3 rounded-[8px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-left transition-colors hover:border-[#2F855A] hover:bg-[#F0FBF3]"
+                    >
+                      <span>
+                        <span className="block text-xs font-semibold uppercase text-[#789185]">
+                          {t('auth.forgot.mockOtpLabel')}
+                        </span>
+                        <span className="mt-1 block text-sm font-semibold text-[#103B2D]">
+                          {forgotPasswordMockAccount.otp}
+                        </span>
+                      </span>
+                      <span className="shrink-0 rounded-[8px] bg-white px-3 py-1.5 text-xs font-semibold text-[#2F855A]">
+                        {t('auth.forgot.useMock')}
+                      </span>
+                    </button>
+                  </>
+                )}
+
+                {forgotPasswordStep === 'password' && (
+                  <>
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                        {t('auth.forgot.newPasswordLabel')} <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showResetPassword ? 'text' : 'password'}
+                          value={forgotPasswordForm.newPassword}
+                          onChange={handleForgotPasswordFieldChange('newPassword')}
+                          placeholder="******"
+                          autoComplete="new-password"
+                          disabled={isSubmitting}
+                          className={`w-full rounded-[16px] border bg-white px-4 py-4 pr-16 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.newPassword ? 'border-red-400' : 'border-[#B7C5BC]'}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowResetPassword((current) => !current)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#2F855A]"
+                        >
+                          {showResetPassword ? t('auth.forgot.hidePassword') : t('auth.forgot.showPassword')}
+                        </button>
+                      </div>
+                      {fieldErrors.newPassword && (
+                        <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.newPassword}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                        {t('auth.forgot.confirmPasswordLabel')} <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showResetPasswordConfirm ? 'text' : 'password'}
+                          value={forgotPasswordForm.confirmPassword}
+                          onChange={handleForgotPasswordFieldChange('confirmPassword')}
+                          placeholder="******"
+                          autoComplete="new-password"
+                          disabled={isSubmitting}
+                          className={`w-full rounded-[16px] border bg-white px-4 py-4 pr-16 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.confirmPassword ? 'border-red-400' : 'border-[#B7C5BC]'}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowResetPasswordConfirm((current) => !current)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#2F855A]"
+                        >
+                          {showResetPasswordConfirm ? t('auth.forgot.hidePassword') : t('auth.forgot.showPassword')}
+                        </button>
+                      </div>
+                      {fieldErrors.confirmPassword && (
+                        <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.confirmPassword}</p>
+                      )}
+                    </div>
+
+                  </>
+                )}
+
+                {forgotPasswordStep === 'done' && (
+                  <div className="rounded-[8px] border border-[#BFE8CB] bg-[#F0FBF3] px-4 py-5 text-sm leading-6 text-[#1F6F43]">
+                    <p className="font-semibold text-[#103B2D]">Đặt lại mật khẩu thành công</p>
+                  </div>
+                )}
+
+                {forgotPasswordStep === 'otp' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotPasswordStep('email');
+                      setForgotPasswordForm(initialForgotPasswordFormState);
+                      setSuccessMessage('');
+                      setFieldErrors({});
+                    }}
+                    className="text-sm font-semibold text-[#2F855A]"
+                  >
+                    {t('auth.forgot.changeEmail')}
+                  </button>
+                )}
+
+                {forgotPasswordStep === 'password' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotPasswordStep('otp');
+                      setSuccessMessage('');
+                      setFieldErrors({});
+                    }}
+                    className="text-sm font-semibold text-[#2F855A]"
+                  >
+                    {t('auth.forgot.backToOtp')}
+                  </button>
+                )}
+              </div>
+            ) : mode === 'login' ? (
               <div className="space-y-5">
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-[#24483A]">
@@ -335,9 +773,6 @@ export default function AuthModal({
                   {fieldErrors.email && (
                     <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.email}</p>
                   )}
-                  <p className="mt-2 text-xs text-[#5D776A]">
-                    Gợi ý: Dùng <code className="font-semibold text-[#103B2D]">admin@ecocollect.vn</code> (pass: admin123) để vào trang quản trị.
-                  </p>
                 </div>
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-3">
@@ -478,36 +913,71 @@ export default function AuthModal({
               </div>
             )}
 
-            <div className="mt-7 rounded-[24px] border border-[#D6EEDD] bg-[#F7FCF8] p-4 text-sm text-[#476458]">
-              {mode === 'login'
-                ? t('auth.login.footer')
-                : t('auth.register.footer')}
-            </div>
-
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-[#789185]">
-                {mode === 'login' ? t('auth.login.switch').split('?')[0] + '?' : t('auth.register.switch').split('?')[0] + '?'}
-                <button
-                  type="button"
-                  onClick={() => handleModeSwitch(mode === 'login' ? 'register' : 'login')}
-                  className="ml-2 font-semibold text-[#2F855A]"
-                >
-                  {mode === 'login' ? t('auth.login.switch').split('?')[1] : t('auth.register.switch').split('?')[1]}
-                </button>
-              </p>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="rounded-full bg-[#103B2D] px-7 py-3 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#95B0A1]"
+            {successMessage !== '' && (
+              <div
+                className="mt-5 rounded-[20px] border border-[#BFE8CB] bg-[#F0FBF3] px-4 py-3 text-sm text-[#1F6F43]"
+                aria-live="polite"
               >
-                {isSubmitting
-                  ? t('common.loading')
-                  : mode === 'login'
-                    ? t('auth.login.submit')
-                    : t('auth.register.submit')}
-              </button>
-            </div>
+                {successMessage}
+              </div>
+            )}
+
+
+
+            {isForgotPasswordPanel ? (
+              <div className="mt-7">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full rounded-[8px] bg-[#0F5BD7] px-7 py-3.5 font-semibold text-white transition-colors hover:bg-[#0B4FC0] disabled:cursor-not-allowed disabled:bg-[#95B0A1]"
+                >
+                  {forgotPasswordSubmitLabel}
+                </button>
+
+                {forgotPasswordStep !== 'done' && (
+                  <>
+                    <div className="my-6 flex items-center gap-3 text-xs text-[#789185]">
+                      <span className="h-px flex-1 bg-[#E2ECE6]" />
+                      <span>{t('auth.forgot.or')}</span>
+                      <span className="h-px flex-1 bg-[#E2ECE6]" />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleModeSwitch('login')}
+                      className="w-full rounded-[8px] border border-[#D6EEDD] px-7 py-3 font-semibold text-[#2F855A] transition-colors hover:border-[#2F855A] hover:bg-[#F0FBF3]"
+                    >
+                      {t('auth.forgot.backToLogin')}
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-[#789185]">
+                  {mode === 'login' ? t('auth.login.switch').split('?')[0] + '?' : t('auth.register.switch').split('?')[0] + '?'}
+                  <button
+                    type="button"
+                    onClick={() => handleModeSwitch(mode === 'login' ? 'register' : 'login')}
+                    className="ml-2 font-semibold text-[#2F855A]"
+                  >
+                    {mode === 'login' ? t('auth.login.switch').split('?')[1] : t('auth.register.switch').split('?')[1]}
+                  </button>
+                </p>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="rounded-full bg-[#103B2D] px-7 py-3 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#95B0A1]"
+                >
+                  {isSubmitting
+                    ? t('common.loading')
+                    : mode === 'login'
+                      ? t('auth.login.submit')
+                      : t('auth.register.submit')}
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </div>

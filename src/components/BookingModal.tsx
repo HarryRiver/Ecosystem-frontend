@@ -1462,7 +1462,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                             <img
                               src={uploadedImage.previewUrl}
                               alt="Upload preview"
-                              className="h-full w-full object-cover"
+                              className="h-full w-full object-contain"
                             />
                           </div>
                           <button

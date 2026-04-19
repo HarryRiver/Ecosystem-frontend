@@ -27,7 +27,7 @@ export async function getUnreadCount(): Promise<UnreadCount> {
 
 // ─── PATCH /me/notifications/:id/read ────────────────────────────────────────
 
-export async function markNotificationRead(id: string): Promise<void> {
+export async function markNotificationRead(id: number): Promise<void> {
   await apiClient.patch(`/me/notifications/${id}/read`);
 }
 

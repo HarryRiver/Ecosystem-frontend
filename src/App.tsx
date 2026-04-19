@@ -17,7 +17,7 @@ import {
   type Order,
 } from '@/lib/store';
 // ─── API Layer ────────────────────────────────────────────────────────────────────────────────
-import { createOrder, uploadOrderImages } from '@/services/orders.service';
+import { createOrder, uploadOrderImages, createPaymentIntent } from '@/services/orders.service';
 import { logout as apiLogout, getMe } from '@/services/auth.service';
 import { getToken, ApiError } from '@/lib/apiClient';
 import type { HandlingMode } from '@/types/api';
@@ -270,6 +270,21 @@ function App() {
       writeOrders(next);
       return next;
     });
+
+    // Nếu khách chọn thanh toán online, lấy link thanh toán và redirect
+    if (orderBody.payment_method === 'online') {
+      try {
+        const paymentData = await createPaymentIntent(createdOrder.id.toString());
+        if (paymentData && paymentData.payment_url) {
+          window.location.href = paymentData.payment_url;
+          // Trả về promise không bao giờ resolve để ngăn BookingModal đóng và hiển thị UI thành công
+          return new Promise<string>(() => {});
+        }
+      } catch (payErr) {
+        console.error('Không thể tạo link thanh toán:', payErr);
+        // Nếu lỗi tạo link thanh toán, vẫn cho phép order hiển thị thành công, khách gọi CSKH sau.
+      }
+    }
 
     return sharedCode;
   };

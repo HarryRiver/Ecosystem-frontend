@@ -3,7 +3,14 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type AuthMode, type AuthUser } from '@/lib/auth';
-import { login as apiLogin, register as apiRegister } from '@/services/auth.service';
+import { 
+  login as apiLogin, 
+  register as apiRegister,
+  sendOtp as apiSendOtp,
+  verifyOtp as apiVerifyOtp,
+  requestPasswordReset as apiRequestReset,
+  changePassword as apiChangePassword
+} from '@/services/auth.service';
 import { ApiError } from '@/lib/apiClient';
 
 interface AuthModalProps {
@@ -22,7 +29,7 @@ interface AuthFormState {
   acceptPolicy: boolean;
 }
 
-type AuthPanel = 'credentials' | 'forgotPassword';
+type AuthPanel = 'credentials' | 'forgotPassword' | 'registerOtp';
 type ForgotPasswordStep = 'email' | 'otp' | 'password' | 'done';
 
 interface ForgotPasswordFormState {
@@ -47,10 +54,8 @@ const initialForgotPasswordFormState: ForgotPasswordFormState = {
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phonePattern = /^(0|\+84)\d{9,10}$/;
-const forgotPasswordMockAccount = {
-  email: 'tester@ecocollect.vn',
-  otp: '123456',
-};
+// Phân đoạn OTP đã chuyển sang dùng API thật
+
 
 function normalizePhone(phone: string) {
   return phone.replace(/\s+/g, '').trim();
@@ -137,22 +142,30 @@ export default function AuthModal({
   }, [isOpen, mode]);
 
   const isForgotPasswordPanel = activePanel === 'forgotPassword';
+  const isRegisterOtpPanel = activePanel === 'registerOtp';
+
+
   const forgotPasswordDescription =
-    forgotPasswordStep === 'otp'
-      ? t('auth.forgot.otpDescription')
-      : forgotPasswordStep === 'password'
-        ? t('auth.forgot.passwordDescription')
-        : forgotPasswordStep === 'done'
-          ? ''
-          : t('auth.forgot.description');
+    isRegisterOtpPanel
+      ? `Vui lòng nhập mã OTP đã được gửi đến email ${form.email} để hoàn tất đăng ký.`
+      : forgotPasswordStep === 'otp'
+        ? t('auth.forgot.otpDescription')
+        : forgotPasswordStep === 'password'
+          ? t('auth.forgot.passwordDescription')
+          : forgotPasswordStep === 'done'
+            ? ''
+            : t('auth.forgot.description');
+
   const forgotPasswordSubmitLabel =
-    forgotPasswordStep === 'otp'
-      ? t('auth.forgot.verifyOtp')
-      : forgotPasswordStep === 'password'
-        ? t('auth.forgot.savePassword')
-        : forgotPasswordStep === 'done'
-          ? t('auth.forgot.backToLogin')
-          : t('auth.forgot.submit');
+    isRegisterOtpPanel
+      ? 'Xác thực đăng ký'
+      : forgotPasswordStep === 'otp'
+        ? t('auth.forgot.verifyOtp')
+        : forgotPasswordStep === 'password'
+          ? t('auth.forgot.savePassword')
+          : forgotPasswordStep === 'done'
+            ? t('auth.forgot.backToLogin')
+            : t('auth.forgot.submit');
   const isEmailValid = emailPattern.test(form.email.trim());
   const isPasswordValid = form.password.trim().length >= 6;
   const isNameValid = form.name.trim().length >= 2;
@@ -203,7 +216,7 @@ export default function AuthModal({
       let skipClearError = false;
 
       if (field === 'otp') {
-        nextValue = nextValue.replace(/\D/g, '').slice(0, forgotPasswordMockAccount.otp.length);
+        nextValue = nextValue.replace(/\D/g, '').slice(0, 6);
       }
 
       if (field !== 'otp' && /[^\x20-\x7E]/.test(nextValue)) {
@@ -273,33 +286,7 @@ export default function AuthModal({
     resetForgotPasswordFlow();
   };
 
-  const handleUseForgotPasswordMock = () => {
-    setForm((currentForm) => ({
-      ...currentForm,
-      email: forgotPasswordMockAccount.email,
-    }));
-    setFieldErrors((prev) => {
-      const next = { ...prev };
-      delete next.email;
-      return next;
-    });
-    setErrorMessage('');
-    setSuccessMessage('');
-  };
 
-  const handleUseForgotPasswordMockOtp = () => {
-    setForgotPasswordForm((currentForm) => ({
-      ...currentForm,
-      otp: forgotPasswordMockAccount.otp,
-    }));
-    setFieldErrors((prev) => {
-      const next = { ...prev };
-      delete next.otp;
-      return next;
-    });
-    setErrorMessage('');
-    setSuccessMessage('');
-  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -313,8 +300,6 @@ export default function AuthModal({
           errors.email = t('auth.forgot.emailRequired');
         } else if (!emailPattern.test(normalizedEmail)) {
           errors.email = t('auth.forgot.emailInvalid');
-        } else if (normalizedEmail !== forgotPasswordMockAccount.email) {
-          errors.email = t('auth.forgot.mockNotFound');
         }
 
         if (Object.keys(errors).length > 0) {
@@ -325,16 +310,25 @@ export default function AuthModal({
 
         setFieldErrors({});
         setErrorMessage('');
-        setSuccessMessage(t('auth.forgot.otpSent'));
-        setForgotPasswordStep('otp');
+        setIsSubmitting(true);
+        try {
+          await apiRequestReset({ email: normalizedEmail });
+          setSuccessMessage(t('auth.forgot.otpSent'));
+          setForgotPasswordStep('otp');
+        } catch (err) {
+          setErrorMessage(err instanceof ApiError ? err.message : 'Không thể gửi yêu cầu reset mật khẩu.');
+        } finally {
+          setIsSubmitting(false);
+        }
         return;
       }
 
       if (forgotPasswordStep === 'otp') {
-        if (!forgotPasswordForm.otp.trim()) {
+        const otpCode = forgotPasswordForm.otp.trim();
+        if (!otpCode) {
           errors.otp = t('auth.forgot.otpRequired');
-        } else if (forgotPasswordForm.otp !== forgotPasswordMockAccount.otp) {
-          errors.otp = t('auth.forgot.otpInvalid');
+        } else if (otpCode.length < 6) {
+          errors.otp = 'Mã OTP không hợp lệ';
         }
 
         if (Object.keys(errors).length > 0) {
@@ -369,8 +363,19 @@ export default function AuthModal({
 
         setFieldErrors({});
         setErrorMessage('');
-        setSuccessMessage('');
-        setForgotPasswordStep('done');
+        setIsSubmitting(true);
+        try {
+          await apiChangePassword({
+            email: normalizedEmail,
+            otpCode: forgotPasswordForm.otp.trim(),
+            newPassword: forgotPasswordForm.newPassword.trim()
+          });
+          setForgotPasswordStep('done');
+        } catch (err) {
+          setErrorMessage(err instanceof ApiError ? err.message : 'Không thể thay đổi mật khẩu.');
+        } finally {
+          setIsSubmitting(false);
+        }
         return;
       }
 
@@ -379,6 +384,28 @@ export default function AuthModal({
         setSuccessMessage('');
         return;
       }
+    }
+
+    // New logic for registerOtp panel
+    if (activePanel === 'registerOtp') {
+      const otpCode = forgotPasswordForm.otp.trim();
+      if (!otpCode) {
+        setFieldErrors({ otp: 'Vui lòng nhập mã OTP' });
+        return;
+      }
+      setIsSubmitting(true);
+      try {
+        const email = normalizeEmail(form.email);
+        await apiVerifyOtp({ email, code: otpCode });
+        setSuccessMessage('Xác thực tài khoản thành công! Bây giờ bạn có thể đăng nhập.');
+        // Chuyển sang mode login
+        handleModeSwitch('login');
+      } catch (err) {
+        setErrorMessage(err instanceof ApiError ? err.message : 'Xác thực không thành công.');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
     }
 
     // Per-field validation for register mode
@@ -447,14 +474,23 @@ export default function AuthModal({
           phone: form.phone,
           password: form.password,
         });
-        const user: AuthUser = {
-          name: payload.user.full_name,
-          email: payload.user.email,
-          phone: payload.user.phone,
-          role: payload.user.role,
-        };
-        resetForm();
-        onSuccess(user);
+
+        if (payload.user.status === 'unverified') {
+          // Gửi mã OTP
+          await apiSendOtp({ email: payload.user.email });
+          setSuccessMessage(`Đăng ký thành công! Một mã OTP đã được gửi đến ${payload.user.email}`);
+          setActivePanel('registerOtp');
+        } else {
+          // Trường hợp hãn hữu: BE tự xác thực luôn
+          const user: AuthUser = {
+            name: payload.user.full_name,
+            email: payload.user.email,
+            phone: payload.user.phone,
+            role: payload.user.role,
+          };
+          resetForm();
+          onSuccess(user);
+        }
       }
     } catch (err) {
       const message =
@@ -503,13 +539,15 @@ export default function AuthModal({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-3xl font-bold text-[#103B2D]">
-                {isForgotPasswordPanel
-                  ? t('auth.forgot.title')
-                  : mode === 'login'
-                    ? t('auth.login.title')
-                    : t('auth.register.title')}
+                {isRegisterOtpPanel
+                  ? 'Xác thực đăng ký'
+                  : isForgotPasswordPanel
+                    ? t('auth.forgot.title')
+                    : mode === 'login'
+                      ? t('auth.login.title')
+                      : t('auth.register.title')}
               </h3>
-              {isForgotPasswordPanel && (
+              {(isForgotPasswordPanel || isRegisterOtpPanel) && (
                 <p className="mt-3 max-w-md text-sm leading-6 text-[#476458]">
                   {forgotPasswordDescription}
                 </p>
@@ -526,7 +564,7 @@ export default function AuthModal({
             </button>
           </div>
 
-          {!isForgotPasswordPanel && (
+          {!isForgotPasswordPanel && !isRegisterOtpPanel && (
             <div className="mt-6 inline-flex rounded-full bg-[#F3F8F4] p-1">
               {[
                 { key: 'login' as const, label: t('header.login') },
@@ -546,7 +584,7 @@ export default function AuthModal({
             </div>
           )}
 
-          <form className={isForgotPasswordPanel ? 'mt-6' : 'mt-7'} onSubmit={handleSubmit} noValidate>
+          <form className={(isForgotPasswordPanel || isRegisterOtpPanel) ? 'mt-6' : 'mt-7'} onSubmit={handleSubmit} noValidate>
             {isForgotPasswordPanel ? (
               <div className="space-y-5">
                 {forgotPasswordStep !== 'done' && (
@@ -598,23 +636,7 @@ export default function AuthModal({
                         <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.email}</p>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleUseForgotPasswordMock}
-                      className="flex w-full items-center justify-between gap-3 rounded-[8px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-left transition-colors hover:border-[#2F855A] hover:bg-[#F0FBF3]"
-                    >
-                      <span>
-                        <span className="block text-xs font-semibold uppercase text-[#789185]">
-                          {t('auth.forgot.mockLabel')}
-                        </span>
-                        <span className="mt-1 block text-sm font-semibold text-[#103B2D]">
-                          {forgotPasswordMockAccount.email}
-                        </span>
-                      </span>
-                      <span className="shrink-0 rounded-[8px] bg-white px-3 py-1.5 text-xs font-semibold text-[#2F855A]">
-                        {t('auth.forgot.useMock')}
-                      </span>
-                    </button>
+
                   </>
                 )}
 
@@ -633,7 +655,7 @@ export default function AuthModal({
                         inputMode="numeric"
                         value={forgotPasswordForm.otp}
                         onChange={handleForgotPasswordFieldChange('otp')}
-                        placeholder="123456"
+                        placeholder="000000"
                         autoComplete="one-time-code"
                         disabled={isSubmitting}
                         className={`w-full rounded-[16px] border bg-white px-4 py-4 text-center text-lg font-semibold tracking-[0.18em] outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.otp ? 'border-red-400' : 'border-[#B7C5BC]'}`}
@@ -642,23 +664,7 @@ export default function AuthModal({
                         <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.otp}</p>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleUseForgotPasswordMockOtp}
-                      className="flex w-full items-center justify-between gap-3 rounded-[8px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-left transition-colors hover:border-[#2F855A] hover:bg-[#F0FBF3]"
-                    >
-                      <span>
-                        <span className="block text-xs font-semibold uppercase text-[#789185]">
-                          {t('auth.forgot.mockOtpLabel')}
-                        </span>
-                        <span className="mt-1 block text-sm font-semibold text-[#103B2D]">
-                          {forgotPasswordMockAccount.otp}
-                        </span>
-                      </span>
-                      <span className="shrink-0 rounded-[8px] bg-white px-3 py-1.5 text-xs font-semibold text-[#2F855A]">
-                        {t('auth.forgot.useMock')}
-                      </span>
-                    </button>
+
                   </>
                 )}
 
@@ -722,22 +728,27 @@ export default function AuthModal({
 
                 {forgotPasswordStep === 'done' && (
                   <div className="rounded-[8px] border border-[#BFE8CB] bg-[#F0FBF3] px-4 py-5 text-sm leading-6 text-[#1F6F43]">
-                    <p className="font-semibold text-[#103B2D]">Đặt lại mật khẩu thành công</p>
+                    <p className="font-semibold text-[#103B2D]">{t('auth.forgot.doneTitle')}</p>
+                    <p className="mt-2">{t('auth.forgot.doneCopy')}</p>
                   </div>
                 )}
 
-                {forgotPasswordStep === 'otp' && (
+                {(forgotPasswordStep === 'otp' || isRegisterOtpPanel) && (
                   <button
                     type="button"
                     onClick={() => {
-                      setForgotPasswordStep('email');
-                      setForgotPasswordForm(initialForgotPasswordFormState);
+                      if (isRegisterOtpPanel) {
+                        handleModeSwitch('register');
+                      } else {
+                        setForgotPasswordStep('email');
+                        setForgotPasswordForm(initialForgotPasswordFormState);
+                      }
                       setSuccessMessage('');
                       setFieldErrors({});
                     }}
                     className="text-sm font-semibold text-[#2F855A]"
                   >
-                    {t('auth.forgot.changeEmail')}
+                    {isRegisterOtpPanel ? 'Thay đổi thông tin đăng ký' : t('auth.forgot.changeEmail')}
                   </button>
                 )}
 
@@ -754,6 +765,41 @@ export default function AuthModal({
                     {t('auth.forgot.backToOtp')}
                   </button>
                 )}
+              </div>
+            ) : isRegisterOtpPanel ? (
+              <div className="space-y-5">
+                <div className="rounded-[8px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-sm text-[#476458]">
+                  Mã OTP đã được gửi đến email <span className="font-semibold text-[#103B2D]">{form.email}</span>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                    Mã xác thực OTP <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={forgotPasswordForm.otp}
+                    onChange={handleForgotPasswordFieldChange('otp')}
+                    placeholder="000000"
+                    disabled={isSubmitting}
+                    className={`w-full rounded-[16px] border bg-white px-4 py-4 text-center text-lg font-semibold tracking-[0.18em] outline-none transition-colors focus:border-[#22C55E] ${fieldErrors.otp ? 'border-red-400' : 'border-[#B7C5BC]'}`}
+                  />
+                  {fieldErrors.otp && (
+                    <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.otp}</p>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSuccessMessage('');
+                      apiSendOtp({ email: form.email }).then(() => setSuccessMessage('Mã OTP mới đã được gửi.'));
+                    }}
+                    className="font-medium text-[#2F855A]"
+                  >
+                    Gửi lại mã OTP
+                  </button>
+                </div>
               </div>
             ) : mode === 'login' ? (
               <div className="space-y-5">

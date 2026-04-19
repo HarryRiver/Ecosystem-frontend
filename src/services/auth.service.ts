@@ -8,27 +8,74 @@
 
 import apiClient, { saveToken, removeToken } from '@/lib/apiClient';
 import {
-  type AuthPayload,
+  type LoginPayload,
+  type RegisterPayload,
   type LoginBody,
   type RegisterBody,
   type ApiUser,
+  type SendOtpBody,
+  type VerifyOtpBody,
+  type ChangePasswordBody,
+  type VerifyOtpResponse,
 } from '@/types/api';
 
 // ─── Types internal ───────────────────────────────────────────────────────────
 
-export type { AuthPayload };
+export type { LoginPayload as AuthPayload };
 
 // ─── POST /auth/register ─────────────────────────────────────────────────────
 
 /**
  * Đăng ký tài khoản khách hàng mới.
- * Tự động lưu access_token sau khi đăng ký thành công.
  */
-export async function register(body: RegisterBody): Promise<AuthPayload> {
-  const response = await apiClient.post<AuthPayload>('/auth/register', body);
+export async function register(body: RegisterBody): Promise<RegisterPayload> {
+  const response = await apiClient.post<RegisterPayload>('/auth/register', body);
   const payload = response.data;
-  saveToken(payload.access_token);
+  // Lưu token nếu có (trường hợp BE cấu hình đăng ký xong login luôn, 
+  // nhưng thường flow OTP sẽ chưa có token ở bước này)
+  if (payload.access_token) {
+    saveToken(payload.access_token);
+  }
   return payload;
+}
+
+// ─── OTP ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Gửi mã OTP xác thực email.
+ */
+export async function sendOtp(body: SendOtpBody): Promise<string> {
+  const response = await apiClient.post<string>('/auth/send-otp', body);
+  return response.data;
+}
+
+/**
+ * Xác thực mã OTP để kích hoạt tài khoản.
+ */
+export async function verifyOtp(body: VerifyOtpBody): Promise<VerifyOtpResponse> {
+  const response = await apiClient.post<VerifyOtpResponse>('/auth/verify-otp', body);
+  const payload = response.data;
+  // Sau khi verify xong, nếu BE có trả về token thì lưu ngay
+  // (Lưu ý: BE verify-otp hiện tại của bạn chưa trả token, chỉ trả verified: true)
+  return payload;
+}
+
+// ─── QUÊN MẬT KHẨU ────────────────────────────────────────────────────────────
+
+/**
+ * Yêu cầu gửi OTP để reset mật khẩu.
+ */
+export async function requestPasswordReset(body: SendOtpBody): Promise<string> {
+  const response = await apiClient.post<string>('/auth/request-password-reset', body);
+  return response.data;
+}
+
+/**
+ * Đổi mật khẩu mới kèm mã OTP.
+ */
+export async function changePassword(body: ChangePasswordBody): Promise<string> {
+  const response = await apiClient.post<string>('/auth/change-password', body);
+  return response.data;
 }
 
 // ─── POST /auth/login ─────────────────────────────────────────────────────────
@@ -38,8 +85,8 @@ export async function register(body: RegisterBody): Promise<AuthPayload> {
  * `identity` = phone hoặc email.
  * Tự động lưu access_token sau khi login thành công.
  */
-export async function login(body: LoginBody): Promise<AuthPayload> {
-  const response = await apiClient.post<AuthPayload>('/auth/login', body);
+export async function login(body: LoginBody): Promise<LoginPayload> {
+  const response = await apiClient.post<LoginPayload>('/auth/login', body);
   const payload = response.data;
   saveToken(payload.access_token);
   return payload;

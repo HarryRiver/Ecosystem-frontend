@@ -378,7 +378,7 @@ export async function getAdminUnreadCount(): Promise<UnreadCount> {
   return response.data;
 }
 
-export async function markAdminNotificationRead(id: string): Promise<void> {
+export async function markAdminNotificationRead(id: number): Promise<void> {
   await apiClient.patch(`/admin/notifications/${id}/read`);
 }
 

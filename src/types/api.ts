@@ -37,13 +37,41 @@ export interface ApiUser {
   prepaid_required: boolean;
   is_blacklisted: boolean;
   no_show_count: number;
-  status: "active" | "inactive" | "locked";
+  status: "active" | "inactive" | "locked" | "unverified";
   created_at: string;
   updated_at: string;
 }
 
-export interface AuthPayload {
+export interface LoginPayload {
   access_token: string;
+  refresh_token?: string;
+  user: ApiUser;
+}
+
+export interface RegisterPayload {
+  access_token?: string;
+  refresh_token?: string;
+  user: ApiUser;
+}
+
+export interface SendOtpBody {
+  email: string;
+}
+
+export interface VerifyOtpBody {
+  email: string;
+  code: string;
+}
+
+export interface ChangePasswordBody {
+  email: string;
+  otpCode: string;
+  newPassword: string;
+}
+
+export interface VerifyOtpResponse {
+  verified: boolean;
+  enabled: boolean;
   user: ApiUser;
 }
 
@@ -236,7 +264,7 @@ export interface Payment {
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export interface Notification {
-  id: string;
+  id: number;
   title: string;
   body: string;
   is_read: boolean;

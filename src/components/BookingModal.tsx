@@ -188,46 +188,7 @@ const getBookingDateLabelFormatter = (lang: string) => new Intl.DateTimeFormat(g
 
 const maxUploadImageSizeBytes = 5 * 1024 * 1024;
 
-/*
-const wasteServiceDefs = [
-  { id: 'sofa-single', icon: '🛋️', categoryKey: 'furniture', pricingMode: 'fixed' as const, basePrice: 150000, unitLabelKey: 'perItem' },
-  { id: 'sofa-large',  icon: '🛋️', categoryKey: 'furniture', pricingMode: 'fixed' as const, basePrice: 250000, unitLabelKey: 'perItem' },
-  { id: 'wardrobe',    icon: '🗄️', categoryKey: 'furniture', pricingMode: 'fixed' as const,
-    optionDefs: [
-      { id: 'small',    price: 180000, unitLabelKey: 'perItem' },
-      { id: 'standard', price: 260000, unitLabelKey: 'perItem' },
-      { id: 'oversize', price: 420000, unitLabelKey: 'perItem' },
-    ],
-  },
-  { id: 'kitchen-cabinet', icon: '🗃️', categoryKey: 'furniture',    pricingMode: 'fixed' as const, basePrice: 120000, unitLabelKey: 'perItem' },
-  { id: 'bed',         icon: '🛏️', categoryKey: 'furniture',    pricingMode: 'fixed' as const, basePrice: 220000, unitLabelKey: 'perItem' },
-  { id: 'tv',          icon: '📺', categoryKey: 'electronics', pricingMode: 'fixed' as const, basePrice: 80000,  unitLabelKey: 'perItem' },
-  { id: 'fridge',      icon: '🧣', categoryKey: 'electronics', pricingMode: 'fixed' as const, basePrice: 200000, unitLabelKey: 'perItem' },
-  { id: 'washer',      icon: '🪧', categoryKey: 'electronics', pricingMode: 'fixed' as const, basePrice: 180000, unitLabelKey: 'perItem' },
-  { id: 'aircon',      icon: '❄️', categoryKey: 'electronics', pricingMode: 'fixed' as const, basePrice: 160000, unitLabelKey: 'perItem' },
-  { id: 'office-furniture', icon: '🪑', categoryKey: 'other', pricingMode: 'fixed' as const,    basePrice: 100000, unitLabelKey: 'perItem' },
-  { id: 'household-bag',    icon: '🗑️', categoryKey: 'other', pricingMode: 'fixed' as const,    basePrice: 60000,  unitLabelKey: 'perBag'  },
-  { id: 'construction',     icon: '🧱', categoryKey: 'other', pricingMode: 'estimate' as const, basePrice: 7000,   unitLabelKey: 'perKg'  },
-  { id: 'red-copper',       icon: '🔴', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 150000, maxPrice: 200000, unitLabelKey: 'perKg' },
-  { id: 'yellow-copper',    icon: '🟡', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 90000, maxPrice: 140000, unitLabelKey: 'perKg' },
-  { id: 'aluminum',         icon: '⚪', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 25000, maxPrice: 45000, unitLabelKey: 'perKg' },
-  { id: 'stainless-steel',  icon: '🔩', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 15000, maxPrice: 30000, unitLabelKey: 'perKg' },
-  { id: 'iron',             icon: '⬛', categoryKey: 'metals', pricingMode: 'estimate' as const, basePrice: 8000, maxPrice: 15000, unitLabelKey: 'perKg' },
-  { id: 'plastic-pet',      icon: '🍾', categoryKey: 'plastics', pricingMode: 'estimate' as const, basePrice: 8000, maxPrice: 15000, unitLabelKey: 'perKg' },
-  { id: 'plastic-hard',     icon: '🪣', categoryKey: 'plastics', pricingMode: 'estimate' as const, basePrice: 10000, maxPrice: 25000, unitLabelKey: 'perKg' },
-  { id: 'plastic-soft',     icon: '🛍️', categoryKey: 'plastics', pricingMode: 'estimate' as const, basePrice: 5000, maxPrice: 12000, unitLabelKey: 'perKg' },
-  { id: 'paper-carton',     icon: '📦', categoryKey: 'paper', pricingMode: 'estimate' as const, basePrice: 3000, maxPrice: 6000, unitLabelKey: 'perKg' },
-  { id: 'paper-white',      icon: '📄', categoryKey: 'paper', pricingMode: 'estimate' as const, basePrice: 5000, maxPrice: 8000, unitLabelKey: 'perKg' },
-  { id: 'paper-news',       icon: '📰', categoryKey: 'paper', pricingMode: 'estimate' as const, basePrice: 4000, maxPrice: 7000, unitLabelKey: 'perKg' },
-  { id: 'clothes-normal',   icon: '👕', categoryKey: 'clothes', pricingMode: 'estimate' as const, basePrice: 5000, maxPrice: 20000, unitLabelKey: 'perKg' },
-  { id: 'clothes-premium',  icon: '👗', categoryKey: 'clothes', pricingMode: 'estimate' as const, basePrice: 50000, maxPrice: 200000, unitLabelKey: 'perItem' },
-  { id: 'clothes-scraps',   icon: '🧵', categoryKey: 'clothes', pricingMode: 'estimate' as const, basePrice: 3000, maxPrice: 10000, unitLabelKey: 'perKg' },
-  { id: 'vehicle-motorcycle', icon: '🛵', categoryKey: 'vehicles', pricingMode: 'estimate' as const, basePrice: 1000000, maxPrice: 5000000, unitLabelKey: 'perItem' },
-  { id: 'vehicle-bicycle',    icon: '🚲', categoryKey: 'vehicles', pricingMode: 'estimate' as const, basePrice: 100000, maxPrice: 500000, unitLabelKey: 'perItem' },
-  { id: 'vehicle-machinery',  icon: '⚙️', categoryKey: 'vehicles', pricingMode: 'quote' as const },
-  { id: 'custom',           icon: '✨', categoryKey: 'other', pricingMode: 'quote' as const },
-];
-*/
+
 
 const stairsBaseFee = 50000;
 const stairsPerFloorFee = 30000;

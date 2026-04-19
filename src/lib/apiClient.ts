@@ -13,7 +13,6 @@
  */
 
 import axios, {
-  type AxiosError,
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from 'axios';
@@ -98,17 +97,24 @@ apiClient.interceptors.response.use(
   },
 
   // Thất bại: chuyển AxiosError thành ApiError
-  (error: AxiosError<ApiResponse<null>>) => {
-    if (error.response) {
+  (error: any) => {
+    // 1. Nếu đã là ApiError (từ success interceptor ném sang), giữ nguyên
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    // 2. Xử lý AxiosError (lỗi HTTP 4xx, 5xx)
+    if (axios.isAxiosError(error) && error.response) {
       const status = error.response.status;
-      const body = error.response.data;
-      const message = body?.message ?? error.message ?? 'Có lỗi không xác định';
-      const errorCode = body?.error_code ?? null;
+      const body = error.response.data as ApiResponse<null> | undefined;
+
+      // Ưu tiên message từ BE, rồi đến error.message, cuối cùng là mặc định
+      const message = body?.message || error.message || 'Có lỗi không xác định từ hệ thống';
+      const errorCode = body?.error_code ? String(body.error_code) : null;
 
       // 401 → xóa token (session hết hạn)
       if (status === 401) {
         removeToken();
-        // Reload để AppShell kiểm tra lại session, tránh circular import
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('ecocollect:unauthorized'));
         }
@@ -117,9 +123,9 @@ apiClient.interceptors.response.use(
       throw new ApiError(message, status, errorCode);
     }
 
-    // Network error hoặc timeout
+    // 3. Network error, Timeout hoặc các lỗi JavaScript khác
     throw new ApiError(
-      'Không thể kết nối đến máy chủ. Vui lòng kiểm tra Internet.',
+      error.message || 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra Internet.',
       0,
     );
   },

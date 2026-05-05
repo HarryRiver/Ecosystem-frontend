@@ -42,6 +42,7 @@ import {
   createAdminReview,
   updateAdminReview,
 } from '../services/admin.service';
+import AdminVouchersPage from './admin/AdminVouchersPage';
 import {
   findCustomerForOrder,
   getPaginatedItems,
@@ -56,7 +57,7 @@ import {
 import type { AdminMetrics } from '../types/api';
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
-type Tab = 'overview' | 'users' | 'services' | 'pricing' | 'orders' | 'reviews';
+type Tab = 'overview' | 'users' | 'services' | 'pricing' | 'orders' | 'reviews' | 'vouchers';
 
 interface AdminDashboardProps {
   currentUser?: AuthUser | null;
@@ -107,6 +108,7 @@ const NAV_ITEMS: { id: Tab; label: string; desc: string; badge?: number }[] = [
   { id: 'services', label: 'Dịch vụ', desc: 'Danh mục & sản phẩm' },
   { id: 'pricing',  label: 'Bảng giá', desc: 'Cập nhật giá dịch vụ' },
   { id: 'orders',   label: 'Đơn hàng', desc: 'Xác nhận & chốt đơn' },
+  { id: 'vouchers', label: 'Khuyến mãi', desc: 'Mã giảm giá, quà tặng' },
   { id: 'reviews',  label: 'Đánh giá', desc: 'Phản hồi từ khách' },
 ];
 
@@ -126,11 +128,20 @@ function IconReviews({ active }: { active?: boolean }) {
   );
 }
 
+function IconVouchers({ active }: { active?: boolean }) {
+  return (
+    <svg className={cn('h-5 w-5 transition-colors', active ? 'text-[#2F855A]' : 'text-[#6D877A]')} fill="none" strokeWidth={1.8} stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+    </svg>
+  );
+}
+
 function NavIcon({ id, active }: { id: Tab; active?: boolean }) {
   if (id === 'overview') return <IconDashboard active={active} />;
   if (id === 'users')    return <IconUsers active={active} />;
   if (id === 'services') return <IconServices active={active} />;
   if (id === 'pricing')  return <IconPricing active={active} />;
+  if (id === 'vouchers') return <IconVouchers active={active} />;
   if (id === 'reviews')  return <IconReviews active={active} />;
   return <IconOrders active={active} />;
 }
@@ -511,6 +522,7 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
               {activeTab === 'users'    && 'Quản lý khách hàng'}
               {activeTab === 'services' && 'Danh mục sản phẩm'}
               {activeTab === 'pricing'  && 'Bảng giá dịch vụ'}
+              {activeTab === 'vouchers' && 'Quản lý Khuyến mãi'}
               {activeTab === 'orders'   && 'Quản lý đơn hàng'}
               {activeTab === 'reviews'  && 'Quản lý Đánh Giá'}
             </h1>
@@ -519,6 +531,7 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
               {activeTab === 'users'    && `${customerRows.length} khách hàng`}
               {activeTab === 'services' && 'Các nhóm dịch vụ hiện có'}
               {activeTab === 'pricing'  && 'Điều chỉnh giá trực tiếp'}
+              {activeTab === 'vouchers' && 'Tạo và phân phối mã giảm giá'}
               {activeTab === 'orders'   && `${pendingCount} đơn cần xử lý`}
               {activeTab === 'reviews'  && 'Phản hồi từ khách hàng'}
             </p>
@@ -1098,8 +1111,13 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
             </div>
           )}
 
+          {/* ══ TAB: VOUCHERS ════════════════════════════════════════════ */}
+          {activeTab === 'vouchers' && <AdminVouchersPage />}
+
         </div>
       </main>
+
+      {/* Review Modal Logic Below */}
 
       {/* ══ MOBILE BOTTOM NAV ══════════════════════════════════════════ */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex border-t border-[#DFF0E5] bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_24px_rgba(16,59,45,0.06)] lg:hidden">

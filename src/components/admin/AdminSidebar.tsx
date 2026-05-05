@@ -20,6 +20,14 @@ function IconUsers({ className }: { className?: string }) {
   );
 }
 
+function IconVouchers({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+    </svg>
+  );
+}
+
 function IconPricing({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor">
@@ -59,6 +67,8 @@ const navItems = [
     badge: null,
     color: 'from-emerald-500 to-teal-600',
     glow: 'shadow-emerald-200',
+    defaultLabel: 'Khách hàng',
+    defaultDesc: 'Quản lý người dùng',
   },
   {
     href: '/admin/pricing',
@@ -68,6 +78,8 @@ const navItems = [
     badge: null,
     color: 'from-amber-500 to-orange-500',
     glow: 'shadow-amber-200',
+    defaultLabel: 'Bảng giá',
+    defaultDesc: 'Dịch vụ và thiết lập giá',
   },
   {
     href: '/admin/orders',
@@ -77,6 +89,19 @@ const navItems = [
     badge: null,
     color: 'from-violet-500 to-purple-600',
     glow: 'shadow-violet-200',
+    defaultLabel: 'Đơn hàng',
+    defaultDesc: 'Quản lý trạng thái đơn',
+  },
+  {
+    href: '/admin/vouchers',
+    labelKey: 'admin.sidebar.nav.vouchers',
+    descKey: 'admin.sidebar.nav.vouchersDesc',
+    icon: IconVouchers,
+    badge: null,
+    color: 'from-blue-500 to-indigo-600',
+    glow: 'shadow-blue-200',
+    defaultLabel: 'Khuyến mãi',
+    defaultDesc: 'Mã giảm giá, quà tặng',
   },
 ];
 
@@ -225,9 +250,9 @@ export default function AdminSidebar({
                       isActive ? 'text-[#103B2D]' : 'text-[#476458] group-hover:text-[#103B2D]',
                     )}
                   >
-                    {t(item.labelKey)}
+                    {t(item.labelKey, item.defaultLabel || '')}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-[#6D877A]">{t(item.descKey)}</p>
+                  <p className="mt-0.5 truncate text-xs text-[#6D877A]">{t(item.descKey, item.defaultDesc || '')}</p>
                 </div>
 
                 {/* Badge */}

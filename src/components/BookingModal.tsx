@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { type AuthMode, type AuthUser } from '@/lib/auth';
 import { HERO_OPTION_TO_CATEGORY, isHeroQuickOption, useSyncStore, STORAGE_KEYS, defaultPricing } from '@/lib/store';
 import { getServices } from '@/services/catalog.service';
+import { getQuote } from '@/services/orders.service';
 import type { ApiService, ServiceVariant } from '@/types/api';
 
 interface BookingPrefill {
@@ -71,6 +72,8 @@ export interface BookingSubmissionPayload {
     subtotal: number;
     total: number;
     hasQuoteItems: boolean;
+    voucherCode?: string;
+    discountAmount?: number;
   };
   payment: {
     method: PaymentMethod;
@@ -510,6 +513,11 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
   const [orderCodeFromApi, setOrderCodeFromApi] = useState<string>('');
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [voucherCodeInput, setVoucherCodeInput] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState<{ discount_amount: number; voucher_code: string } | null>(null);
+  const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
@@ -586,27 +594,33 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
         : t('booking.handling.inside');
 
   const calculateTotal = () => {
-    return selectedItems.reduce((total, item) => {
+    const rawTotal = selectedItems.reduce((total, item) => {
       if (item.pricingMode === 'quote') {
         return total;
       }
-
       return total + item.basePrice * getBillingAmount(item);
     }, 0);
+    return rawTotal; // The raw total before discount
+  };
+
+  const getDiscountAmount = () => appliedVoucher?.discount_amount || 0;
+
+  const calculateFinalTotal = () => {
+    return Math.max(0, calculateTotal() + serviceHandlingFee - getDiscountAmount());
   };
 
   const getTotalLabel = () => {
-    const total = calculateTotal() + serviceHandlingFee;
+    const finalTotal = calculateFinalTotal();
 
-    if (hasQuoteItems && total > 0) {
-      return `Từ ${formatPrice(total, currentLang)}`;
+    if (hasQuoteItems && calculateTotal() + serviceHandlingFee > 0) {
+      return `Từ ${formatPrice(finalTotal, currentLang)}`;
     }
 
     if (hasQuoteItems) {
       return t('booking.quoteLabel');
     }
 
-    return formatPrice(total, currentLang);
+    return formatPrice(finalTotal, currentLang);
   };
 
   const getLineItemLabel = (item: SelectedWasteItem) => {
@@ -736,7 +750,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
 
   const buildSubmissionPayload = (): BookingSubmissionPayload => {
     const subtotal = calculateTotal();
-    const total = subtotal + serviceHandlingFee;
+    const total = calculateFinalTotal();
 
     return {
       submittedAt: new Date().toISOString(),
@@ -780,6 +794,8 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
         subtotal,
         total,
         hasQuoteItems,
+        voucherCode: appliedVoucher?.voucher_code || undefined,
+        discountAmount: appliedVoucher?.discount_amount || undefined,
       },
       payment: {
         method: paymentMethod,
@@ -867,6 +883,9 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
     setIsSubmitting(false);
     setIsSuccess(false);
     setSubmitError(null);
+    setVoucherCodeInput('');
+    setAppliedVoucher(null);
+    setVoucherError(null);
     setNameTouched(false);
     setStreetTouched(false);
     setDistrictTouched(false);
@@ -876,6 +895,41 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
     setServiceStepTouched(false);
     setScheduleStepTouched(false);
     hasPrefilled.current = false;
+  };
+
+  const handleApplyVoucher = async () => {
+    if (!voucherCodeInput.trim() || hasQuoteItems) return;
+    setIsApplyingVoucher(true);
+    setVoucherError(null);
+    try {
+      const result = await getQuote({
+        items: selectedItems.map((item) => ({
+          service_id: item.serviceId || 'unknown',
+          variant_id: item.selectedOptionId,
+          quantity: item.quantity,
+          measurement_value: item.measurementValue,
+        })),
+        handling_mode: handlingMode,
+        stairs_floors: handlingMode === 'stairs' ? stairsFloors : undefined,
+        voucher_code: voucherCodeInput.trim().toUpperCase(),
+      });
+      
+      if (result.discount_amount > 0) {
+        setAppliedVoucher({
+          discount_amount: result.discount_amount,
+          voucher_code: voucherCodeInput.trim().toUpperCase(),
+        });
+      } else {
+        setVoucherError('Mã không hợp lệ hoặc không đủ điều kiện đơn hàng.');
+        setAppliedVoucher(null);
+      }
+    } catch (e: any) {
+      console.error(e);
+      setVoucherError('Lỗi kiểm tra mã giảm giá!');
+      setAppliedVoucher(null);
+    } finally {
+      setIsApplyingVoucher(false);
+    }
   };
 
   const handleNext = () => {
@@ -1695,9 +1749,48 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                       ))}
                     </div>
 
-                    <div className="mt-4 rounded-2xl bg-[#103B2D] p-4 text-white">
+                    <div className="mt-4 rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-5">
+                      <h4 className="mb-3 text-sm font-semibold text-[#24483A]">Khuyến mãi</h4>
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          type="text"
+                          value={voucherCodeInput}
+                          onChange={(e) => setVoucherCodeInput(e.target.value.toUpperCase())}
+                          placeholder="Nhập mã giảm giá..."
+                          disabled={hasQuoteItems}
+                          className="flex-1 rounded-[16px] border border-[#D6EEDD] px-4 py-2.5 text-sm text-[#103B2D] placeholder:text-[#8AA89A] outline-none focus:border-[#22C55E] disabled:opacity-50"
+                        />
+                        <button
+                          type="button"
+                          disabled={isApplyingVoucher || !voucherCodeInput || hasQuoteItems}
+                          onClick={handleApplyVoucher}
+                          className="rounded-[16px] bg-[#103B2D] px-6 py-2.5 text-sm font-bold text-white disabled:opacity-50 hover:bg-[#1A573F] transition-colors"
+                        >
+                          {isApplyingVoucher ? 'Đang kiểm tra...' : 'Áp dụng'}
+                        </button>
+                      </div>
+                      {hasQuoteItems && (
+                        <p className="text-xs text-[#8AA89A] mb-1">Mã giảm giá không áp dụng cùng các dịch vụ cần báo giá.</p>
+                      )}
+                      {voucherError && <p className="text-red-500 text-xs font-semibold">{voucherError}</p>}
+                      {appliedVoucher && <p className="text-[#2F855A] text-xs font-bold">🎉 Đã áp dụng thẻ {appliedVoucher.voucher_code}! Giảm {formatPrice(appliedVoucher.discount_amount, currentLang)}</p>}
+                    </div>
+
+                    <div className="mt-4 rounded-[28px] bg-[#103B2D] p-5 text-white">
+                      <div className="space-y-2 mb-3 border-b border-white/20 pb-3">
+                         <div className="flex items-center justify-between text-white/70 text-sm">
+                           <span>Tổng tạm tính</span>
+                           <span>{formatPrice(calculateTotal() + serviceHandlingFee, currentLang)}</span>
+                         </div>
+                         {appliedVoucher && (
+                           <div className="flex items-center justify-between text-[#8DE0A6] text-sm font-bold">
+                             <span>Khuyến mãi ({appliedVoucher.voucher_code})</span>
+                             <span>- {formatPrice(appliedVoucher.discount_amount, currentLang)}</span>
+                           </div>
+                         )}
+                      </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-white/70">Total</span>
+                        <span className="text-sm font-semibold text-white/80">Thành tiền</span>
                         <span className="text-2xl font-bold">{getTotalLabel()}</span>
                       </div>
                     </div>

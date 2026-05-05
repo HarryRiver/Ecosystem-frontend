@@ -190,10 +190,7 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
                 ))}
               </div>
 
-              <div className="mt-6 flex items-center justify-between">
-                <span className="text-sm font-medium text-[#476458]">
-                  {t('wasteTypes.ctaLabel')}
-                </span>
+              <div className="mt-6 flex items-center justify-end">
                 <span className="text-sm font-bold text-[#2F855A]">{t('wasteTypes.ctaButton')}</span>
               </div>
             </div>

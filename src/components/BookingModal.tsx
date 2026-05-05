@@ -6,7 +6,8 @@ import { type AuthMode, type AuthUser } from '@/lib/auth';
 import { HERO_OPTION_TO_CATEGORY, isHeroQuickOption, useSyncStore, STORAGE_KEYS, defaultPricing } from '@/lib/store';
 import { getServices } from '@/services/catalog.service';
 import { getQuote } from '@/services/orders.service';
-import type { ApiService, ServiceVariant } from '@/types/api';
+import { getPublicVouchers } from '@/services/vouchers.service';
+import type { ApiService, ServiceVariant, Voucher } from '@/types/api';
 
 interface BookingPrefill {
   address?: string;
@@ -376,6 +377,35 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
       .catch((err) => console.error('Failed to fetch services:', err));
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let ignore = false;
+    setIsLoadingVouchers(true);
+
+    getPublicVouchers()
+      .then((data) => {
+        if (!ignore && Array.isArray(data)) {
+          setPublicVouchers(data);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch vouchers:', err);
+        if (!ignore) {
+          setPublicVouchers([]);
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setIsLoadingVouchers(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [isOpen]);
+
   const serviceIconMap: Record<string, string> = {
     furniture: '🛋️',
     electronics: '📺',
@@ -517,6 +547,8 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
   const [appliedVoucher, setAppliedVoucher] = useState<{ discount_amount: number; voucher_code: string } | null>(null);
   const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
   const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [publicVouchers, setPublicVouchers] = useState<Voucher[]>([]);
+  const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
 
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
@@ -603,6 +635,8 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
     return rawTotal; // The raw total before discount
   };
 
+  const voucherEligibleAmount = Math.max(0, calculateTotal() + serviceHandlingFee);
+
   const getDiscountAmount = () => appliedVoucher?.discount_amount || 0;
 
   const calculateFinalTotal = () => {
@@ -630,6 +664,29 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
 
     const lineTotal = item.basePrice * getBillingAmount(item);
     return item.pricingMode === 'estimate' ? `Tạm tính ${formatPrice(lineTotal, currentLang)}` : formatPrice(lineTotal, currentLang);
+  };
+
+  const getVoucherDiscountLabel = (voucher: Voucher) => {
+    if (voucher.type === 'percent') {
+      const maxText = voucher.max_discount
+        ? ` tối đa ${formatPrice(voucher.max_discount, currentLang)}`
+        : '';
+      return `Giảm ${voucher.value}%${maxText}`;
+    }
+
+    return `Giảm ${formatPrice(voucher.value, currentLang)}`;
+  };
+
+  const getVoucherRequirementLabel = (voucher: Voucher) => {
+    if (voucher.min_order_value <= 0) {
+      return 'Áp dụng cho mọi đơn';
+    }
+
+    return `Đơn từ ${formatPrice(voucher.min_order_value, currentLang)}`;
+  };
+
+  const canUsePublicVoucher = (voucher: Voucher) => {
+    return !hasQuoteItems && voucherEligibleAmount >= voucher.min_order_value;
   };
 
   const filteredServices = useMemo(() => {
@@ -897,8 +954,10 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
     hasPrefilled.current = false;
   };
 
-  const handleApplyVoucher = async () => {
-    if (!voucherCodeInput.trim() || hasQuoteItems) return;
+  const handleApplyVoucher = async (codeOverride?: string) => {
+    const normalizedCode = (codeOverride ?? voucherCodeInput).trim().toUpperCase();
+    if (!normalizedCode || hasQuoteItems) return;
+    setVoucherCodeInput(normalizedCode);
     setIsApplyingVoucher(true);
     setVoucherError(null);
     try {
@@ -911,13 +970,13 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
         })),
         handling_mode: handlingMode,
         stairs_floors: handlingMode === 'stairs' ? stairsFloors : undefined,
-        voucher_code: voucherCodeInput.trim().toUpperCase(),
+        voucher_code: normalizedCode,
       });
       
       if (result.discount_amount > 0) {
         setAppliedVoucher({
           discount_amount: result.discount_amount,
-          voucher_code: voucherCodeInput.trim().toUpperCase(),
+          voucher_code: normalizedCode,
         });
       } else {
         setVoucherError('Mã không hợp lệ hoặc không đủ điều kiện đơn hàng.');
@@ -1763,7 +1822,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                         <button
                           type="button"
                           disabled={isApplyingVoucher || !voucherCodeInput || hasQuoteItems}
-                          onClick={handleApplyVoucher}
+                          onClick={() => handleApplyVoucher()}
                           className="rounded-[16px] bg-[#103B2D] px-6 py-2.5 text-sm font-bold text-white disabled:opacity-50 hover:bg-[#1A573F] transition-colors"
                         >
                           {isApplyingVoucher ? 'Đang kiểm tra...' : 'Áp dụng'}
@@ -1773,7 +1832,53 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                         <p className="text-xs text-[#8AA89A] mb-1">Mã giảm giá không áp dụng cùng các dịch vụ cần báo giá.</p>
                       )}
                       {voucherError && <p className="text-red-500 text-xs font-semibold">{voucherError}</p>}
-                      {appliedVoucher && <p className="text-[#2F855A] text-xs font-bold">🎉 Đã áp dụng thẻ {appliedVoucher.voucher_code}! Giảm {formatPrice(appliedVoucher.discount_amount, currentLang)}</p>}
+                      {appliedVoucher && <p className="text-[#2F855A] text-xs font-bold">Đã áp dụng thẻ {appliedVoucher.voucher_code}. Giảm {formatPrice(appliedVoucher.discount_amount, currentLang)}</p>}
+                      {(isLoadingVouchers || publicVouchers.length > 0) && (
+                        <div className="mt-4">
+                          <p className="mb-2 text-xs font-semibold uppercase text-[#789185]">
+                            Mã đang phát hành
+                          </p>
+                          {isLoadingVouchers ? (
+                            <div className="rounded-[8px] border border-[#D6EEDD] bg-white px-3 py-2 text-xs font-medium text-[#789185]">
+                              Đang tải mã khuyến mãi...
+                            </div>
+                          ) : (
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              {publicVouchers.map((voucher) => {
+                                const isApplied = appliedVoucher?.voucher_code === voucher.code;
+                                const isUsable = canUsePublicVoucher(voucher);
+                                const helperText = hasQuoteItems
+                                  ? 'Không áp dụng với dịch vụ báo giá'
+                                  : isUsable
+                                    ? getVoucherRequirementLabel(voucher)
+                                    : `Cần đơn từ ${formatPrice(voucher.min_order_value, currentLang)}`;
+
+                                return (
+                                  <button
+                                    key={voucher.id}
+                                    type="button"
+                                    disabled={!isUsable || isApplyingVoucher}
+                                    onClick={() => handleApplyVoucher(voucher.code)}
+                                    className={`min-h-[72px] rounded-[8px] border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed ${
+                                      isApplied
+                                        ? 'border-[#2F855A] bg-[#EAF8EE] text-[#103B2D]'
+                                        : isUsable
+                                          ? 'border-[#BFE8CB] bg-white text-[#103B2D] hover:border-[#2F855A] hover:bg-[#F0FBF3]'
+                                          : 'border-[#E2ECE6] bg-white/60 text-[#789185] opacity-70'
+                                    }`}
+                                  >
+                                    <span className="block text-sm font-bold">{voucher.code}</span>
+                                    <span className="mt-1 block text-xs font-semibold text-[#2F855A]">
+                                      {getVoucherDiscountLabel(voucher)}
+                                    </span>
+                                    <span className="mt-1 block text-xs text-[#789185]">{helperText}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-4 rounded-[28px] bg-[#103B2D] p-5 text-white">

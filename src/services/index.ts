@@ -11,3 +11,4 @@ export * from './orders.service';
 export * from './catalog.service';
 export * from './notifications.service';
 export * from './admin.service';
+export * from './vouchers.service';

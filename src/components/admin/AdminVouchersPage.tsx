@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/cn';
 import { currency } from '../../data/adminDashboardMock';
 import {
@@ -179,7 +178,6 @@ function CreateVoucherModal({
 
 /* ─── Main Page ───────────────────────────────────────────────────────── */
 export default function AdminVouchersPage() {
-  const { t } = useTranslation();
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

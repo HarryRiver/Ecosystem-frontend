@@ -153,14 +153,14 @@ export default function AdminSidebar({
   return (
     <aside className="flex flex-col gap-3 xl:sticky xl:top-6 xl:self-start">
       {/* ── Brand card ── */}
-      <div className="relative z-50 rounded-[28px] bg-[linear-gradient(135deg,_#0d2f23_0%,_#103B2D_60%,_#1a5240_100%)] p-5 shadow-[0_20px_60px_rgba(16,59,45,0.28)]">
+      <div className="relative z-50 rounded-[28px] bg-white p-5 shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-slate-100">
         {/* Logo row */}
         <div className="flex items-center justify-between gap-2">
           <Link href="/admin" className="flex items-center gap-3">
             <img 
-              src="/logofinal.png" 
-              alt="EcoCollect Logo" 
-              className="h-8 w-auto object-contain scale-[5] origin-left" 
+              src="/logo.svg" 
+              alt="Snap Move Logo" 
+              className="h-10 w-auto object-contain" 
             />
           </Link>
           <div className="hidden xl:block shrink-0">
@@ -169,7 +169,7 @@ export default function AdminSidebar({
         </div>
 
         {/* Divider */}
-        <div className="my-4 h-px bg-white/8" />
+        <div className="my-4 h-px bg-slate-100" />
 
         {/* Admin info */}
         <div className="flex items-center gap-3">
@@ -177,12 +177,12 @@ export default function AdminSidebar({
             {adminName.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-white">{adminName}</p>
-            <p className="truncate text-xs text-white/50">{adminEmail}</p>
+            <p className="truncate text-sm font-semibold text-slate-900">{adminName}</p>
+            <p className="truncate text-xs text-slate-400 font-medium">{adminEmail}</p>
           </div>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20 xl:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 xl:hidden"
           >
             {isMobileMenuOpen ? (
               <svg viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor" className="h-5 w-5">

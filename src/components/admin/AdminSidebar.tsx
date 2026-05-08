@@ -156,17 +156,13 @@ export default function AdminSidebar({
       <div className="relative z-50 rounded-[28px] bg-[linear-gradient(135deg,_#0d2f23_0%,_#103B2D_60%,_#1a5240_100%)] p-5 shadow-[0_20px_60px_rgba(16,59,45,0.28)]">
         {/* Logo row */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex flex-1 min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#2F855A] shadow-[0_4px_16px_rgba(47,133,90,0.5)]">
-              <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5Z" />
-              </svg>
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-bold uppercase tracking-[0.2em] text-[#A7E8B6]">EcoCollect</p>
-              <p className="truncate text-[10px] text-white/50">{t('admin.sidebar.brand', 'Admin Dashboard')}</p>
-            </div>
-          </div>
+          <Link href="/admin" className="flex items-center gap-3">
+            <img 
+              src="/logofinal.png" 
+              alt="EcoCollect Logo" 
+              className="h-8 w-auto object-contain scale-[5] origin-left" 
+            />
+          </Link>
           <div className="hidden xl:block shrink-0">
             <LanguageSwitcher />
           </div>

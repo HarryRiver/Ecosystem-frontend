@@ -40,17 +40,13 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
       <div className="w-full max-w-[1440px] mx-auto px-4 xl:px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#8DE0A6]">
-              <span className="text-white text-xl">♻️</span>
-            </div>
-            <div>
-              <span className="block text-xl font-bold text-white">EcoCollect</span>
-              <span className="block text-xs uppercase tracking-[0.2em] text-[#A7E8B6]">
-                Green logistics
-              </span>
-            </div>
-          </div>
+          <Link href="/" className="flex items-center">
+            <img 
+              src="/logofinal.png" 
+              alt="EcoCollect Logo" 
+              className="h-10 w-auto object-contain scale-[5] origin-left"
+            />
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden xl:flex items-center space-x-3 xl:space-x-5">

@@ -963,8 +963,8 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
     try {
       const result = await getQuote({
         items: selectedItems.map((item) => ({
-          service_id: item.serviceId || 'unknown',
-          variant_id: item.selectedOptionId,
+          service_id: item.serviceId || item.id,
+          service_variant_id: item.selectedOptionId,
           quantity: item.quantity,
           measurement_value: item.measurementValue,
         })),

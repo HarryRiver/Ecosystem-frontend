@@ -53,7 +53,7 @@
     "linksTitle": "Liên kết nhanh",
     "servicesTitle": "Dịch vụ",
     "contactTitle": "Liên hệ",
-    "rights": "© 2024 EcoCollect. Bảo lưu mọi quyền.",
+    "rights": "© 2024 Snap Move. Bảo lưu mọi quyền.",
     "links": {
       "home": "Trang chủ",
       "about": "Về chúng tôi",
@@ -98,7 +98,7 @@
     }
   },
   "auth": {
-    "badge": "EcoCollect member access",
+    "badge": "Snap Move member access",
     "sidebarTitle": "Đặt lịch không cần tài khoản, nhưng có account sẽ tiện hơn nhiều",
     "sidebarSubtitle": "Khách vẫn có thể đặt lịch như bình thường. Tài khoản chỉ là lớp trải nghiệm cộng thêm: lưu thông tin, nhận voucher và theo dõi đơn thuận tiện hơn.",
     "benefits": {
@@ -127,7 +127,7 @@
     },
     "forgot": {
       "title": "Quên mật khẩu",
-      "description": "Nhập email bạn dùng cho tài khoản EcoCollect để tiếp tục đặt lại mật khẩu.",
+      "description": "Nhập email bạn dùng cho tài khoản Snap Move để tiếp tục đặt lại mật khẩu.",
       "otpDescription": "Nhập mã OTP được gửi về email để tiếp tục đặt lại mật khẩu.",
       "passwordDescription": "Tạo mật khẩu mới cho tài khoản của bạn.",
       "doneDescription": "Mật khẩu của bạn đã được đặt lại thành công.",
@@ -164,7 +164,7 @@
       "success": "Yêu cầu đặt lại mật khẩu đã được ghi nhận."
     },
     "register": {
-      "title": "Tạo tài khoản EcoCollect",
+      "title": "Tạo tài khoản Snap Move",
       "nameLabel": "Họ và tên",
       "phoneLabel": "Số điện thoại",
       "emailLabel": "Email",
@@ -209,7 +209,7 @@
     }
   },
   "booking": {
-    "badge": "EcoCollect booking flow",
+    "badge": "Snap Move booking flow",
     "title": "Đặt lịch thu gom thông minh",
     "subtitle": "Chọn đúng loại rác và số lượng. Một số món cồng kềnh có phân loại kích thước, còn phế thải xây dựng sẽ nhập trực tiếp theo kg.",
     "steps": {
@@ -415,7 +415,7 @@
     "about": {
       "eyebrow": "Về chúng tôi",
       "title": "Nền tảng thu gom đồ cũ theo hướng eco-tech cho đô thị hiện đại",
-      "desc": "EcoCollect giúp khách hàng đặt lịch thu gom nhanh, minh bạch giá và theo dõi toàn bộ vòng đời xử lý đồ cũ từ lúc nhận đơn đến tái chế."
+      "desc": "Snap Move giúp khách hàng đặt lịch thu gom nhanh, minh bạch giá và theo dõi toàn bộ vòng đời xử lý đồ cũ từ lúc nhận đơn đến tái chế."
     },
     "mission": {
       "eyebrow": "Sứ mệnh",
@@ -450,7 +450,7 @@
     "subtitle": "",
     "tableHeader": "Bảng giá tham khảo",
     "note": "Giá trên là tham khảo, giá chính thức sẽ được xác nhận dựa theo loại đồ, kích thước và điều kiện thu gom.",
-    "whyTitle": "Tại sao chọn EcoCollect?",
+    "whyTitle": "Tại sao chọn Snap Move?",
     "cta": "Đặt lịch báo giá ngay",
     "items": {
       "sofaDouble": "Sofa đôi / góc L",

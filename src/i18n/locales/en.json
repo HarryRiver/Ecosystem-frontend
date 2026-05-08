@@ -53,7 +53,7 @@
     "linksTitle": "Quick Links",
     "servicesTitle": "Services",
     "contactTitle": "Contact",
-    "rights": "© 2024 EcoCollect. All rights reserved.",
+    "rights": "© 2024 Snap Move. All rights reserved.",
     "links": {
       "home": "Home",
       "about": "About Us",
@@ -98,7 +98,7 @@
     }
   },
   "auth": {
-    "badge": "EcoCollect member access",
+    "badge": "Snap Move member access",
     "sidebarTitle": "Book without an account, but having one is much better",
     "sidebarSubtitle": "Guests can still book normally. An account is just an added layer: save info, get vouchers, and track orders more conveniently.",
     "benefits": {
@@ -127,7 +127,7 @@
     },
     "forgot": {
       "title": "Forgot password",
-      "description": "Enter the email address you use for EcoCollect to continue resetting your password.",
+      "description": "Enter the email address you use for Snap Move to continue resetting your password.",
       "otpDescription": "Enter the OTP sent to your email to continue resetting your password.",
       "passwordDescription": "Create a new password for your account.",
       "doneDescription": "Your password has been reset successfully.",
@@ -164,7 +164,7 @@
       "success": "Your reset request has been received."
     },
     "register": {
-      "title": "Create EcoCollect Account",
+      "title": "Create Snap Move Account",
       "nameLabel": "Full Name",
       "phoneLabel": "Phone Number",
       "emailLabel": "Email",
@@ -209,7 +209,7 @@
     }
   },
   "booking": {
-    "badge": "EcoCollect booking flow",
+    "badge": "Snap Move booking flow",
     "title": "Smart Collection Schedule",
     "subtitle": "Choose the right item and quantity. Some bulky items have size options, while construction waste is entered directly in kg.",
     "steps": {
@@ -415,7 +415,7 @@
     "about": {
       "eyebrow": "About Us",
       "title": "Eco-tech collection platform for modern cities",
-      "desc": "EcoCollect helps customers book fast collections, with transparent pricing and tracking from receipt to recycling."
+      "desc": "Snap Move helps customers book fast collections, with transparent pricing and tracking from receipt to recycling."
     },
     "mission": {
       "eyebrow": "Mission",
@@ -450,7 +450,7 @@
     "subtitle": "",
     "tableHeader": "Reference Price List",
     "note": "Prices above are estimates. Final price confirmed based on item type, size, and collection conditions.",
-    "whyTitle": "Why choose EcoCollect?",
+    "whyTitle": "Why choose Snap Move?",
     "cta": "Book Now - Get a Quote",
     "items": {
       "sofaDouble": "Sofa Double / L-shape",

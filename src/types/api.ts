@@ -133,7 +133,7 @@ export type HandlingMode = "inside" | "outside" | "stairs";
 
 export interface QuoteItem {
   service_id: string;
-  variant_id?: string;
+  service_variant_id?: string;
   quantity: number;
   measurement_value?: number;
   /** Tên mục do khách tự nhập (hàng mục khác) */
@@ -288,6 +288,7 @@ export interface Voucher {
   min_order_value: number;
   usage_limit: number;
   used_count: number;
+  per_user_limit: number;
   start_date: string;
   end_date: string;
   active: boolean;
@@ -300,6 +301,7 @@ export interface CreateVoucherBody {
   max_discount?: number;
   min_order_value: number;
   usage_limit: number;
+  per_user_limit?: number;
   start_date: string;
   end_date: string;
 }

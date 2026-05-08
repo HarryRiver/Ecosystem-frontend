@@ -1,0 +1,17 @@
+<svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Left Runner (Stylized) -->
+  <g transform="translate(10, 15) scale(0.7)">
+    <circle cx="20" cy="10" r="6" fill="#8DE0A6"/>
+    <path d="M20 16C20 16 15 25 10 35M10 35L0 45M10 35L20 45M20 18L35 25L50 20" stroke="#8DE0A6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  
+  <!-- Right Runner (Stylized) -->
+  <g transform="translate(145, 15) scale(0.7)">
+    <circle cx="30" cy="10" r="6" fill="#8DE0A6"/>
+    <path d="M30 16C30 16 35 25 40 35M40 35L50 45M40 35L30 45M30 18L15 25L0 20" stroke="#8DE0A6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  
+  <!-- Text Content -->
+  <text x="100" y="32" text-anchor="middle" fill="white" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="28">SNAP</text>
+  <text x="100" y="50" text-anchor="middle" fill="#8DE0A6" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="12" letter-spacing="4">MOVE</text>
+</svg>

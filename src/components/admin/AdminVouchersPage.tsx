@@ -35,6 +35,7 @@ function CreateVoucherModal({
     value: 50000,
     min_order_value: 100000,
     usage_limit: 100,
+    per_user_limit: 100,
     start_date: new Date().toISOString().slice(0, 16),
     end_date: nextMonth.toISOString().slice(0, 16),
   });
@@ -46,7 +47,10 @@ function CreateVoucherModal({
     setLoading(true);
     setError(null);
     try {
-      const result = await createAdminVoucher(formData);
+      const result = await createAdminVoucher({
+        ...formData,
+        per_user_limit: formData.per_user_limit ?? formData.usage_limit,
+      });
       onSuccess(result);
       onClose();
     } catch (err: any) {
@@ -128,16 +132,36 @@ function CreateVoucherModal({
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#6D877A]">Lượt dùng Tối đa</label>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#6D877A]">Tổng lượt dùng</label>
               <input
                 required
                 type="number"
                 min={0}
                 value={formData.usage_limit}
-                onChange={(e) => setFormData({ ...formData, usage_limit: Number(e.target.value) })}
+                onChange={(e) => {
+                  const usageLimit = Number(e.target.value);
+                  setFormData({
+                    ...formData,
+                    usage_limit: usageLimit,
+                    per_user_limit: formData.per_user_limit ?? usageLimit,
+                  });
+                }}
                 className="w-full rounded-xl border border-[#DFF0E5] bg-[#F7FCF8] px-4 py-3 text-sm font-semibold text-[#103B2D] outline-none focus:border-[#2F855A] focus:bg-white"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#6D877A]">Mỗi khách tối đa</label>
+            <input
+              required
+              type="number"
+              min={0}
+              value={formData.per_user_limit ?? formData.usage_limit}
+              onChange={(e) => setFormData({ ...formData, per_user_limit: Number(e.target.value) })}
+              className="w-full rounded-xl border border-[#DFF0E5] bg-[#F7FCF8] px-4 py-3 text-sm font-semibold text-[#103B2D] outline-none focus:border-[#2F855A] focus:bg-white"
+            />
+            <p className="mt-1 text-xs font-medium text-[#789185]">Nhập 0 nếu không giới hạn theo từng khách.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

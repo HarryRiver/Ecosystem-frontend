@@ -53,7 +53,7 @@
     "linksTitle": "Snabblänkar",
     "servicesTitle": "Tjänster",
     "contactTitle": "Kontakt",
-    "rights": "© 2024 EcoCollect. Alla rättigheter förbehållna.",
+    "rights": "© 2024 Snap Move. Alla rättigheter förbehållna.",
     "links": {
       "home": "Hem",
       "about": "Om oss",
@@ -98,7 +98,7 @@
     }
   },
   "auth": {
-    "badge": "EcoCollect medlemsåtkomst",
+    "badge": "Snap Move medlemsåtkomst",
     "sidebarTitle": "Boka utan konto, men att ha ett är mycket bättre",
     "sidebarSubtitle": "Gäster kan fortfarande boka normalt. Ett konto är bara ett extra lager: spara info, få kuponger och spåra beställningar smidigare.",
     "benefits": {
@@ -127,7 +127,7 @@
     },
     "forgot": {
       "title": "Glömt lösenordet",
-      "description": "Ange e-postadressen du använder för EcoCollect för att fortsätta återställa lösenordet.",
+      "description": "Ange e-postadressen du använder för Snap Move för att fortsätta återställa lösenordet.",
       "otpDescription": "Ange OTP-koden som skickades till din e-post för att fortsätta återställa lösenordet.",
       "passwordDescription": "Skapa ett nytt lösenord för ditt konto.",
       "doneDescription": "Ditt lösenord har återställts.",
@@ -164,7 +164,7 @@
       "success": "Din begäran om återställning har tagits emot."
     },
     "register": {
-      "title": "Skapa EcoCollect-konto",
+      "title": "Skapa Snap Move-konto",
       "nameLabel": "Fullständigt namn",
       "phoneLabel": "Telefonnummer",
       "emailLabel": "E-post",
@@ -209,7 +209,7 @@
     }
   },
   "booking": {
-    "badge": "EcoCollect bokningsflöde",
+    "badge": "Snap Move bokningsflöde",
     "title": "Smart insamlingsschema",
     "subtitle": "Välj rätt föremål och antal. Vissa skrymmande föremål har storleksalternativ, medan byggavfall anges direkt i kg.",
     "steps": {
@@ -415,7 +415,7 @@
     "about": {
       "eyebrow": "Om oss",
       "title": "Eco-tech insamlingsplattform för moderna städer",
-      "desc": "EcoCollect hjälper kunder att boka snabba insamlingar, med transparent prissättning och spårning från mottagning till återvinning."
+      "desc": "Snap Move hjälper kunder att boka snabba insamlingar, med transparent prissättning och spårning från mottagning till återvinning."
     },
     "mission": {
       "eyebrow": "Uppdrag",
@@ -450,7 +450,7 @@
     "subtitle": "",
     "tableHeader": "Referensprislista",
     "note": "Priserna ovan är uppskattningar. Slutpriset bekräftas baserat på föremålstyp, storlek och insamlingsförhållanden.",
-    "whyTitle": "Varför välja EcoCollect?",
+    "whyTitle": "Varför välja Snap Move?",
     "cta": "Boka nu - Få en offert",
     "items": {
       "sofaDouble": "Soffa Dubbel / L-form",

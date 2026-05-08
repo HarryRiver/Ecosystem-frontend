@@ -170,6 +170,7 @@ function App() {
       handling_mode: beHandlingMode,
       stairs_floors:
         beHandlingMode === 'stairs' ? (payload.services.stairsFloors ?? undefined) : undefined,
+      voucher_code: payload.services.voucherCode || undefined,
       payment_method:
         payload.payment.method === 'transfer' ? ('online' as const) : ('cash' as const),
       cash_policy_accepted: payload.payment.cashPolicyAccepted,
@@ -180,13 +181,13 @@ function App() {
     try {
       createdOrder = await createOrder(orderBody);
 
-      // Upload ảnh nếu có (Cách 2 - Cloudinary)
+      // Upload ảnh nếu có (Cách 2 - Cloudinary). Không chặn trạng thái đặt lịch
+      // vì đơn đã được tạo thành công trước bước upload ảnh tham khảo.
       if (payload.attachments.imageFile) {
-        try {
-          await uploadOrderImages(createdOrder.id.toString(), [payload.attachments.imageFile]);
-        } catch (uploadErr) {
-          console.error('Không thể upload ảnh kèm theo đơn, nhưng đơn đã tạo thành công:', uploadErr);
-        }
+        uploadOrderImages(createdOrder.id.toString(), [payload.attachments.imageFile])
+          .catch((uploadErr) => {
+            console.error('Không thể upload ảnh kèm theo đơn, nhưng đơn đã tạo thành công:', uploadErr);
+          });
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -277,8 +278,7 @@ function App() {
         const paymentData = await createPaymentIntent(createdOrder.id.toString());
         if (paymentData && paymentData.payment_url) {
           window.location.href = paymentData.payment_url;
-          // Trả về promise không bao giờ resolve để ngăn BookingModal đóng và hiển thị UI thành công
-          return new Promise<string>(() => {});
+          return sharedCode;
         }
       } catch (payErr) {
         console.error('Không thể tạo link thanh toán:', payErr);

@@ -1,10 +1,10 @@
 'use client';
 
-import './i18n/config';
+import './shared/i18n/config';
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { clearAuthSession, updateAccount, type AuthMode, type AuthUser } from '@/lib/auth';
+import { clearAuthSession, updateAccount, type AuthMode, type AuthUser } from '@/shared/lib/auth';
 import {
   readHistory,
   appendHistory,
@@ -15,25 +15,25 @@ import {
   useSyncStore,
   type HistoryItem,
   type Order,
-} from '@/lib/store';
+} from '@/shared/lib/store';
 // ─── API Layer ────────────────────────────────────────────────────────────────────────────────
-import { createOrder, uploadOrderImages, createPaymentIntent } from '@/services/orders.service';
-import { logout as apiLogout, getMe } from '@/services/auth.service';
-import { getToken, ApiError } from '@/lib/apiClient';
-import type { HandlingMode } from '@/types/api';
-import Header from './components/Header';
-import Hero from './components/Hero';
-import BrandStory from './components/BrandStory';
-import HowItWorks from './components/HowItWorks';
-import WasteTypes from './components/WasteTypes';
-import Pricing from './components/Pricing';
-import Reviews from './components/Reviews';
-import Footer from './components/Footer';
-import BookingModal, { type BookingSubmissionPayload, type BookingSubmissionItem } from './components/BookingModal';
-import AuthModal from './components/AuthModal';
-import ProfileModal from './components/ProfileModal';
-import HistoryModal from './components/HistoryModal';
-import AdminDashboard from './components/AdminDashboard';
+import { createOrder, uploadOrderImages, createPaymentIntent } from '@/features/booking-flow/services/orders.service';
+import { logout as apiLogout, getMe } from '@/features/auth/services/auth.service';
+import { getToken, ApiError } from '@/shared/lib/apiClient';
+import type { HandlingMode } from '@/shared/types/api';
+import Header from './shared/components/Header';
+import Hero from './shared/components/Hero';
+import BrandStory from './shared/components/BrandStory';
+import HowItWorks from './shared/components/HowItWorks';
+import WasteTypes from './features/booking-flow/components/WasteTypes';
+import Pricing from './features/booking-flow/components/Pricing';
+import Reviews from './features/reviews/components/Reviews';
+import Footer from './shared/components/Footer';
+import BookingModal, { type BookingSubmissionPayload, type BookingSubmissionItem } from './features/booking-flow/components/BookingModal';
+import AuthModal from './features/auth/components/AuthModal';
+import ProfileModal from './features/auth/components/ProfileModal';
+import HistoryModal from './features/booking-flow/components/HistoryModal';
+import AdminDashboard from './features/admin/components/AdminDashboard';
 
 interface BookingPrefill {
   address?: string;

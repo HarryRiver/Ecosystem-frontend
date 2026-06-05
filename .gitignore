@@ -4,3 +4,7 @@ node_modules
 .env
 .env.local
 .env.local.example
+
+.agents
+API_Specs.md
+Database.md

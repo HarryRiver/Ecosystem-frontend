@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import AdminUsersPage from '../../../src/components/admin/AdminUsersPage';
+import AdminUsersPage from '../../../src/features/admin/components/admin/AdminUsersPage';
 
 export const metadata: Metadata = {
   title: 'Quản lý user | EcoCollect',

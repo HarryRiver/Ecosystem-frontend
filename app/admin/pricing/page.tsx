@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import AdminPricingPage from '../../../src/components/admin/AdminPricingPage';
+import AdminPricingPage from '../../../src/features/admin/components/admin/AdminPricingPage';
 
 export const metadata: Metadata = {
   title: 'Cập nhật giá dịch vụ | EcoCollect',

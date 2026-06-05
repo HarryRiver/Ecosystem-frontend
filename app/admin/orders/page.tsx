@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import AdminOrdersPage from '../../../src/components/admin/AdminOrdersPage';
+import AdminOrdersPage from '../../../src/features/admin/components/admin/AdminOrdersPage';
 
 export const metadata: Metadata = {
   title: 'Kiểm tra đơn hàng | EcoCollect',

@@ -1231,15 +1231,15 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
               {/* ── Animated success badge ── */}
               <div className="flex flex-col items-center text-center">
                 <div className="relative mb-6">
-                  <div className="h-24 w-24 rounded-full bg-[#EAF8EE] flex items-center justify-center shadow-[0_0_0_8px_rgba(47,133,90,0.08)]">
-                    <svg className="h-12 w-12 text-[#2F855A]" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <div className="h-24 w-24 rounded-full bg-secondary-light flex items-center justify-center shadow-[0_0_0_8px_rgba(47,133,90,0.08)]">
+                    <svg className="h-12 w-12 text-primary" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
                   <span className="absolute -right-1 -top-1 text-2xl">🎉</span>
                 </div>
 
-                <h3 className="text-3xl font-bold text-[#103B2D]">{t('booking.success.title')}</h3>
+                <h3 className="text-3xl font-bold text-secondary">{t('booking.success.title')}</h3>
                 <p className="mt-2 max-w-md text-[#5D776A]">
                   {t('booking.success.desc', { email })}
                 </p>
@@ -1247,7 +1247,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                 {/* Order code pill */}
                 <div className="mt-4 flex items-center gap-2 rounded-full border border-[#C3E5CE] bg-[#F3FBF5] px-5 py-2">
                   <span className="text-xs font-bold uppercase tracking-widest text-[#6D877A]">Mã đơn hàng</span>
-                  <span className="font-mono text-lg font-bold text-[#103B2D]">
+                  <span className="font-mono text-lg font-bold text-secondary">
                     {orderCodeFromApi || `EC-${Math.random().toString(36).slice(2, 8).toUpperCase()}`}
                   </span>
                 </div>
@@ -1264,11 +1264,11 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                       <div className="flex items-center gap-3">
                         <span className="text-xl">{item.icon}</span>
                         <div>
-                          <p className="font-semibold text-[#103B2D] text-sm">{item.name}</p>
+                          <p className="font-semibold text-secondary text-sm">{item.name}</p>
                           <p className="text-xs text-[#8AA89A]">×{item.quantity}</p>
                         </div>
                       </div>
-                      <p className="font-semibold text-[#2F855A] text-sm">
+                      <p className="font-semibold text-primary text-sm">
                         {item.pricingMode === 'quote'
                           ? 'Báo giá'
                           : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(
@@ -1277,7 +1277,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                       </p>
                     </div>
                   ))}
-                  <div className="flex items-center justify-between rounded-[18px] bg-[#103B2D] px-4 py-3">
+                  <div className="flex items-center justify-between rounded-[18px] bg-secondary px-4 py-3">
                     <p className="text-sm font-bold text-[#A7E8B6]">Tổng cộng</p>
                     <p className="text-lg font-bold text-white">{getTotalLabel()}</p>
                   </div>
@@ -1300,7 +1300,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                   ].map(({ icon, label, value }) => (
                     <div key={label} className="rounded-[18px] bg-white px-4 py-3 shadow-sm">
                       <p className="text-[11px] font-bold uppercase tracking-wider text-[#8AA89A]">{label}</p>
-                      <p className="mt-1 flex items-start gap-2 text-sm font-semibold text-[#103B2D]">
+                      <p className="mt-1 flex items-start gap-2 text-sm font-semibold text-secondary">
                         <span>{icon}</span>
                         <span>{value || '—'}</span>
                       </p>
@@ -1313,13 +1313,13 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
               <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
                 <button
                   onClick={onClose}
-                  className="rounded-full bg-[#103B2D] px-10 py-3.5 font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(16,59,45,0.25)]"
+                  className="rounded-full bg-secondary px-10 py-3.5 font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(16,59,45,0.25)]"
                 >
                   Về trang chủ
                 </button>
                 <button
                   onClick={() => { resetForm(); setStep(1); }}
-                  className="rounded-full border border-[#C3E5CE] bg-white px-10 py-3.5 font-semibold text-[#2F855A] transition-all hover:bg-[#F3FBF5]"
+                  className="rounded-full border border-[#C3E5CE] bg-white px-10 py-3.5 font-semibold text-primary transition-all hover:bg-[#F3FBF5]"
                 >
                   Đặt thêm đơn
                 </button>
@@ -1334,7 +1334,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                     <div className="mb-5 rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-5">
                       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div>
-                          <h3 className="text-xl font-bold text-[#103B2D]">{t('booking.steps.items')}</h3>
+                          <h3 className="text-xl font-bold text-secondary">{t('booking.steps.items')}</h3>
                         </div>
                         <div className="rounded-2xl bg-white px-4 py-3 text-sm text-[#476458]">
                           {t('booking.selectedCount', { count: selectedItems.length })}
@@ -1362,8 +1362,8 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                               onClick={() => setActiveCategory(cat.key)}
                               className={`rounded-full px-4 py-3 text-sm font-semibold transition-colors ${
                                 activeCategory === cat.key
-                                  ? 'bg-[#103B2D] text-white'
-                                  : 'bg-white text-[#476458] hover:bg-[#EAF8EE]'
+                                  ? 'bg-secondary text-white'
+                                  : 'bg-white text-[#476458] hover:bg-secondary-light'
                               }`}
                             >
                               {cat.label}
@@ -1377,7 +1377,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                       {groupedServices.map((group) => (
                         <section key={group.categoryKey}>
                           <div className="mb-3 flex items-center justify-between">
-                            <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2F855A]">
+                            <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
                               {group.categoryLabel}
                             </h4>
                             <span className="text-xs text-[#789185]">{group.items.length} {t('booking.choices')}</span>
@@ -1394,7 +1394,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                                   onClick={() => selectService(service)}
                                   className={`cursor-pointer rounded-[28px] border p-5 transition-all duration-300 ${
                                     isSelected
-                                      ? 'border-[#2F855A] bg-[#F0FBF3] shadow-[0_16px_40px_rgba(15,61,46,0.08)]'
+                                      ? 'border-primary bg-[#F0FBF3] shadow-[0_16px_40px_rgba(15,61,46,0.08)]'
                                       : 'border-[#E3ECE6] bg-white hover:border-[#A7E8B6] hover:shadow-[0_12px_30px_rgba(15,61,46,0.05)]'
                                   }`}
                                 >
@@ -1403,8 +1403,8 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                                       {service.icon}
                                     </div>
                                     <div className="flex min-h-14 flex-col justify-center gap-1">
-                                      <h5 className="text-lg font-semibold leading-tight text-[#103B2D]">{service.name}</h5>
-                                      <div className="w-fit rounded-full border border-[#D6EEDD] bg-[#F7FCF8] px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[#2F855A]">
+                                      <h5 className="text-lg font-semibold leading-tight text-secondary">{service.name}</h5>
+                                      <div className="w-fit rounded-full border border-[#D6EEDD] bg-[#F7FCF8] px-2.5 py-1 text-[11px] font-semibold tracking-wide text-primary">
                                         {getDisplayPrice(service, currentLang, t)}
                                       </div>
                                     </div>
@@ -1422,8 +1422,8 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                                           onClick={() => selectServiceOption(service, option)}
                                           className={`rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
                                             selectedItem?.selectedOptionId === option.id
-                                              ? 'bg-[#103B2D] text-white'
-                                              : 'bg-[#F1F4F2] text-[#476458] hover:bg-[#EAF8EE]'
+                                              ? 'bg-secondary text-white'
+                                              : 'bg-[#F1F4F2] text-[#476458] hover:bg-secondary-light'
                                           }`}
                                         >
                                           {option.label} • {formatPrice(option.price, currentLang)}
@@ -1438,7 +1438,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                                       onClick={(event) => event.stopPropagation()}
                                     >
                                       <div className="text-sm text-[#476458]">
-                                        <span className="font-medium text-[#103B2D]">
+                                        <span className="font-medium text-secondary">
                                           {selectedItem.selectedOptionLabel ?? 'Default'}
                                         </span>
                                       </div>
@@ -1454,7 +1454,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                                                 Number(event.target.value),
                                               )
                                             }
-                                            className="w-24 rounded-2xl border border-[#D6EEDD] bg-white px-3 py-2 text-right text-sm font-semibold text-[#103B2D] outline-none"
+                                            className="w-24 rounded-2xl border border-[#D6EEDD] bg-white px-3 py-2 text-right text-sm font-semibold text-secondary outline-none"
                                           />
                                           <span className="text-sm text-[#476458]">kg</span>
                                         </div>
@@ -1467,13 +1467,13 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                                           >
                                             -
                                           </button>
-                                          <span className="min-w-6 text-center font-semibold text-[#103B2D]">
+                                          <span className="min-w-6 text-center font-semibold text-secondary">
                                             {selectedItem.quantity}
                                           </span>
                                           <button
                                             type="button"
                                             onClick={() => updateQuantity(service.id, 1)}
-                                            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#103B2D] text-lg text-white"
+                                            className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-lg text-white"
                                           >
                                             +
                                           </button>
@@ -1493,7 +1493,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                   <aside className="lg:sticky lg:top-0 lg:h-fit space-y-5">
                     <div className="rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-5">
                       <div className="mb-4 flex items-center justify-between">
-                        <h4 className="font-semibold text-[#103B2D]">{t('booking.summary.items')}</h4>
+                        <h4 className="font-semibold text-secondary">{t('booking.summary.items')}</h4>
                       </div>
 
                       {selectedItems.length > 0 ? (
@@ -1502,7 +1502,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                             <div key={item.id} className="rounded-2xl bg-white p-4">
                               <div className="flex items-start justify-between gap-3">
                                 <div>
-                                  <p className="font-semibold text-[#103B2D]">
+                                  <p className="font-semibold text-secondary">
                                     {item.icon} {item.id === 'custom' && customItemName.trim() !== '' ? customItemName : item.name}
                                   </p>
                                   <p className="mt-1 text-sm text-[#476458]">
@@ -1510,7 +1510,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                                     {` • ${getSelectionMeta(item)}`}
                                   </p>
                                 </div>
-                                <span className="text-sm font-semibold text-[#2F855A]">
+                                <span className="text-sm font-semibold text-primary">
                                   {getLineItemLabel(item)}
                                 </span>
                               </div>
@@ -1526,7 +1526,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
 
                     <div className="rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-5">
                       <div className="mb-4">
-                        <h4 className="font-semibold text-[#103B2D]">{t('booking.labels.photo')}</h4>
+                        <h4 className="font-semibold text-secondary">{t('booking.labels.photo')}</h4>
                         <p className="mt-1 text-xs text-[#476458]">{t('booking.labels.photoDesc')}</p>
                       </div>
 
@@ -1550,11 +1550,11 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                           </button>
                         </div>
                       ) : (
-                        <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D6EEDD] bg-white py-8 transition-colors hover:border-[#103B2D] hover:bg-[#F0FBF3]">
+                        <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D6EEDD] bg-white py-8 transition-colors hover:border-secondary hover:bg-[#F0FBF3]">
                           <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-[#F7FCF8] text-2xl">
                             📸
                           </div>
-                          <span className="text-sm font-medium text-[#103B2D]">
+                          <span className="text-sm font-medium text-secondary">
                             {t('booking.labels.choosePhoto', 'Chọn hoặc chụp ảnh')}
                           </span>
                           <span className="mt-1 text-xs text-[#789185]">JPG, PNG, WEBP (Max 5MB)</span>
@@ -1579,7 +1579,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
 
               {step === 2 && (
                 <div className="mx-auto max-w-3xl">
-                  <h3 className="mb-2 text-2xl font-bold text-[#103B2D]">{t('booking.steps.address')}</h3>
+                  <h3 className="mb-2 text-2xl font-bold text-secondary">{t('booking.steps.address')}</h3>
                   <div className="space-y-5 mt-6">
                     <div>
                       <label className="mb-2 block text-sm font-semibold text-[#24483A]">
@@ -1738,7 +1738,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
 
               {step === 3 && (
                 <div className="mx-auto max-w-3xl">
-                  <h3 className="mb-8 text-2xl font-bold text-[#103B2D]">{t('booking.steps.schedule')}</h3>
+                  <h3 className="mb-8 text-2xl font-bold text-secondary">{t('booking.steps.schedule')}</h3>
                   <div className="mb-8">
                     <label className="mb-3 block text-sm font-semibold text-[#24483A]">{t('booking.labels.date')} *</label>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -1748,8 +1748,8 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                           onClick={() => setSelectedDate(date.value)}
                           className={`rounded-[24px] border p-4 text-left transition-colors ${
                             selectedDate === date.value
-                              ? 'border-[#103B2D] bg-[#103B2D] text-white'
-                              : 'border-[#D6EEDD] bg-[#F7FCF8] text-[#103B2D] hover:border-[#A7E8B6]'
+                              ? 'border-secondary bg-secondary text-white'
+                              : 'border-[#D6EEDD] bg-[#F7FCF8] text-secondary hover:border-[#A7E8B6]'
                           }`}
                         >
                           <div className="text-xs uppercase tracking-[0.16em] opacity-70">
@@ -1771,8 +1771,8 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                           onClick={() => setSelectedTime(time)}
                           className={`rounded-[24px] border p-4 text-sm font-semibold transition-colors ${
                             selectedTime === time
-                              ? 'border-[#2F855A] bg-[#2F855A] text-white'
-                              : 'border-[#D6EEDD] bg-[#F7FCF8] text-[#103B2D] hover:border-[#A7E8B6]'
+                              ? 'border-primary bg-primary text-white'
+                              : 'border-[#D6EEDD] bg-[#F7FCF8] text-secondary hover:border-[#A7E8B6]'
                           }`}
                         >
                           🕐 {time}
@@ -1786,21 +1786,21 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
 
               {step === 4 && (
                 <div className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
-                  <div className="rounded-[28px] bg-[#F5FBF6] p-5">
-                    <h3 className="mb-4 text-2xl font-bold text-[#103B2D]">{t('booking.steps.confirm')}</h3>
+                  <div className="rounded-[28px] bg-light-gray p-5">
+                    <h3 className="mb-4 text-2xl font-bold text-secondary">{t('booking.steps.confirm')}</h3>
                     <div className="space-y-3">
                       {selectedItems.map((item) => (
                         <div key={item.id} className="rounded-2xl bg-white p-4">
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                               <p className="font-semibold text-[#103B2D]">
+                               <p className="font-semibold text-secondary">
                                 {item.icon} {item.id === 'custom' && customItemName.trim() !== '' ? customItemName : item.name}
                               </p>
                               <p className="mt-1 text-sm text-[#476458]">
                                 {item.selectedOptionLabel ?? 'Default'}
                               </p>
                             </div>
-                            <span className="text-sm font-semibold text-[#2F855A]">
+                            <span className="text-sm font-semibold text-primary">
                               {getLineItemLabel(item)}
                             </span>
                           </div>
@@ -1817,13 +1817,13 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                           onChange={(e) => setVoucherCodeInput(e.target.value.toUpperCase())}
                           placeholder="Nhập mã giảm giá..."
                           disabled={hasQuoteItems}
-                          className="flex-1 rounded-[16px] border border-[#D6EEDD] px-4 py-2.5 text-sm text-[#103B2D] placeholder:text-[#8AA89A] outline-none focus:border-[#22C55E] disabled:opacity-50"
+                          className="flex-1 rounded-[16px] border border-[#D6EEDD] px-4 py-2.5 text-sm text-secondary placeholder:text-[#8AA89A] outline-none focus:border-[#22C55E] disabled:opacity-50"
                         />
                         <button
                           type="button"
                           disabled={isApplyingVoucher || !voucherCodeInput || hasQuoteItems}
                           onClick={() => handleApplyVoucher()}
-                          className="rounded-[16px] bg-[#103B2D] px-6 py-2.5 text-sm font-bold text-white disabled:opacity-50 hover:bg-[#1A573F] transition-colors"
+                          className="rounded-[16px] bg-secondary px-6 py-2.5 text-sm font-bold text-white disabled:opacity-50 hover:bg-[#1A573F] transition-colors"
                         >
                           {isApplyingVoucher ? 'Đang kiểm tra...' : 'Áp dụng'}
                         </button>
@@ -1832,7 +1832,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                         <p className="text-xs text-[#8AA89A] mb-1">Mã giảm giá không áp dụng cùng các dịch vụ cần báo giá.</p>
                       )}
                       {voucherError && <p className="text-red-500 text-xs font-semibold">{voucherError}</p>}
-                      {appliedVoucher && <p className="text-[#2F855A] text-xs font-bold">Đã áp dụng thẻ {appliedVoucher.voucher_code}. Giảm {formatPrice(appliedVoucher.discount_amount, currentLang)}</p>}
+                      {appliedVoucher && <p className="text-primary text-xs font-bold">Đã áp dụng thẻ {appliedVoucher.voucher_code}. Giảm {formatPrice(appliedVoucher.discount_amount, currentLang)}</p>}
                       {(isLoadingVouchers || publicVouchers.length > 0) && (
                         <div className="mt-4">
                           <p className="mb-2 text-xs font-semibold uppercase text-[#789185]">
@@ -1861,14 +1861,14 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                                     onClick={() => handleApplyVoucher(voucher.code)}
                                     className={`min-h-[72px] rounded-[8px] border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed ${
                                       isApplied
-                                        ? 'border-[#2F855A] bg-[#EAF8EE] text-[#103B2D]'
+                                        ? 'border-primary bg-secondary-light text-secondary'
                                         : isUsable
-                                          ? 'border-[#BFE8CB] bg-white text-[#103B2D] hover:border-[#2F855A] hover:bg-[#F0FBF3]'
+                                          ? 'border-[#BFE8CB] bg-white text-secondary hover:border-primary hover:bg-[#F0FBF3]'
                                           : 'border-[#E2ECE6] bg-white/60 text-[#789185] opacity-70'
                                     }`}
                                   >
                                     <span className="block text-sm font-bold">{voucher.code}</span>
-                                    <span className="mt-1 block text-xs font-semibold text-[#2F855A]">
+                                    <span className="mt-1 block text-xs font-semibold text-primary">
                                       {getVoucherDiscountLabel(voucher)}
                                     </span>
                                     <span className="mt-1 block text-xs text-[#789185]">{helperText}</span>
@@ -1881,7 +1881,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                       )}
                     </div>
 
-                    <div className="mt-4 rounded-[28px] bg-[#103B2D] p-5 text-white">
+                    <div className="mt-4 rounded-[28px] bg-secondary p-5 text-white">
                       <div className="space-y-2 mb-3 border-b border-white/20 pb-3">
                          <div className="flex items-center justify-between text-white/70 text-sm">
                            <span>Tổng tạm tính</span>
@@ -1903,7 +1903,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
 
                   <div>
                     <div className="rounded-[28px] border border-[#D6EEDD] bg-white p-5">
-                      <h4 className="mb-3 text-xl font-bold text-[#103B2D]">Handling Mode</h4>
+                      <h4 className="mb-3 text-xl font-bold text-secondary">Handling Mode</h4>
                       <div className="space-y-3">
                         {[
                           { id: 'inside' as const, title: t('booking.handling.inside'), price: '0' },
@@ -1915,12 +1915,12 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                             type="button"
                             onClick={() => setHandlingMode(option.id)}
                             className={`w-full rounded-[24px] border p-4 text-left ${
-                              handlingMode === option.id ? 'border-[#2F855A] bg-[#F0FBF3]' : 'border-[#D6EEDD]'
+                              handlingMode === option.id ? 'border-primary bg-[#F0FBF3]' : 'border-[#D6EEDD]'
                             }`}
                           >
                             <div className="flex justify-between">
                               <span className="font-semibold">{option.title}</span>
-                              <span className="text-sm text-[#2F855A]">{option.price}đ</span>
+                              <span className="text-sm text-primary">{option.price}đ</span>
                             </div>
                           </button>
                         ))}
@@ -1940,7 +1940,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                             onClick={() => setPaymentMethod(option.id)}
                             className={`flex flex-col items-center justify-center gap-1 rounded-[24px] border p-4 transition-all ${
                               paymentMethod === option.id 
-                                ? 'border-[#103B2D] bg-[#F5FBF6] text-[#103B2D]' 
+                                ? 'border-secondary bg-light-gray text-secondary' 
                                 : 'border-[#D6EEDD] bg-[#F7FCF8] text-[#476458] hover:border-[#A7E8B6]'
                             }`}
                           >
@@ -1960,7 +1960,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                       type="button"
                       onClick={handleSubmit}
                       disabled={isSubmitting}
-                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[#2F855A] px-6 py-4 font-semibold text-white transition-transform duration-300 shadow-[0_4px_14px_rgba(47,133,90,0.39)] hover:shadow-[0_6px_20px_rgba(47,133,90,0.23)] hover:scale-[1.02]"
+                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-4 font-semibold text-white transition-transform duration-300 shadow-[0_4px_14px_rgba(47,133,90,0.39)] hover:shadow-[0_6px_20px_rgba(47,133,90,0.23)] hover:scale-[1.02]"
                     >
                       {isSubmitting ? t('common.loading') : t('booking.submit')}
                     </button>
@@ -1976,7 +1976,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-[#789185] mb-1">Total Amount</p>
-                <div className="text-2xl font-bold text-[#103B2D]">{getTotalLabel()}</div>
+                <div className="text-2xl font-bold text-secondary">{getTotalLabel()}</div>
               </div>
               <div className="flex gap-4">
                 {step > 1 && (
@@ -1990,7 +1990,7 @@ export default function BookingModal({ currentUser, isOpen, onAuthClick: _onAuth
                 {step < 4 && (
                   <button
                     onClick={handleNext}
-                    className="rounded-full bg-[#103B2D] px-10 py-3.5 font-semibold text-white transition-all hover:bg-[#18543F] shadow-[0_10px_20px_rgba(16,59,45,0.15)]"
+                    className="rounded-full bg-secondary px-10 py-3.5 font-semibold text-white transition-all hover:bg-[#18543F] shadow-[0_10px_20px_rgba(16,59,45,0.15)]"
                   >
                     {t('booking.next')}
                   </button>

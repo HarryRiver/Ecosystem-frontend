@@ -40,7 +40,7 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
       <div className="w-full max-w-[1440px] mx-auto px-4 xl:px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center">
+          <Link href="/" className="flex items-center w-[160px] shrink-0 mr-4">
             <img 
               src="/logo.svg" 
               alt="Snap Move Logo" 
@@ -50,22 +50,22 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
 
           {/* Desktop Navigation */}
           <nav className="hidden xl:flex items-center space-x-3 xl:space-x-5">
-            <a href="#home" className="whitespace-nowrap text-sm font-medium text-slate-600 transition-colors hover:text-[#103B2D]">
+            <a href="#home" className="whitespace-nowrap text-sm font-medium text-slate-600 transition-colors hover:text-secondary">
               {t('header.home')}
             </a>
-            <a href="#how-it-works" className="whitespace-nowrap text-sm font-medium text-slate-600 transition-colors hover:text-[#103B2D]">
+            <a href="#how-it-works" className="whitespace-nowrap text-sm font-medium text-slate-600 transition-colors hover:text-secondary">
               {t('header.howItWorks')}
             </a>
-            <a href="#waste-types" className="whitespace-nowrap text-sm font-medium text-slate-600 transition-colors hover:text-[#103B2D]">
+            <a href="#waste-types" className="whitespace-nowrap text-sm font-medium text-slate-600 transition-colors hover:text-secondary">
               {t('header.wasteTypes')}
             </a>
-            <a href="#about" className="whitespace-nowrap text-sm font-medium text-slate-600 transition-colors hover:text-[#103B2D]">
+            <a href="#about" className="whitespace-nowrap text-sm font-medium text-slate-600 transition-colors hover:text-secondary">
               {t('header.about')}
             </a>
-            <a href="#pricing" className="whitespace-nowrap text-sm font-medium text-slate-600 transition-colors hover:text-[#103B2D]">
+            <a href="#pricing" className="whitespace-nowrap text-sm font-medium text-slate-600 transition-colors hover:text-secondary">
               {t('header.pricing')}
             </a>
-            <a href="#reviews" className="whitespace-nowrap text-sm font-medium text-slate-600 transition-colors hover:text-[#103B2D]">
+            <a href="#reviews" className="whitespace-nowrap text-sm font-medium text-slate-600 transition-colors hover:text-secondary">
               {t('header.reviews')}
             </a>
           </nav>
@@ -81,15 +81,15 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
                     isUserMenuOpen ? 'ring-2 ring-[#8DE0A6]/40 bg-white shadow-sm' : ''
                   }`}
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#8DE0A6] font-bold text-[#103B2D]">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#8DE0A6] font-bold text-secondary">
                     {userInitial}
                   </div>
                   <div className="hidden lg:block text-left">
                     <p className="text-sm font-semibold leading-none">{currentUser.name}</p>
-                    <p className="mt-1 text-xs text-white/60">{currentUser.email}</p>
+                    <p className="mt-1 text-xs text-muted">{currentUser.email}</p>
                   </div>
                   <svg 
-                    className={`ml-2 h-4 w-4 text-slate-400 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} 
+                    className={`ml-2 h-4 w-4 text-muted transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} 
                     fill="none" 
                     stroke="currentColor" 
                     viewBox="0 0 24 24"
@@ -122,11 +122,11 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
                           <p className="text-sm font-bold text-slate-900 leading-none">
                             {currentLang === 'vi' ? 'Hồ sơ' : (currentLang === 'sv' ? 'Profil' : 'Profile')}
                           </p>
-                          <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                          <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
                             {currentLang === 'vi' ? 'Thông tin cá nhân' : 'Account info'}
                           </p>
                         </div>
-                        <svg className="h-4 w-4 text-slate-200 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-4 w-4 text-slate-200 transition-transform group-hover:translate-x-0.5 group-hover:text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                         </svg>
                       </button>
@@ -145,11 +145,11 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
                           <p className="text-sm font-bold text-slate-900 leading-none">
                             {currentLang === 'vi' ? 'Lịch sử' : (currentLang === 'sv' ? 'Historik' : 'History')}
                           </p>
-                          <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                          <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
                             {currentLang === 'vi' ? 'Yêu cầu thu gom' : 'Collection requests'}
                           </p>
                         </div>
-                        <svg className="h-4 w-4 text-slate-200 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-4 w-4 text-slate-200 transition-transform group-hover:translate-x-0.5 group-hover:text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                         </svg>
                       </button>
@@ -213,7 +213,7 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
                 </button>
                 <button
                   onClick={() => onAuthClick('register')}
-                  className="whitespace-nowrap rounded-full border border-[#B7F7C8] bg-[#E6FFEE] px-4 py-2 text-sm font-semibold text-[#103B2D] transition-all duration-300 hover:scale-[1.02] hover:shadow-sm"
+                  className="whitespace-nowrap rounded-full border border-[#B7F7C8] bg-[#E6FFEE] px-4 py-2 text-sm font-semibold text-secondary transition-all duration-300 hover:scale-[1.02] hover:shadow-sm"
                 >
                   {t('header.register')}
                 </button>
@@ -222,7 +222,7 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
 
             <button
               onClick={onBookingClick}
-              className="whitespace-nowrap rounded-full bg-[#8DE0A6] px-5 py-2 text-sm font-semibold text-[#103B2D] transition-all duration-300 hover:scale-105 hover:shadow-lg"
+              className="whitespace-nowrap rounded-full bg-[#8DE0A6] px-5 py-2 text-sm font-semibold text-secondary transition-all duration-300 hover:scale-105 hover:shadow-lg"
             >
               {t('header.bookNow')}
             </button>
@@ -253,22 +253,22 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
         {isMenuOpen && (
           <nav className="xl:hidden mt-4 pb-4 border-t border-slate-100 pt-4 animate-fadeInUp">
             <div className="flex flex-col space-y-4">
-              <a href="#home" className="text-slate-700 hover:text-[#103B2D] transition-colors font-medium">
+              <a href="#home" className="text-slate-700 hover:text-secondary transition-colors font-medium">
                 {t('header.home')}
               </a>
-              <a href="#how-it-works" className="text-slate-700 hover:text-[#103B2D] transition-colors font-medium">
+              <a href="#how-it-works" className="text-slate-700 hover:text-secondary transition-colors font-medium">
                 {t('header.howItWorks')}
               </a>
-              <a href="#waste-types" className="text-slate-700 hover:text-[#103B2D] transition-colors font-medium">
+              <a href="#waste-types" className="text-slate-700 hover:text-secondary transition-colors font-medium">
                 {t('header.wasteTypes')}
               </a>
-              <a href="#about" className="text-slate-700 hover:text-[#103B2D] transition-colors font-medium">
+              <a href="#about" className="text-slate-700 hover:text-secondary transition-colors font-medium">
                 {t('header.about')}
               </a>
-              <a href="#pricing" className="text-slate-700 hover:text-[#103B2D] transition-colors font-medium">
+              <a href="#pricing" className="text-slate-700 hover:text-secondary transition-colors font-medium">
                 {t('header.pricing')}
               </a>
-              <a href="#reviews" className="text-slate-700 hover:text-[#103B2D] transition-colors font-medium">
+              <a href="#reviews" className="text-slate-700 hover:text-secondary transition-colors font-medium">
                 {t('header.reviews')}
               </a>
               {!currentUser ? (
@@ -281,7 +281,7 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
                   </button>
                   <button
                     onClick={() => onAuthClick('register')}
-                    className="w-full rounded-full border border-[#B7F7C8] bg-[#E6FFEE] px-6 py-2.5 font-semibold text-[#103B2D] transition-all duration-300"
+                    className="w-full rounded-full border border-[#B7F7C8] bg-[#E6FFEE] px-6 py-2.5 font-semibold text-secondary transition-all duration-300"
                   >
                     {t('header.register')}
                   </button>
@@ -300,7 +300,7 @@ export default function Header({ currentUser, onBookingClick, onAuthClick, onLog
               )}
               <button
                 onClick={onBookingClick}
-                className="w-full rounded-full bg-[#8DE0A6] px-6 py-2.5 font-semibold text-[#103B2D] transition-all duration-300 shadow-md"
+                className="w-full rounded-full bg-[#8DE0A6] px-6 py-2.5 font-semibold text-secondary transition-all duration-300 shadow-md"
               >
                 {t('header.bookNow')}
               </button>

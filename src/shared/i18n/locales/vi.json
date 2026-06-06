@@ -502,6 +502,9 @@
     "topService": "Dịch vụ thu gom",
     "greenBiz": "Doanh nghiệp xanh",
     "securePay": "Thanh toán an toàn",
+    "topServiceValue": "Top 1",
+    "greenBizValue": "Verified",
+    "securePayValue": "Secure",
     "steps": {
       "book": "Đặt lịch trong 60 giây",
       "confirm": "Nhận xác nhận và lịch hẹn",

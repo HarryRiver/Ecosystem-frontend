@@ -15,7 +15,7 @@ export default function HowItWorks({ onBookingClick }: HowItWorksProps) {
       icon: '📋',
       title: t('howItWorks.steps.step01.title'),
       description: t('howItWorks.steps.step01.desc'),
-      color: 'bg-[#2F855A]'
+      color: 'bg-primary'
     },
     {
       number: '02',
@@ -36,7 +36,7 @@ export default function HowItWorks({ onBookingClick }: HowItWorksProps) {
       icon: '💸',
       title: t('howItWorks.steps.step04.title'),
       description: t('howItWorks.steps.step04.desc'),
-      color: 'bg-[#103B2D]'
+      color: 'bg-secondary'
     },
     {
       number: '05',
@@ -52,7 +52,7 @@ export default function HowItWorks({ onBookingClick }: HowItWorksProps) {
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="inline-block rounded-full bg-[#2F855A]/10 px-4 py-1.5 text-sm font-semibold text-[#2F855A] mb-4">
+          <span className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary mb-4">
             {t('howItWorks.badge')}
           </span>
           <h2 className="text-3xl md:text-4xl font-bold text-[#303030] mb-4">
@@ -70,7 +70,7 @@ export default function HowItWorks({ onBookingClick }: HowItWorksProps) {
             >
               {/* Connector Line */}
               {index < steps.length - 1 && (
-                <div className="hidden xl:block absolute top-16 left-[65%] w-full h-0.5 bg-linear-to-r from-[#2F855A] to-[#8DE0A6]"></div>
+                <div className="hidden xl:block absolute top-16 left-[65%] w-full h-0.5 bg-linear-to-r from-primary to-[#8DE0A6]"></div>
               )}
 
               <div className="relative z-10 rounded-[28px] border border-[#D6EEDD] bg-white p-8 shadow-[0_18px_45px_rgba(16,59,45,0.08)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_24px_60_rgba(16,59,45,0.12)]">
@@ -99,7 +99,7 @@ export default function HowItWorks({ onBookingClick }: HowItWorksProps) {
         <div className="text-center mt-12">
           <button
             onClick={onBookingClick}
-            className="inline-flex items-center space-x-2 rounded-full bg-[#103B2D] px-8 py-4 text-lg font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg"
+            className="inline-flex items-center space-x-2 rounded-full bg-secondary px-8 py-4 text-lg font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg"
           >
             <span>{t('howItWorks.cta')}</span>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

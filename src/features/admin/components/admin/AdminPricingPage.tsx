@@ -137,8 +137,8 @@ export default function AdminPricingPage() {
             key={card.label}
             className="rounded-[28px] border border-[#D7ECDD] bg-white p-5 shadow-[0_18px_45px_rgba(16,59,45,0.06)]"
           >
-            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#2F855A]">{card.label}</p>
-            <div className="mt-3 text-3xl font-bold text-[#103B2D]">{card.value}</div>
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">{card.label}</p>
+            <div className="mt-3 text-3xl font-bold text-secondary">{card.value}</div>
             <p className="mt-2 text-sm text-[#5D776A]">{card.note}</p>
           </section>
         ))}
@@ -153,7 +153,7 @@ export default function AdminPricingPage() {
 
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">Bảng giá dịch vụ</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">Bảng giá dịch vụ</p>
             <h2 className="mt-2 text-2xl font-bold">Cập nhật giá cả theo từng hạng mục</h2>
           </div>
         </div>
@@ -166,8 +166,8 @@ export default function AdminPricingPage() {
               onClick={() => setSelectedCategory(cat)}
               className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-300 ${
                 selectedCategory === cat
-                  ? 'bg-[#103B2D] text-white shadow-md'
-                  : 'bg-[#F3FBF5] text-[#2F855A] hover:bg-[#D7ECDD]'
+                  ? 'bg-secondary text-white shadow-md'
+                  : 'bg-[#F3FBF5] text-primary hover:bg-[#D7ECDD]'
               }`}
             >
               {cat}
@@ -186,7 +186,7 @@ export default function AdminPricingPage() {
             .filter(([category]) => selectedCategory === 'Tất cả' || category === selectedCategory)
             .map(([category, services]) => (
             <div key={category}>
-              <h3 className="mb-4 text-xl font-bold text-[#103B2D] border-b border-[#D7ECDD] pb-2">
+              <h3 className="mb-4 text-xl font-bold text-secondary border-b border-[#D7ECDD] pb-2">
                 Phân loại: {category}
               </h3>
               <div className="grid gap-4 lg:grid-cols-2">
@@ -197,13 +197,13 @@ export default function AdminPricingPage() {
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#2F855A]">
+                        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
                           {service.category}
                         </p>
-                        <h3 className="mt-2 text-2xl font-bold text-[#103B2D]">{service.name}</h3>
+                        <h3 className="mt-2 text-2xl font-bold text-secondary">{service.name}</h3>
                         <p className="mt-2 text-sm leading-6 text-[#5D776A]">{service.note}</p>
                       </div>
-                      <span className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#103B2D]">
+                      <span className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-secondary">
                         {service.id}
                       </span>
                     </div>
@@ -221,12 +221,12 @@ export default function AdminPricingPage() {
                                 value={service.price}
                                 onChange={(e) => updateServicePrice(service.id, parseInt(e.target.value))}
                                 onFocus={(e) => e.target.select()}
-                                className="w-32 bg-transparent text-4xl font-bold text-[#103B2D] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                className="w-32 bg-transparent text-4xl font-bold text-secondary outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                               />
                               <span className="text-lg font-medium text-[#6D877A]">{service.unitLabel}</span>
                               <label
                                 htmlFor={`price-input-${service.id}`}
-                                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-[#EAF8EE] text-[#2F855A] shadow-sm transition-colors hover:bg-[#D7F5DE]"
+                                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-secondary-light text-primary shadow-sm transition-colors hover:bg-[#D7F5DE]"
                               >
                                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -241,14 +241,14 @@ export default function AdminPricingPage() {
                         <button
                           type="button"
                           onClick={() => adjustServicePrice(service.id, -10000)}
-                          className="rounded-full border border-[#D7ECDD] bg-white px-4 py-3 text-sm font-semibold text-[#476458] transition-colors hover:border-[#2F855A] hover:text-[#103B2D]"
+                          className="rounded-full border border-[#D7ECDD] bg-white px-4 py-3 text-sm font-semibold text-[#476458] transition-colors hover:border-primary hover:text-secondary"
                         >
                           Giảm 10.000đ
                         </button>
                         <button
                           type="button"
                           onClick={() => adjustServicePrice(service.id, 10000)}
-                          className="rounded-full bg-[#103B2D] px-4 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
+                          className="rounded-full bg-secondary px-4 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
                         >
                           Tăng 10.000đ
                         </button>

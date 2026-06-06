@@ -183,33 +183,33 @@ export default function HistoryModal({ isOpen, onClose, currentUser }: HistoryMo
               {displayItems.filter((item) => item.id === selectedOrderId).map((item) => (
                 <div key={item.id} className="space-y-6">
                   <div className="rounded-3xl bg-[#F7FCF8] p-6 border border-[#D6EEDD]">
-                    <h3 className="mb-4 text-base font-bold text-[#103B2D]">
+                    <h3 className="mb-4 text-base font-bold text-secondary">
                       {currentLang === 'vi' ? 'Tóm tắt đơn hàng' : 'Order Summary'}
                     </h3>
                     <ul className="space-y-4">
                       <li className="flex items-center gap-4">
                         <span className="text-2xl w-6">👤</span>
-                        <span className="text-base font-medium text-[#103B2D]/70">{item.customerName}</span>
+                        <span className="text-base font-medium text-secondary/70">{item.customerName}</span>
                       </li>
                       <li className="flex items-center gap-4">
                         <span className="text-2xl w-6">📞</span>
-                        <span className="text-base font-medium text-[#103B2D]/70">{item.phone}</span>
+                        <span className="text-base font-medium text-secondary/70">{item.phone}</span>
                       </li>
                       <li className="flex items-center gap-4">
                         <span className="text-2xl w-6">📧</span>
-                        <span className="text-base font-medium text-[#103B2D]/70">{item.email}</span>
+                        <span className="text-base font-medium text-secondary/70">{item.email}</span>
                       </li>
                       <li className="flex items-start gap-4">
                         <span className="text-2xl w-6 mt-0.5">📍</span>
-                        <span className="text-base font-medium text-[#103B2D]/70 leading-relaxed">{item.address}</span>
+                        <span className="text-base font-medium text-secondary/70 leading-relaxed">{item.address}</span>
                       </li>
                       <li className="flex items-center gap-4">
                         <span className="text-2xl w-6">🗓️</span>
-                        <span className="text-base font-medium text-[#103B2D]/70">{item.timeSlot}</span>
+                        <span className="text-base font-medium text-secondary/70">{item.timeSlot}</span>
                       </li>
                       <li className="flex items-center gap-4">
                         <span className="text-2xl w-6">🚚</span>
-                        <span className="text-base font-medium text-[#103B2D]/70">{item.handlingMode}</span>
+                        <span className="text-base font-medium text-secondary/70">{item.handlingMode}</span>
                       </li>
                       <li className="flex items-center gap-4 pt-2">
                         <span className="text-2xl w-6">💰</span>
@@ -222,7 +222,7 @@ export default function HistoryModal({ isOpen, onClose, currentUser }: HistoryMo
                   {item.status === 'completed' && (
                     <div className="rounded-3xl bg-white border-2 border-[#22C55E]/20 p-6 shadow-sm animate-fadeIn">
                       <div className="flex flex-col items-center text-center">
-                        <h3 className="text-base font-bold text-[#103B2D] mb-2">
+                        <h3 className="text-base font-bold text-secondary mb-2">
                           {currentLang === 'vi' ? 'Đánh giá dịch vụ' : 'Rate our service'}
                         </h3>
                         <p className="text-xs text-gray-400 mb-4">
@@ -255,14 +255,14 @@ export default function HistoryModal({ isOpen, onClose, currentUser }: HistoryMo
                   )}
 
                   <div className="rounded-3xl border border-[#D6EEDD] p-6">
-                    <h3 className="mb-4 text-sm font-bold text-[#103B2D] uppercase tracking-widest">
+                    <h3 className="mb-4 text-sm font-bold text-secondary uppercase tracking-widest">
                       {currentLang === 'vi' ? 'Danh sách vật phẩm' : 'Item List'}
                     </h3>
                     <div className="space-y-3">
                       {item.items.map((svc, idx) => (
                         <div key={idx} className="flex items-center justify-between py-2 border-b border-[#D6EEDD]/30 last:border-0">
-                          <span className="text-sm font-semibold text-[#103B2D]">{svc.name} x{svc.quantity}</span>
-                          <span className="text-sm font-bold text-[#103B2D]/40">{formatPrice(svc.price)}</span>
+                          <span className="text-sm font-semibold text-secondary">{svc.name} x{svc.quantity}</span>
+                          <span className="text-sm font-bold text-secondary/40">{formatPrice(svc.price)}</span>
                         </div>
                       ))}
                     </div>
@@ -292,8 +292,8 @@ export default function HistoryModal({ isOpen, onClose, currentUser }: HistoryMo
                   <div className="space-y-2 border-b border-[#D6EEDD]/50 pb-4 mb-4">
                     {item.items.map((svc, idx) => (
                       <div key={idx} className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-[#103B2D]">{svc.name} x{svc.quantity}</span>
-                        <span className="text-xs font-semibold text-[#103B2D]/40">{formatPrice(svc.price)}</span>
+                        <span className="text-sm font-medium text-secondary">{svc.name} x{svc.quantity}</span>
+                        <span className="text-xs font-semibold text-secondary/40">{formatPrice(svc.price)}</span>
                       </div>
                     ))}
                   </div>

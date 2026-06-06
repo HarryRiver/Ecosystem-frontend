@@ -502,6 +502,9 @@
     "topService": "Bästa insamlingstjänsten",
     "greenBiz": "Grönt företag",
     "securePay": "Säker betalning",
+    "topServiceValue": "Topp 1",
+    "greenBizValue": "Verifierad",
+    "securePayValue": "Säker",
     "steps": {
       "book": "Boka på 60 sekunder",
       "confirm": "Ta emot bekräftelse och schema",

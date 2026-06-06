@@ -502,6 +502,9 @@
     "topService": "Top collection service",
     "greenBiz": "Green business",
     "securePay": "Secure payment",
+    "topServiceValue": "Top 1",
+    "greenBizValue": "Verified",
+    "securePayValue": "Secure",
     "steps": {
       "book": "Book in 60 seconds",
       "confirm": "Receive confirmation & schedule",

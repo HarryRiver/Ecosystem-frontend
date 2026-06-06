@@ -71,7 +71,7 @@ export default function Hero({ currentUser, onAuthClick, onBookingClick }: HeroP
             <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
               <button
                 onClick={() => onBookingClick()}
-                className="whitespace-nowrap rounded-full bg-[#8DE0A6] px-6 py-3.5 font-bold text-[#103B2D] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl"
+                className="whitespace-nowrap rounded-full bg-[#8DE0A6] px-6 py-3.5 font-bold text-secondary transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl"
               >
                 {t('hero.ctaBook')}
               </button>
@@ -94,26 +94,26 @@ export default function Hero({ currentUser, onAuthClick, onBookingClick }: HeroP
 
           </div>
 
-          <div className="rounded-[32px] border border-white/10 bg-white/95 p-6 text-[#103B2D] shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
+          <div className="rounded-[32px] border border-white/10 bg-white/95 p-6 text-secondary shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
             <div className="mb-6">
-              <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#2F855A]">
+              <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-primary">
                 {t('hero.quickBookingTitle')}
               </p>
-              <h2 className="text-3xl font-bold text-[#103B2D]">
+              <h2 className="text-3xl font-bold text-secondary">
                 {t('hero.quickBookingSubtitle')}
               </h2>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                <label className="mb-2 block text-sm font-semibold text-text-dark">
                   {t('hero.labelWasteType')}
                 </label>
                 {/* Task 3: value = key (e.g. 'furniture'), option label = translated */}
                 <select
                   value={quickWaste}
                   onChange={(event) => setQuickWaste(event.target.value as HeroQuickOption)}
-                  className="w-full rounded-2xl border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E]"
+                  className="w-full rounded-2xl border border-border-light bg-bg-light px-4 py-4 text-base text-secondary outline-none transition-colors focus:border-focus"
                 >
                   {QUICK_OPTION_KEYS.map((key) => (
                     <option key={key} value={key}>
@@ -124,7 +124,7 @@ export default function Hero({ currentUser, onAuthClick, onBookingClick }: HeroP
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                <label className="mb-2 block text-sm font-semibold text-text-dark">
                   {t('hero.labelAddress')}
                 </label>
                 <input
@@ -132,14 +132,14 @@ export default function Hero({ currentUser, onAuthClick, onBookingClick }: HeroP
                   value={quickAddress}
                   onChange={(event) => setQuickAddress(event.target.value)}
                   placeholder={t('hero.placeholderAddress')}
-                  className="w-full rounded-2xl border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors placeholder:text-[#7A9287] focus:border-[#22C55E]"
+                  className="w-full rounded-2xl border border-border-light bg-bg-light px-4 py-4 text-base text-secondary outline-none transition-colors placeholder:text-placeholder focus:border-focus"
                 />
               </div>
 
 
               <button
                 onClick={handleQuickBooking}
-                className="w-full rounded-full bg-[#103B2D] px-6 py-4 text-base font-bold text-white transition-transform duration-300 hover:-translate-y-0.5"
+                className="w-full rounded-full bg-secondary px-6 py-4 text-base font-bold text-white transition-transform duration-300 hover:-translate-y-0.5"
               >
                 {t('hero.applyToForm')}
               </button>

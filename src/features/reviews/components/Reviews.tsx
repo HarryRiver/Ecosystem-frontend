@@ -119,9 +119,8 @@ export default function Reviews({ currentUser }: ReviewsProps) {
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
   const [pendingOrderLabel, setPendingOrderLabel] = useState<string | null>(null);
 
-  // Initialize reviews from translations + Task 5: from completed orders
+  // Initialize reviews + Task 5: from completed orders
   useEffect(() => {
-    const defaultReviews = t('reviews.items', { returnObjects: true }) as ReviewItem[];
     let userReviews = readStoredUserReviews();
 
     // Task 5: Pull completed orders từ history của user hiện tại
@@ -164,19 +163,19 @@ export default function Reviews({ currentUser }: ReviewsProps) {
       }
     }
 
-    // Lấy reviews từ DB và gộp vào (Real DB + LocalStorage Auto + Mock)
+    // Lấy reviews từ DB và gộp vào (Real DB + LocalStorage Auto)
     apiClient.get('/reviews').then((res) => {
       const serverReviews = (res.data as ReviewApiItem[]).map((review) => mapServerReview(review, currentLang));
       const unsyncedUserReviews = removeServerBackedLocalReviews(serverReviews, userReviews);
       if (unsyncedUserReviews.length !== userReviews.length) {
         writeStoredUserReviews(unsyncedUserReviews);
       }
-      setAllReviews(dedupeReviews([...serverReviews, ...unsyncedUserReviews, ...defaultReviews]));
+      setAllReviews(dedupeReviews([...serverReviews, ...unsyncedUserReviews]));
     }).catch(() => {
-      setAllReviews(dedupeReviews([...userReviews, ...defaultReviews]));
+      setAllReviews(dedupeReviews([...userReviews]));
     });
 
-  }, [t, currentUser, currentLang]);
+  }, [currentUser, currentLang]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,12 +232,16 @@ export default function Reviews({ currentUser }: ReviewsProps) {
     setPendingOrderLabel(null);
   };
 
+  const averageRating = allReviews.length > 0
+    ? (allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length).toFixed(1)
+    : '5.0';
+
   return (
-    <section id="reviews" className="py-20 bg-[#F5FBF6]">
+    <section id="reviews" className="py-20 bg-light-gray">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="inline-block bg-[#2F855A]/10 text-[#2F855A] px-4 py-1.5 rounded-full text-sm font-semibold mb-4">
+          <span className="inline-block bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-semibold mb-4">
             {t('reviews.badge')}
           </span>
           <h2 className="text-3xl md:text-4xl font-bold text-[#303030] mb-4">
@@ -251,18 +254,18 @@ export default function Reviews({ currentUser }: ReviewsProps) {
           {!showForm ? (
             <div className="text-center">
               {currentUser && pendingOrderId ? (
-                <div className="bg-white/50 backdrop-blur-md border border-[#2F855A]/10 rounded-3xl p-8 text-center animate-fadeIn inline-block w-full">
-                  <h3 className="text-xl font-bold text-[#103B2D] mb-2">{t('reviews.shareExperience')}</h3>
+                <div className="bg-white/50 backdrop-blur-md border border-primary/10 rounded-3xl p-8 text-center animate-fadeIn inline-block w-full">
+                  <h3 className="text-xl font-bold text-secondary mb-2">{t('reviews.shareExperience')}</h3>
                   <p className="text-gray-500 mb-2">{t('reviews.shareSubtitle')}</p>
                   {pendingOrderLabel && (
-                    <p className="text-sm text-[#2F855A] font-semibold mb-6">
+                    <p className="text-sm text-primary font-semibold mb-6">
                       {mounted && (currentLang === 'vi' ? 'Đánh giá đơn hàng: ' : 'Rate order: ')}
                       <span className="font-bold">{pendingOrderLabel}</span>
                     </p>
                   )}
                   <button
                     onClick={() => setShowForm(true)}
-                    className="bg-[#2F855A] text-white px-8 py-3.5 rounded-full font-semibold hover:bg-[#236746] transition-all hover:shadow-lg active:scale-95"
+                    className="bg-primary text-white px-8 py-3.5 rounded-full font-semibold hover:bg-primary-hover transition-all hover:shadow-lg active:scale-95"
                   >
                     {t('reviews.writeBtn')}
                   </button>
@@ -270,7 +273,7 @@ export default function Reviews({ currentUser }: ReviewsProps) {
               ) : (
                 <button
                   onClick={() => setShowForm(true)}
-                  className="bg-[#2F855A] text-white px-8 py-3.5 rounded-full font-semibold hover:bg-[#236746] transition-all hover:shadow-lg active:scale-95"
+                  className="bg-primary text-white px-8 py-3.5 rounded-full font-semibold hover:bg-primary-hover transition-all hover:shadow-lg active:scale-95"
                 >
                   {mounted ? t('reviews.writeBtn') : ''}
                 </button>
@@ -283,7 +286,7 @@ export default function Reviews({ currentUser }: ReviewsProps) {
             >
               <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
                 <div>
-                  <h3 className="text-xl font-bold text-[#103B2D] tracking-tight">{t('reviews.yourReview')}</h3>
+                  <h3 className="text-xl font-bold text-secondary tracking-tight">{t('reviews.yourReview')}</h3>
                   <div className="h-0.5 w-8 bg-[#8BBFA3] mt-1" />
                 </div>
                 <button
@@ -307,7 +310,7 @@ export default function Reviews({ currentUser }: ReviewsProps) {
                       value={reviewerName}
                       onChange={(e) => setReviewerName(e.target.value)}
                       placeholder="Nhập họ tên của bạn..."
-                      className="w-full bg-[#F5FBF6] border border-transparent focus:border-[#2F855A]/30 rounded-[16px] px-5 py-4 text-sm text-[#103B2D] font-medium outline-none transition-all placeholder:text-gray-300"
+                      className="w-full bg-light-gray border border-transparent focus:border-primary/30 rounded-[16px] px-5 py-4 text-sm text-secondary font-medium outline-none transition-all placeholder:text-gray-300"
                     />
                   </div>
                   <div>
@@ -320,7 +323,7 @@ export default function Reviews({ currentUser }: ReviewsProps) {
                       value={reviewerEmail}
                       onChange={(e) => setReviewerEmail(e.target.value)}
                       placeholder="Nhập email của bạn..."
-                      className="w-full bg-[#F5FBF6] border border-transparent focus:border-[#2F855A]/30 rounded-[16px] px-5 py-4 text-sm text-[#103B2D] font-medium outline-none transition-all placeholder:text-gray-300"
+                      className="w-full bg-light-gray border border-transparent focus:border-primary/30 rounded-[16px] px-5 py-4 text-sm text-secondary font-medium outline-none transition-all placeholder:text-gray-300"
                     />
                   </div>
                 </div>
@@ -332,7 +335,7 @@ export default function Reviews({ currentUser }: ReviewsProps) {
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
                     ĐÁNH GIÁ SAO
                   </label>
-                  <div className="bg-[#F5FBF6] rounded-[20px] flex-1 min-h-[140px] flex flex-col items-center justify-center p-6 border-transparent border transition-all hover:border-[#2F855A]/20 cursor-pointer">
+                  <div className="bg-light-gray rounded-[20px] flex-1 min-h-[140px] flex flex-col items-center justify-center p-6 border-transparent border transition-all hover:border-primary/20 cursor-pointer">
                     <div className="flex gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
@@ -342,11 +345,11 @@ export default function Reviews({ currentUser }: ReviewsProps) {
                           onMouseEnter={() => !isSubmitting && setNewRating(star)}
                           className="text-4xl transition-transform hover:scale-110 focus:outline-none"
                         >
-                          <span className={star <= newRating ? 'text-[#FFC107]' : 'text-gray-200'}>★</span>
+                          <span className={star <= newRating ? 'text-yellow-400' : 'text-gray-200'}>★</span>
                         </button>
                       ))}
                     </div>
-                    <p className="text-sm font-bold text-[#2F855A] mt-4 min-h-[1.25rem]">
+                    <p className="text-sm font-bold text-primary mt-4 min-h-5">
                       {newRating === 5 ? 'Tuyệt vời' : newRating >= 4 ? t('reviews.rating4') : t('reviews.ratingLow')}
                     </p>
                   </div>
@@ -362,7 +365,7 @@ export default function Reviews({ currentUser }: ReviewsProps) {
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
                       placeholder="Chia sẻ cảm nhận của bạn..."
-                      className="w-full h-full min-h-[140px] bg-[#F5FBF6] border border-transparent rounded-[20px] p-6 text-sm text-[#103B2D] font-medium placeholder:text-gray-300 outline-none focus:border-[#2F855A]/30 transition-all resize-none leading-relaxed"
+                      className="w-full h-full min-h-[140px] bg-light-gray border border-transparent rounded-[20px] p-6 text-sm text-secondary font-medium placeholder:text-gray-300 outline-none focus:border-primary/30 transition-all resize-none leading-relaxed"
                       required
                     />
                     <div className="absolute bottom-4 right-5 text-[10px] font-bold text-gray-300 uppercase tracking-widest pointer-events-none">
@@ -376,7 +379,7 @@ export default function Reviews({ currentUser }: ReviewsProps) {
                 <button
                   type="submit"
                   disabled={isSubmitting || !newComment.trim() || (!currentUser && (!reviewerName || !reviewerEmail))}
-                  className="bg-[#B7C7B9] text-white px-8 py-3 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-[#2F855A] hover:shadow-lg transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                  className="bg-sidebar-muted text-white px-8 py-3 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-primary hover:shadow-lg transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
                 >
                   {isSubmitting ? t('common.loading') : 'GỬI ĐÁNH GIÁ'}
                 </button>
@@ -390,18 +393,18 @@ export default function Reviews({ currentUser }: ReviewsProps) {
           {Array.isArray(allReviews) && allReviews.map((review, index) => (
             <div
               key={review.id || index}
-              className={`bg-white rounded-[28px] p-7 shadow-[0_10px_30px_rgba(47,133,90,0.08)] border border-[#2F855A]/5 hover:shadow-[0_20px_50px_rgba(47,133,90,0.12)] transition-all duration-500 hover:-translate-y-2 group ${review.isCustom ? 'ring-2 ring-[#2F855A]/20 bg-gradient-to-b from-white to-[#F7FCF8]' : ''}`}
+              className={`bg-white rounded-[28px] p-7 shadow-[0_10px_30px_rgba(47,133,90,0.08)] border border-primary/5 hover:shadow-[0_20px_50px_rgba(47,133,90,0.12)] transition-all duration-500 hover:-translate-y-2 group ${review.isCustom ? 'ring-2 ring-primary/20 bg-linear-to-b from-white to-bg-light' : ''}`}
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-4">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-inner bg-[#EAF8EE] text-[#2F855A]">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-inner bg-secondary-light text-primary">
                     <svg className="w-6 h-6" fill="none" strokeWidth="2" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-bold text-[#103B2D] group-hover:text-[#2F855A] transition-colors">{review.name}</h4>
+                    <h4 className="font-bold text-secondary group-hover:text-primary transition-colors">{review.name}</h4>
                     <p className="text-xs text-gray-400 font-medium">{review.date}</p>
                   </div>
                 </div>
@@ -415,7 +418,7 @@ export default function Reviews({ currentUser }: ReviewsProps) {
               </div>
 
               {/* Comment */}
-              <p className="text-[#303030]/80 leading-relaxed mb-6 italic min-h-[4.5rem]">"{review.comment}"</p>
+              <p className="text-text-dark/80 leading-relaxed mb-6 italic min-h-18">"{review.comment}"</p>
 
 
             </div>
@@ -427,28 +430,28 @@ export default function Reviews({ currentUser }: ReviewsProps) {
           <div className="flex items-center space-x-2 text-gray-500">
             <span className="text-2xl">⭐</span>
             <div>
-              <div className="font-bold text-[#303030]">4.9/5</div>
+              <div className="font-bold text-text-dark">{averageRating}/5</div>
               <div className="text-xs">{t('reviews.ratingLabel')}</div>
             </div>
           </div>
           <div className="flex items-center space-x-2 text-gray-500">
             <span className="text-2xl">🏆</span>
             <div>
-              <div className="font-bold text-[#303030]">Top 1</div>
+              <div className="font-bold text-text-dark">{t('reviews.topServiceValue')}</div>
               <div className="text-xs">{t('reviews.topService')}</div>
             </div>
           </div>
           <div className="flex items-center space-x-2 text-gray-500">
             <span className="text-2xl">✅</span>
             <div>
-              <div className="font-bold text-[#303030]">Verified</div>
+              <div className="font-bold text-text-dark">{t('reviews.greenBizValue')}</div>
               <div className="text-xs">{t('reviews.greenBiz')}</div>
             </div>
           </div>
           <div className="flex items-center space-x-2 text-gray-500">
             <span className="text-2xl">🔒</span>
             <div>
-              <div className="font-bold text-[#303030]">Secure</div>
+              <div className="font-bold text-text-dark">{t('reviews.securePayValue')}</div>
               <div className="text-xs">{t('reviews.securePay')}</div>
             </div>
           </div>

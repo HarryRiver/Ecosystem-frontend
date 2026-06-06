@@ -146,7 +146,7 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="inline-block rounded-full bg-[#2F855A]/10 px-4 py-1.5 text-sm font-semibold text-[#2F855A] mb-4">
+          <span className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary mb-4">
             {t('wasteTypes.badge')}
           </span>
           <h2 className="text-3xl md:text-4xl font-bold text-[#303030] mb-4">
@@ -160,19 +160,19 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
           {wasteTypes.map((type: any, index: number) => (
             <div
               key={index}
-              className="group cursor-pointer rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-[#2F855A] hover:shadow-[0_18px_45px_rgba(16,59,45,0.08)]"
+              className="group cursor-pointer rounded-[28px] border border-[#D6EEDD] bg-[#F7FCF8] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-[0_18px_45px_rgba(16,59,45,0.08)]"
               onClick={() => onBookingClick({ selectedWaste: type.id })}
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-3xl shadow-sm transition-transform duration-300 group-hover:scale-110">
                   {type.icon}
                 </div>
-                <span className="rounded-full bg-[#E7F8EC] px-3 py-1 text-sm font-bold text-[#2F855A] transition-colors">
+                <span className="rounded-full bg-[#E7F8EC] px-3 py-1 text-sm font-bold text-primary transition-colors">
                   {type.price}
                 </span>
               </div>
 
-              <h3 className="mb-2 mt-4 text-xl font-bold text-[#103B2D]">
+              <h3 className="mb-2 mt-4 text-xl font-bold text-secondary">
                 {type.name}
               </h3>
               <p className="mb-4 text-sm text-gray-600 font-medium tracking-wide">
@@ -191,14 +191,14 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
               </div>
 
               <div className="mt-6 flex items-center justify-end">
-                <span className="text-sm font-bold text-[#2F855A]">{t('wasteTypes.ctaButton')}</span>
+                <span className="text-sm font-bold text-primary">{t('wasteTypes.ctaButton')}</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Additional Info */}
-        <div className="mt-12 rounded-[28px] border border-[#D6EEDD] bg-[#103B2D] px-6 py-7 text-white max-w-5xl mx-auto">
+        <div className="mt-12 rounded-[28px] border border-[#D6EEDD] bg-secondary px-6 py-7 text-white max-w-5xl mx-auto">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#A7E8B6]">
@@ -211,7 +211,7 @@ export default function WasteTypes({ onBookingClick }: WasteTypesProps) {
             </div>
             <button
               onClick={() => onBookingClick({ selectedWaste: 'custom' })}
-              className="rounded-full bg-[#8DE0A6] px-6 py-3 font-semibold text-[#103B2D]"
+              className="rounded-full bg-[#8DE0A6] px-6 py-3 font-semibold text-secondary"
             >
               {t('wasteTypes.specialCase.button')}
             </button>

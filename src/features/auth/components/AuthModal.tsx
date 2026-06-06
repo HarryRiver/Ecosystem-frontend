@@ -508,10 +508,10 @@ export default function AuthModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#08110D]/72 p-4 backdrop-blur-md">
+    <div className="fixed inset-0 z-130 flex items-center justify-center bg-overlay/72 p-4 backdrop-blur-md">
       <div className="grid w-full max-w-5xl max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden rounded-[32px] bg-white shadow-[0_32px_120px_rgba(0,0,0,0.28)] lg:grid-cols-[0.94fr_1.06fr]">
-        <aside className="hidden lg:block bg-[linear-gradient(155deg,_#0F3D2E_0%,_#134B38_52%,_#1E6B4E_100%)] p-7 text-white">
-          <div className="inline-flex items-center rounded-full border border-white/12 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#B7F7C8]">
+        <aside className="hidden lg:block bg-auth-aside p-7 text-white">
+          <div className="inline-flex items-center rounded-full border border-white/12 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-brand-light">
             {t('auth.badge')}
           </div>
           <h2 className="mt-5 text-3xl font-bold leading-tight">
@@ -538,7 +538,7 @@ export default function AuthModal({
         <div className="p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="text-3xl font-bold text-[#103B2D]">
+              <h3 className="text-3xl font-bold text-secondary">
                 {isRegisterOtpPanel
                   ? 'Xác thực đăng ký'
                   : isForgotPasswordPanel
@@ -548,7 +548,7 @@ export default function AuthModal({
                       : t('auth.register.title')}
               </h3>
               {(isForgotPasswordPanel || isRegisterOtpPanel) && (
-                <p className="mt-3 max-w-md text-sm leading-6 text-[#476458]">
+                <p className="mt-3 max-w-md text-sm leading-6 text-sidebar-text">
                   {forgotPasswordDescription}
                 </p>
               )}
@@ -556,7 +556,7 @@ export default function AuthModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-[#EEF6F0] text-[#103B2D] transition-colors hover:bg-[#E2F0E6]"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-[#EEF6F0] text-secondary transition-colors hover:bg-[#E2F0E6]"
             >
               <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -575,7 +575,7 @@ export default function AuthModal({
                   type="button"
                   onClick={() => handleModeSwitch(item.key)}
                   className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
-                    mode === item.key ? 'bg-[#103B2D] text-white' : 'text-[#476458]'
+                    mode === item.key ? 'bg-secondary text-white' : 'text-sidebar-text'
                   }`}
                 >
                   {item.label}
@@ -588,7 +588,7 @@ export default function AuthModal({
             {isForgotPasswordPanel ? (
               <div className="space-y-5">
                 {forgotPasswordStep !== 'done' && (
-                  <div className="grid grid-cols-3 gap-2 text-xs font-semibold text-[#789185]">
+                  <div className="grid grid-cols-3 gap-2 text-xs font-semibold text-form-helper">
                     {[
                       { key: 'email', label: t('auth.forgot.stepEmail') },
                       { key: 'otp', label: t('auth.forgot.stepOtp') },
@@ -604,9 +604,9 @@ export default function AuthModal({
                           key={item.key}
                           className={`rounded-[8px] border px-3 py-2 text-center ${
                             isActiveStep
-                              ? 'border-[#2F855A] bg-[#F0FBF3] text-[#103B2D]'
+                              ? 'border-primary bg-[#F0FBF3] text-secondary'
                               : isCompletedStep
-                                ? 'border-[#BFE8CB] bg-white text-[#2F855A]'
+                                ? 'border-[#BFE8CB] bg-white text-primary'
                                 : 'border-[#E2ECE6] bg-white'
                           }`}
                         >
@@ -620,7 +620,7 @@ export default function AuthModal({
                 {forgotPasswordStep === 'email' && (
                   <>
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                      <label className="mb-2 block text-sm font-semibold text-text-dark">
                         {t('auth.forgot.emailLabel')} <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -630,7 +630,7 @@ export default function AuthModal({
                         placeholder="name@email.com"
                         autoComplete="email"
                         disabled={isSubmitting}
-                        className={`w-full rounded-[16px] border bg-white px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.email ? 'border-red-400' : 'border-[#B7C5BC]'}`}
+                        className={`w-full rounded-[16px] border bg-white px-4 py-4 text-base outline-none transition-colors focus:border-focus disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.email ? 'border-red-400' : 'border-[#B7C5BC]'}`}
                       />
                       {fieldErrors.email && (
                         <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.email}</p>
@@ -642,12 +642,12 @@ export default function AuthModal({
 
                 {forgotPasswordStep === 'otp' && (
                   <>
-                    <div className="rounded-[8px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-sm text-[#476458]">
+                    <div className="rounded-[8px] border border-border-light bg-bg-light px-4 py-3 text-sm text-sidebar-text">
                       {t('auth.forgot.sentTo')}{' '}
-                      <span className="font-semibold text-[#103B2D]">{normalizeEmail(form.email)}</span>
+                      <span className="font-semibold text-secondary">{normalizeEmail(form.email)}</span>
                     </div>
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                      <label className="mb-2 block text-sm font-semibold text-text-dark">
                         {t('auth.forgot.otpLabel')} <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -658,7 +658,7 @@ export default function AuthModal({
                         placeholder="000000"
                         autoComplete="one-time-code"
                         disabled={isSubmitting}
-                        className={`w-full rounded-[16px] border bg-white px-4 py-4 text-center text-lg font-semibold tracking-[0.18em] outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.otp ? 'border-red-400' : 'border-[#B7C5BC]'}`}
+                        className={`w-full rounded-[16px] border bg-white px-4 py-4 text-center text-lg font-semibold tracking-[0.18em] outline-none transition-colors focus:border-focus disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.otp ? 'border-red-400' : 'border-[#B7C5BC]'}`}
                       />
                       {fieldErrors.otp && (
                         <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.otp}</p>
@@ -671,7 +671,7 @@ export default function AuthModal({
                 {forgotPasswordStep === 'password' && (
                   <>
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                      <label className="mb-2 block text-sm font-semibold text-text-dark">
                         {t('auth.forgot.newPasswordLabel')} <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
@@ -682,12 +682,12 @@ export default function AuthModal({
                           placeholder="******"
                           autoComplete="new-password"
                           disabled={isSubmitting}
-                          className={`w-full rounded-[16px] border bg-white px-4 py-4 pr-16 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.newPassword ? 'border-red-400' : 'border-[#B7C5BC]'}`}
+                          className={`w-full rounded-[16px] border bg-white px-4 py-4 pr-16 text-base outline-none transition-colors focus:border-focus disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.newPassword ? 'border-red-400' : 'border-[#B7C5BC]'}`}
                         />
                         <button
                           type="button"
                           onClick={() => setShowResetPassword((current) => !current)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#2F855A]"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-primary"
                         >
                           {showResetPassword ? t('auth.forgot.hidePassword') : t('auth.forgot.showPassword')}
                         </button>
@@ -697,7 +697,7 @@ export default function AuthModal({
                       )}
                     </div>
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                      <label className="mb-2 block text-sm font-semibold text-text-dark">
                         {t('auth.forgot.confirmPasswordLabel')} <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
@@ -708,12 +708,12 @@ export default function AuthModal({
                           placeholder="******"
                           autoComplete="new-password"
                           disabled={isSubmitting}
-                          className={`w-full rounded-[16px] border bg-white px-4 py-4 pr-16 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.confirmPassword ? 'border-red-400' : 'border-[#B7C5BC]'}`}
+                          className={`w-full rounded-[16px] border bg-white px-4 py-4 pr-16 text-base outline-none transition-colors focus:border-focus disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.confirmPassword ? 'border-red-400' : 'border-[#B7C5BC]'}`}
                         />
                         <button
                           type="button"
                           onClick={() => setShowResetPasswordConfirm((current) => !current)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#2F855A]"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-primary"
                         >
                           {showResetPasswordConfirm ? t('auth.forgot.hidePassword') : t('auth.forgot.showPassword')}
                         </button>
@@ -728,7 +728,7 @@ export default function AuthModal({
 
                 {forgotPasswordStep === 'done' && (
                   <div className="rounded-[8px] border border-[#BFE8CB] bg-[#F0FBF3] px-4 py-5 text-sm leading-6 text-[#1F6F43]">
-                    <p className="font-semibold text-[#103B2D]">{t('auth.forgot.doneTitle')}</p>
+                    <p className="font-semibold text-secondary">{t('auth.forgot.doneTitle')}</p>
                     <p className="mt-2">{t('auth.forgot.doneCopy')}</p>
                   </div>
                 )}
@@ -746,7 +746,7 @@ export default function AuthModal({
                       setSuccessMessage('');
                       setFieldErrors({});
                     }}
-                    className="text-sm font-semibold text-[#2F855A]"
+                    className="text-sm font-semibold text-primary"
                   >
                     {isRegisterOtpPanel ? 'Thay đổi thông tin đăng ký' : t('auth.forgot.changeEmail')}
                   </button>
@@ -760,7 +760,7 @@ export default function AuthModal({
                       setSuccessMessage('');
                       setFieldErrors({});
                     }}
-                    className="text-sm font-semibold text-[#2F855A]"
+                    className="text-sm font-semibold text-primary"
                   >
                     {t('auth.forgot.backToOtp')}
                   </button>
@@ -768,11 +768,11 @@ export default function AuthModal({
               </div>
             ) : isRegisterOtpPanel ? (
               <div className="space-y-5">
-                <div className="rounded-[8px] border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-sm text-[#476458]">
-                  Mã OTP đã được gửi đến email <span className="font-semibold text-[#103B2D]">{form.email}</span>
+                <div className="rounded-[8px] border border-border-light bg-bg-light px-4 py-3 text-sm text-sidebar-text">
+                  Mã OTP đã được gửi đến email <span className="font-semibold text-secondary">{form.email}</span>
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#24483A]">
+                  <label className="mb-2 block text-sm font-semibold text-text-dark">
                     Mã xác thực OTP <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -782,7 +782,7 @@ export default function AuthModal({
                     onChange={handleForgotPasswordFieldChange('otp')}
                     placeholder="000000"
                     disabled={isSubmitting}
-                    className={`w-full rounded-[16px] border bg-white px-4 py-4 text-center text-lg font-semibold tracking-[0.18em] outline-none transition-colors focus:border-[#22C55E] ${fieldErrors.otp ? 'border-red-400' : 'border-[#B7C5BC]'}`}
+                    className={`w-full rounded-[16px] border bg-white px-4 py-4 text-center text-lg font-semibold tracking-[0.18em] outline-none transition-colors focus:border-focus ${fieldErrors.otp ? 'border-red-400' : 'border-[#B7C5BC]'}`}
                   />
                   {fieldErrors.otp && (
                     <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.otp}</p>
@@ -795,7 +795,7 @@ export default function AuthModal({
                       setSuccessMessage('');
                       apiSendOtp({ email: form.email }).then(() => setSuccessMessage('Mã OTP mới đã được gửi.'));
                     }}
-                    className="font-medium text-[#2F855A]"
+                    className="font-medium text-primary"
                   >
                     Gửi lại mã OTP
                   </button>
@@ -804,8 +804,8 @@ export default function AuthModal({
             ) : mode === 'login' ? (
               <div className="space-y-5">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#24483A]">
-                    {t('auth.login.emailLabel')} <span className="font-normal text-[#789185]">(hoặc Số điện thoại)</span>
+                  <label className="mb-2 block text-sm font-semibold text-text-dark">
+                    {t('auth.login.emailLabel')} <span className="font-normal text-form-helper">(hoặc Số điện thoại)</span>
                   </label>
                   <input
                     type="text"
@@ -814,7 +814,7 @@ export default function AuthModal({
                     placeholder="email@example.com hoặc 09xxxxxxxx"
                     autoComplete="username"
                     disabled={isSubmitting}
-                    className={`w-full rounded-[24px] border bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.email ? 'border-red-400' : 'border-[#D6EEDD]'}`}
+                    className={`w-full rounded-[24px] border bg-bg-light px-4 py-4 text-base outline-none transition-colors focus:border-focus disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.email ? 'border-red-400' : 'border-border-light'}`}
                   />
                   {fieldErrors.email && (
                     <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.email}</p>
@@ -822,11 +822,11 @@ export default function AuthModal({
                 </div>
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <label className="text-sm font-semibold text-[#24483A]">{t('auth.login.passwordLabel')}</label>
+                    <label className="text-sm font-semibold text-text-dark">{t('auth.login.passwordLabel')}</label>
                     <button
                       type="button"
                       onClick={handleForgotPassword}
-                      className="text-sm font-medium text-[#2F855A]"
+                      className="text-sm font-medium text-primary"
                     >
                       {t('auth.login.forgotPassword')}
                     </button>
@@ -839,12 +839,12 @@ export default function AuthModal({
                       placeholder="......"
                       autoComplete="current-password"
                       disabled={isSubmitting}
-                      className={`w-full rounded-[24px] border bg-[#F7FCF8] px-4 py-4 pr-12 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.password ? 'border-red-400' : 'border-[#D6EEDD]'}`}
+                      className={`w-full rounded-[24px] border bg-bg-light px-4 py-4 pr-12 text-base outline-none transition-colors focus:border-focus disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.password ? 'border-red-400' : 'border-border-light'}`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7A9287] hover:text-[#2F855A] transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-placeholder hover:text-primary transition-colors"
                     >
                       {showPassword ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
@@ -861,7 +861,7 @@ export default function AuthModal({
             ) : (
               <div className="space-y-5">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#24483A]">{t('auth.register.nameLabel')}</label>
+                  <label className="mb-2 block text-sm font-semibold text-text-dark">{t('auth.register.nameLabel')}</label>
                   <input
                     type="text"
                     value={form.name}
@@ -869,7 +869,7 @@ export default function AuthModal({
                     placeholder="Name"
                     autoComplete="name"
                     disabled={isSubmitting}
-                    className={`w-full rounded-[24px] border bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.name ? 'border-red-400' : 'border-[#D6EEDD]'}`}
+                    className={`w-full rounded-[24px] border bg-bg-light px-4 py-4 text-base outline-none transition-colors focus:border-focus disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.name ? 'border-red-400' : 'border-border-light'}`}
                   />
                   {fieldErrors.name && (
                     <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.name}</p>
@@ -877,7 +877,7 @@ export default function AuthModal({
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-[#24483A]">{t('auth.register.phoneLabel')}</label>
+                    <label className="mb-2 block text-sm font-semibold text-text-dark">{t('auth.register.phoneLabel')}</label>
                     <input
                       type="tel"
                       value={form.phone}
@@ -885,14 +885,14 @@ export default function AuthModal({
                       placeholder="0901234567"
                       autoComplete="tel"
                       disabled={isSubmitting}
-                      className={`w-full rounded-[24px] border bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.phone ? 'border-red-400' : 'border-[#D6EEDD]'}`}
+                      className={`w-full rounded-[24px] border bg-bg-light px-4 py-4 text-base outline-none transition-colors focus:border-focus disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.phone ? 'border-red-400' : 'border-border-light'}`}
                     />
                     {fieldErrors.phone && (
                       <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.phone}</p>
                     )}
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-[#24483A]">{t('auth.register.emailLabel')}</label>
+                    <label className="mb-2 block text-sm font-semibold text-text-dark">{t('auth.register.emailLabel')}</label>
                     <input
                       type="email"
                       value={form.email}
@@ -900,7 +900,7 @@ export default function AuthModal({
                       placeholder="ban@company.com"
                       autoComplete="email"
                       disabled={isSubmitting}
-                      className={`w-full rounded-[24px] border bg-[#F7FCF8] px-4 py-4 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.email ? 'border-red-400' : 'border-[#D6EEDD]'}`}
+                      className={`w-full rounded-[24px] border bg-bg-light px-4 py-4 text-base outline-none transition-colors focus:border-focus disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.email ? 'border-red-400' : 'border-border-light'}`}
                     />
                     {fieldErrors.email && (
                       <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.email}</p>
@@ -908,7 +908,7 @@ export default function AuthModal({
                   </div>
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#24483A]">{t('auth.register.passwordLabel')}</label>
+                  <label className="mb-2 block text-sm font-semibold text-text-dark">{t('auth.register.passwordLabel')}</label>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
@@ -917,12 +917,12 @@ export default function AuthModal({
                       placeholder="......"
                       autoComplete="new-password"
                       disabled={isSubmitting}
-                      className={`w-full rounded-[24px] border bg-[#F7FCF8] px-4 py-4 pr-12 text-base outline-none transition-colors focus:border-[#22C55E] disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.password ? 'border-red-400' : 'border-[#D6EEDD]'}`}
+                      className={`w-full rounded-[24px] border bg-bg-light px-4 py-4 pr-12 text-base outline-none transition-colors focus:border-focus disabled:cursor-not-allowed disabled:bg-[#F0F6F2] ${fieldErrors.password ? 'border-red-400' : 'border-border-light'}`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7A9287] hover:text-[#2F855A] transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-placeholder hover:text-primary transition-colors"
                     >
                       {showPassword ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
@@ -935,7 +935,7 @@ export default function AuthModal({
                     <p className="mt-1.5 text-xs font-medium text-red-500">{fieldErrors.password}</p>
                   )}
                 </div>
-                <label className="flex items-start gap-3 rounded-[24px] border border-[#D6EEDD] bg-[#F9FCFA] p-4 text-sm text-[#476458]">
+                <label className="flex items-start gap-3 rounded-[24px] border border-border-light bg-sidebar-hover-bg p-4 text-sm text-sidebar-text">
                   <input
                     type="checkbox"
                     checked={form.acceptPolicy}
@@ -975,14 +975,24 @@ export default function AuthModal({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full rounded-[8px] bg-[#0F5BD7] px-7 py-3.5 font-semibold text-white transition-colors hover:bg-[#0B4FC0] disabled:cursor-not-allowed disabled:bg-[#95B0A1]"
+                  className="w-full rounded-[8px] bg-[#0f5bd7] px-7 py-3.5 font-semibold text-white transition-colors hover:bg-[#0b4fc0] disabled:cursor-not-allowed disabled:bg-[#95b0a1] flex items-center justify-center gap-2"
                 >
-                  {forgotPasswordSubmitLabel}
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      {t('common.loading')}
+                    </>
+                  ) : (
+                    forgotPasswordSubmitLabel
+                  )}
                 </button>
 
                 {forgotPasswordStep !== 'done' && (
                   <>
-                    <div className="my-6 flex items-center gap-3 text-xs text-[#789185]">
+                    <div className="my-6 flex items-center gap-3 text-xs text-form-helper">
                       <span className="h-px flex-1 bg-[#E2ECE6]" />
                       <span>{t('auth.forgot.or')}</span>
                       <span className="h-px flex-1 bg-[#E2ECE6]" />
@@ -991,7 +1001,7 @@ export default function AuthModal({
                     <button
                       type="button"
                       onClick={() => handleModeSwitch('login')}
-                      className="w-full rounded-[8px] border border-[#D6EEDD] px-7 py-3 font-semibold text-[#2F855A] transition-colors hover:border-[#2F855A] hover:bg-[#F0FBF3]"
+                      className="w-full rounded-[8px] border border-border-light px-7 py-3 font-semibold text-primary transition-colors hover:border-primary hover:bg-[#F0FBF3]"
                     >
                       {t('auth.forgot.backToLogin')}
                     </button>
@@ -1000,12 +1010,12 @@ export default function AuthModal({
               </div>
             ) : (
               <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-[#789185]">
+                <p className="text-sm text-form-helper">
                   {mode === 'login' ? t('auth.login.switch').split('?')[0] + '?' : t('auth.register.switch').split('?')[0] + '?'}
                   <button
                     type="button"
                     onClick={() => handleModeSwitch(mode === 'login' ? 'register' : 'login')}
-                    className="ml-2 font-semibold text-[#2F855A]"
+                    className="ml-2 font-semibold text-primary"
                   >
                     {mode === 'login' ? t('auth.login.switch').split('?')[1] : t('auth.register.switch').split('?')[1]}
                   </button>
@@ -1014,13 +1024,21 @@ export default function AuthModal({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-full bg-[#103B2D] px-7 py-3 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#95B0A1]"
+                  className="rounded-full bg-secondary px-7 py-3 font-semibold text-white transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#95B0A1] flex items-center justify-center gap-2"
                 >
-                  {isSubmitting
-                    ? t('common.loading')
-                    : mode === 'login'
-                      ? t('auth.login.submit')
-                      : t('auth.register.submit')}
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      {t('common.loading')}
+                    </>
+                  ) : mode === 'login' ? (
+                    t('auth.login.submit')
+                  ) : (
+                    t('auth.register.submit')
+                  )}
                 </button>
               </div>
             )}

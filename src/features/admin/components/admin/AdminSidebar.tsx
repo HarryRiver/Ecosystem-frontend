@@ -173,12 +173,12 @@ export default function AdminSidebar({
 
         {/* Admin info */}
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2F855A]/60 text-sm font-bold text-white ring-2 ring-[#2F855A]/40">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/60 text-sm font-bold text-white ring-2 ring-primary/40">
             {adminName.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-slate-900">{adminName}</p>
-            <p className="truncate text-xs text-slate-400 font-medium">{adminEmail}</p>
+            <p className="truncate text-xs text-muted font-medium">{adminEmail}</p>
           </div>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -199,8 +199,8 @@ export default function AdminSidebar({
 
       <div className={cn("flex flex-col gap-3", isMobileMenuOpen ? "flex" : "hidden xl:flex")}>
       {/* ── Nav items ── */}
-      <nav className="rounded-[28px] border border-[#D7ECDD] bg-white p-3 shadow-[0_12px_40px_rgba(16,59,45,0.07)]">
-        <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#6D877A]">
+      <nav className="rounded-[28px] border border-border-light bg-white p-3 shadow-[0_12px_40px_rgba(16,59,45,0.07)]">
+        <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-sidebar-muted">
           {t('admin.sidebar.sections.operations', 'Nghiệp vụ')}
         </p>
         <div className="space-y-1">
@@ -215,13 +215,13 @@ export default function AdminSidebar({
                 href={item.href}
                 className={cn(
                   'group relative flex items-center gap-3 overflow-hidden rounded-[20px] px-3 py-3 transition-all duration-200',
-                  isActive ? 'bg-[#F3FBF5]' : 'hover:bg-[#F9FCFA]',
+                  isActive ? 'bg-sidebar-active-bg' : 'hover:bg-sidebar-hover-bg',
                 )}
               >
                 {/* Active indicator */}
                 <span
                   className={cn(
-                    'absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[#2F855A] transition-all duration-300',
+                    'absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary transition-all duration-300',
                     isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-40',
                   )}
                 />
@@ -232,7 +232,7 @@ export default function AdminSidebar({
                     'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-all duration-200',
                     isActive
                       ? `bg-gradient-to-br ${item.color} shadow-lg ${item.glow} text-white`
-                      : 'bg-[#EEF8F0] text-[#2F855A] group-hover:bg-[#E0F5E6]',
+                      : 'bg-sidebar-bubble-bg text-primary group-hover:bg-sidebar-bubble-hover',
                   )}
                 >
                   <Icon className="h-5 w-5" />
@@ -243,12 +243,12 @@ export default function AdminSidebar({
                   <p
                     className={cn(
                       'text-sm font-semibold leading-tight',
-                      isActive ? 'text-[#103B2D]' : 'text-[#476458] group-hover:text-[#103B2D]',
+                      isActive ? 'text-secondary' : 'text-sidebar-text group-hover:text-secondary',
                     )}
                   >
                     {t(item.labelKey, item.defaultLabel || '')}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-[#6D877A]">{t(item.descKey, item.defaultDesc || '')}</p>
+                  <p className="mt-0.5 truncate text-xs text-sidebar-muted">{t(item.descKey, item.defaultDesc || '')}</p>
                 </div>
 
                 {/* Badge */}
@@ -257,8 +257,8 @@ export default function AdminSidebar({
                     className={cn(
                       'flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-bold',
                       isActive
-                        ? 'bg-[#103B2D] text-white'
-                        : 'bg-[#E6FFEE] text-[#2F855A] group-hover:bg-[#103B2D] group-hover:text-white',
+                        ? 'bg-secondary text-white'
+                        : 'bg-sidebar-badge-bg text-primary group-hover:bg-secondary group-hover:text-white',
                     )}
                   >
                     {badge}
@@ -271,8 +271,8 @@ export default function AdminSidebar({
       </nav>
 
       {/* ── Quick actions ── */}
-      <div className="rounded-[28px] border border-[#D7ECDD] bg-white p-3 shadow-[0_12px_40px_rgba(16,59,45,0.07)]">
-        <p className="mb-3 flex items-center justify-between px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#6D877A]">
+      <div className="rounded-[28px] border border-border-light bg-white p-3 shadow-[0_12px_40px_rgba(16,59,45,0.07)]">
+        <p className="mb-3 flex items-center justify-between px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-sidebar-muted">
           {t('admin.sidebar.sections.other', 'Khác')}
           <span className="xl:hidden">
             <LanguageSwitcher />
@@ -287,7 +287,7 @@ export default function AdminSidebar({
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-400 transition-colors group-hover:bg-red-100">
               <IconLogout className="h-5 w-5" />
             </span>
-            <span className="text-sm font-semibold text-[#476458] transition-colors group-hover:text-red-600">
+            <span className="text-sm font-semibold text-sidebar-text transition-colors group-hover:text-red-600">
               {t('admin.sidebar.actions.logout', 'Đăng xuất')}
             </span>
           </button>

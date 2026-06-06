@@ -128,32 +128,32 @@ function OrderDetailPanel({
     <div className="mt-4 overflow-hidden rounded-[24px] border border-[#D7ECDD] bg-[#F9FCFA]">
       {/* Header */}
       <div className="border-b border-[#E5F0E8] bg-white px-5 py-4">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#2F855A]">Chi tiết đơn hàng</p>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Chi tiết đơn hàng</p>
       </div>
 
       <div className="grid gap-4 p-5 md:grid-cols-2">
         {/* ── Thông tin khách ── */}
         <div className="rounded-[20px] border border-[#E5F0E8] bg-white p-4">
           <div className="mb-3 flex items-center gap-2">
-            <IconUser className="h-4 w-4 text-[#2F855A]" />
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#2F855A]">Khách hàng</p>
+            <IconUser className="h-4 w-4 text-primary" />
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Khách hàng</p>
           </div>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-[#6D877A]">Họ tên</span>
-              <span className="font-semibold text-[#103B2D]">{customer?.name ?? '—'}</span>
+              <span className="font-semibold text-secondary">{customer?.name ?? '—'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#6D877A]">SĐT</span>
-              <span className="font-semibold text-[#103B2D]">{customer?.phone ?? '—'}</span>
+              <span className="font-semibold text-secondary">{customer?.phone ?? '—'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#6D877A]">Email</span>
-              <span className="truncate pl-4 text-right font-semibold text-[#103B2D]">{customer?.email ?? '—'}</span>
+              <span className="truncate pl-4 text-right font-semibold text-secondary">{customer?.email ?? '—'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#6D877A]">Khu vực</span>
-              <span className="font-semibold text-[#103B2D]">{customer?.district ?? '—'}</span>
+              <span className="font-semibold text-secondary">{customer?.district ?? '—'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#6D877A]">Loại TK</span>
@@ -161,7 +161,7 @@ function OrderDetailPanel({
                 className={cn(
                   'rounded-full px-2 py-0.5 text-xs font-semibold',
                   customer?.accountType === 'member'
-                    ? 'bg-[#E6FFEE] text-[#2F855A]'
+                    ? 'bg-[#E6FFEE] text-primary'
                     : 'bg-amber-100 text-amber-700'
                 )}
               >
@@ -174,31 +174,31 @@ function OrderDetailPanel({
         {/* ── Thông tin đơn ── */}
         <div className="rounded-[20px] border border-[#E5F0E8] bg-white p-4">
           <div className="mb-3 flex items-center gap-2">
-            <IconCalendar className="h-4 w-4 text-[#2F855A]" />
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#2F855A]">Lịch hẹn & Dịch vụ</p>
+            <IconCalendar className="h-4 w-4 text-primary" />
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Lịch hẹn & Dịch vụ</p>
           </div>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-[#6D877A]">Mã đơn</span>
-              <span className="font-bold text-[#103B2D]">{order.code}</span>
+              <span className="font-bold text-secondary">{order.code}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#6D877A]">Ngày hẹn</span>
-              <span className="font-semibold text-[#103B2D]">{order.schedule.date}</span>
+              <span className="font-semibold text-secondary">{order.schedule.date}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#6D877A]">Khung giờ</span>
-              <span className="font-semibold text-[#103B2D]">{order.schedule.timeSlot}</span>
+              <span className="font-semibold text-secondary">{order.schedule.timeSlot}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#6D877A]">Thanh toán</span>
-              <span className="font-semibold text-[#103B2D]">
+              <span className="font-semibold text-secondary">
                 {order.paymentMethod === 'online' ? 'Online' : 'Tiền mặt'}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#6D877A]">Nhân viên</span>
-              <span className="font-semibold text-[#103B2D]">{order.assignedStaff}</span>
+              <span className="font-semibold text-secondary">{order.assignedStaff}</span>
             </div>
           </div>
         </div>
@@ -206,12 +206,12 @@ function OrderDetailPanel({
         {/* ── Danh sách vật phẩm ── */}
         {order.items.length > 0 && (
           <div className="rounded-[20px] border border-[#E5F0E8] bg-white p-4 md:col-span-2">
-            <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[#2F855A]">Danh sách vật phẩm</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-primary">Danh sách vật phẩm</p>
             <div className="space-y-1">
               {order.items.map((item, idx) => (
                 <div key={idx} className="flex justify-between text-sm">
-                  <span className="text-[#103B2D]">{item.name} x{item.quantity}</span>
-                  <span className="font-semibold text-[#103B2D]">{item.price > 0 ? currency.format(item.price) : 'Báo giá'}</span>
+                  <span className="text-secondary">{item.name} x{item.quantity}</span>
+                  <span className="font-semibold text-secondary">{item.price > 0 ? currency.format(item.price) : 'Báo giá'}</span>
                 </div>
               ))}
             </div>
@@ -220,13 +220,13 @@ function OrderDetailPanel({
 
         {/* ── Tự đánh giá ── */}
         <div className="rounded-[20px] border border-[#E5F0E8] bg-white p-4">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[#2F855A]">Khách tự đánh giá đồ</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-primary">Khách tự đánh giá đồ</p>
           <p className="text-sm leading-6 text-[#476458]">{order.selfAssessment}</p>
         </div>
 
         {/* ── Ghi chú giá ── */}
         <div className="rounded-[20px] border border-[#E5F0E8] bg-white p-4">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[#2F855A]">Ghi chú điều chỉnh giá</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-primary">Ghi chú điều chỉnh giá</p>
           <p className="text-sm leading-6 text-[#476458]">{order.priceAdjustment}</p>
         </div>
       </div>
@@ -237,35 +237,35 @@ function OrderDetailPanel({
           {/* Price adjustment */}
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <IconPencil className="h-4 w-4 text-[#2F855A]" />
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#2F855A]">
+              <IconPencil className="h-4 w-4 text-primary" />
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">
                 {order.status === 'delivering' ? 'Điều chỉnh giá trước khi hoàn thành' : 'Giá đơn hàng'}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <p className="text-3xl font-bold text-[#103B2D]">{currency.format(adjustedAmount)}</p>
+              <p className="text-3xl font-bold text-secondary">{currency.format(adjustedAmount)}</p>
 
               {order.status === 'delivering' && (
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => applyDelta(-10000)}
-                    className="rounded-full border border-[#D7ECDD] bg-white px-3 py-1.5 text-xs font-semibold text-[#476458] transition-colors hover:border-[#2F855A] hover:text-[#103B2D]"
+                    className="rounded-full border border-[#D7ECDD] bg-white px-3 py-1.5 text-xs font-semibold text-[#476458] transition-colors hover:border-primary hover:text-secondary"
                   >
                     −10k
                   </button>
                   <button
                     type="button"
                     onClick={() => applyDelta(10000)}
-                    className="rounded-full border border-[#D7ECDD] bg-white px-3 py-1.5 text-xs font-semibold text-[#476458] transition-colors hover:border-[#2F855A] hover:text-[#103B2D]"
+                    className="rounded-full border border-[#D7ECDD] bg-white px-3 py-1.5 text-xs font-semibold text-[#476458] transition-colors hover:border-primary hover:text-secondary"
                   >
                     +10k
                   </button>
                   <button
                     type="button"
                     onClick={() => applyDelta(50000)}
-                    className="rounded-full border border-[#D7ECDD] bg-white px-3 py-1.5 text-xs font-semibold text-[#476458] transition-colors hover:border-[#2F855A] hover:text-[#103B2D]"
+                    className="rounded-full border border-[#D7ECDD] bg-white px-3 py-1.5 text-xs font-semibold text-[#476458] transition-colors hover:border-primary hover:text-secondary"
                   >
                     +50k
                   </button>
@@ -280,7 +280,7 @@ function OrderDetailPanel({
                   type="text"
                   value={priceInput}
                   onChange={(e) => handlePriceChange(e.target.value)}
-                  className="w-36 rounded-full border border-[#CFE4D5] bg-[#F9FCFA] px-3 py-1.5 text-sm font-semibold text-[#103B2D] outline-none focus:border-[#2F855A]"
+                  className="w-36 rounded-full border border-[#CFE4D5] bg-[#F9FCFA] px-3 py-1.5 text-sm font-semibold text-secondary outline-none focus:border-primary"
                   placeholder="VD: 380000"
                 />
                 <span className="text-xs text-[#6D877A]">đ</span>
@@ -326,7 +326,7 @@ function OrderDetailPanel({
                 <button
                   type="button"
                   onClick={onConfirm}
-                  className="flex items-center gap-2 rounded-full bg-[#103B2D] px-5 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
+                  className="flex items-center gap-2 rounded-full bg-secondary px-5 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
                 >
                   <IconCheck className="h-4 w-4" />
                   Xác nhận đơn
@@ -349,7 +349,7 @@ function OrderDetailPanel({
               <button
                 type="button"
                 onClick={onComplete}
-                className="flex items-center gap-2 rounded-full bg-[#2F855A] px-5 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
+                className="flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
               >
                 <IconFlag className="h-4 w-4" />
                 Hoàn thành đơn — {currency.format(adjustedAmount)}
@@ -445,7 +445,7 @@ function OrderCard({
         {/* Code + summary */}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-bold text-[#103B2D]">{order.code}</span>
+            <span className="font-bold text-secondary">{order.code}</span>
             <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', meta.tone)}>
               {meta.label}
             </span>
@@ -462,7 +462,7 @@ function OrderCard({
 
         {/* Amount */}
         <div className="hidden shrink-0 text-right sm:block">
-          <p className="font-bold text-[#103B2D]">{currency.format(adjustedAmount)}</p>
+          <p className="font-bold text-secondary">{currency.format(adjustedAmount)}</p>
           <p className="text-xs text-[#6D877A]">{order.paymentMethod === 'online' ? 'Online' : 'Tiền mặt'}</p>
         </div>
 
@@ -647,14 +647,14 @@ export default function AdminOrdersPage() {
             className={cn(
               'rounded-[28px] border p-5 text-left shadow-[0_8px_24px_rgba(16,59,45,0.06)] transition-all',
               statusFilter === item.id
-                ? 'border-[#2F855A] bg-[#F3FBF5] shadow-[0_12px_32px_rgba(47,133,90,0.12)]'
-                : 'border-[#D7ECDD] bg-white hover:border-[#2F855A]'
+                ? 'border-primary bg-[#F3FBF5] shadow-[0_12px_32px_rgba(47,133,90,0.12)]'
+                : 'border-[#D7ECDD] bg-white hover:border-primary'
             )}
           >
             <span className={cn('inline-flex rounded-full px-3 py-1 text-xs font-semibold', item.tone)}>
               {item.label}
             </span>
-            <div className="mt-4 text-3xl font-bold text-[#103B2D]">{item.count}</div>
+            <div className="mt-4 text-3xl font-bold text-secondary">{item.count}</div>
             <p className="mt-1 text-xs text-[#5D776A]">đơn</p>
           </button>
         ))}
@@ -666,7 +666,7 @@ export default function AdminOrdersPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Tìm theo mã đơn, tên khách, SĐT hoặc loại đồ..."
-          className="h-12 flex-1 rounded-full border border-[#CFE4D5] bg-white px-5 text-sm outline-none transition-colors placeholder:text-[#6D877A] focus:border-[#2F855A] focus:shadow-[0_0_0_3px_rgba(47,133,90,0.1)]"
+          className="h-12 flex-1 rounded-full border border-[#CFE4D5] bg-white px-5 text-sm outline-none transition-colors placeholder:text-[#6D877A] focus:border-primary focus:shadow-[0_0_0_3px_rgba(47,133,90,0.1)]"
         />
         <div className="flex flex-wrap gap-2">
           {statusFilters.map((filter) => (
@@ -677,7 +677,7 @@ export default function AdminOrdersPage() {
               className={cn(
                 'rounded-full px-4 py-2.5 text-sm font-semibold transition-colors',
                 statusFilter === filter.id
-                  ? 'bg-[#103B2D] text-white'
+                  ? 'bg-secondary text-white'
                   : 'bg-white text-[#476458] ring-1 ring-[#D7ECDD] hover:bg-[#F3FBF5]'
               )}
             >

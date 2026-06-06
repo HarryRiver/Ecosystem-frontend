@@ -20,7 +20,7 @@ export default function Pricing({ onBookingClick }: PricingProps) {
   ];
 
   return (
-    <section id="pricing" className="relative overflow-hidden bg-gradient-to-br from-[#103B2D] to-[#1D5A45] py-20">
+    <section id="pricing" className="relative overflow-hidden bg-gradient-to-br from-secondary to-[#1D5A45] py-20">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-[#8DE0A6] opacity-10 blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-white opacity-10 blur-3xl"></div>
@@ -58,7 +58,7 @@ export default function Pricing({ onBookingClick }: PricingProps) {
         <div className="text-center mt-12">
           <button
             onClick={onBookingClick}
-            className="inline-flex items-center space-x-2 rounded-full bg-[#8DE0A6] px-10 py-4 text-lg font-bold text-[#103B2D] transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+            className="inline-flex items-center space-x-2 rounded-full bg-[#8DE0A6] px-10 py-4 text-lg font-bold text-secondary transition-all duration-300 hover:scale-105 hover:shadow-2xl"
           >
             <span>{t('pricing.cta')}</span>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

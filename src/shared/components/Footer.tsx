@@ -10,7 +10,7 @@ export default function Footer({ onBookingClick }: FooterProps) {
   const { t } = useTranslation();
 
   return (
-    <footer id="contact" className="relative mt-20 overflow-hidden bg-linear-to-r from-[#0B2F24] to-[#103B2D] py-20 text-white">
+    <footer id="contact" className="relative mt-20 overflow-hidden bg-linear-to-r from-[#0B2F24] to-secondary py-20 text-white">
       {/* Decorative Elements */}
       <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#8DE0A6]/10 blur-3xl"></div>
       <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-[#8DE0A6]/10 blur-3xl"></div>
@@ -26,7 +26,7 @@ export default function Footer({ onBookingClick }: FooterProps) {
           </p>
           <button
             onClick={onBookingClick}
-            className="rounded-full bg-[#8DE0A6] px-10 py-5 text-xl font-bold text-[#103B2D] transition-all duration-300 hover:scale-105 hover:shadow-[0_20px_50px_rgba(141,224,166,0.3)]"
+            className="rounded-full bg-[#8DE0A6] px-10 py-5 text-xl font-bold text-secondary transition-all duration-300 hover:scale-105 hover:shadow-[0_20px_50px_rgba(141,224,166,0.3)]"
           >
             {t('footer.ctaButton')}
           </button>
@@ -37,7 +37,7 @@ export default function Footer({ onBookingClick }: FooterProps) {
           <div className="lg:col-span-1">
             <div className="mb-6 flex items-center space-x-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#8DE0A6]">
-                <span className="text-xl font-bold text-[#103B2D]">E</span>
+                <span className="text-xl font-bold text-secondary">E</span>
               </div>
               <span className="text-2xl font-bold tracking-tight">EcoCollect</span>
             </div>

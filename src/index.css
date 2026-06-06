@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-:root {
+@theme {
   --color-primary: #2F855A;
   --color-primary-hover: #236746;
   --color-secondary: #103B2D;
@@ -8,6 +8,26 @@
   --color-dark: #103B2D;
   --color-light-gray: #F5FBF6;
   --color-white: #FFFFFF;
+  --color-muted: #718096;
+  --color-border-light: #D6EEDD;
+  --color-bg-light: #F7FCF8;
+  --color-text-dark: #24483A;
+  --color-placeholder: #7A9287;
+  --color-focus: #22C55E;
+  --background-image-admin: linear-gradient(160deg, #EEF8F0 0%, #F9FCFA 40%, #FFFFFF 100%);
+  --color-sidebar-muted: #6D877A;
+  --color-sidebar-active-bg: #F3FBF5;
+  --color-sidebar-hover-bg: #F9FCFA;
+  --color-sidebar-bubble-bg: #EEF8F0;
+  --color-sidebar-bubble-hover: #E0F5E6;
+  --color-sidebar-text: #476458;
+  --color-sidebar-badge-bg: #E6FFEE;
+  --color-admin-muted: #8AA89A;
+  --color-form-helper: #789185;
+  --color-overlay: #08110D;
+  --color-brand-light: #B7F7C8;
+  --background-image-auth-aside: linear-gradient(155deg, #0F3D2E 0%, #134B38 52%, #1E6B4E 100%);
+  --z-index-130: 130;
 }
 
 * {

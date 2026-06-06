@@ -61,14 +61,14 @@ function CreateVoucherModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#103B2D]/40 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-secondary/40 p-4 backdrop-blur-sm">
       <div className="w-full max-w-md animate-scaleUp rounded-[28px] bg-white p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
         <div className="mb-6 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-[#103B2D]">Mã Khuyến Mãi Mới</h3>
+          <h3 className="text-xl font-bold text-secondary">Mã Khuyến Mãi Mới</h3>
           <button
             title="Đóng"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F4FAF5] text-[#2F855A] transition-colors hover:bg-[#DFF0E5]"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-active-bg text-primary transition-colors hover:bg-sidebar-bubble-hover"
           >
             <svg className="h-4 w-4" fill="none" strokeWidth={2} stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -84,55 +84,55 @@ function CreateVoucherModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#6D877A]">Mã Code</label>
+            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-sidebar-muted">Mã Code</label>
             <input
               required
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
               placeholder="VD: GIAMGIA10"
-              className="w-full rounded-xl border border-[#DFF0E5] bg-[#F7FCF8] px-4 py-3 text-sm font-semibold text-[#103B2D] outline-none transition-colors focus:border-[#2F855A] focus:bg-white"
+              className="w-full rounded-xl border border-border-light bg-bg-light px-4 py-3 text-sm font-semibold text-secondary outline-none transition-colors focus:border-primary focus:bg-white"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#6D877A]">Loại</label>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-sidebar-muted">Loại</label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-                className="w-full rounded-xl border border-[#DFF0E5] bg-[#F7FCF8] px-4 py-3 text-sm font-semibold text-[#103B2D] outline-none focus:border-[#2F855A] focus:bg-white"
+                className="w-full rounded-xl border border-border-light bg-bg-light px-4 py-3 text-sm font-semibold text-secondary outline-none focus:border-primary focus:bg-white"
               >
                 <option value="fixed">Tiền mặt (đ)</option>
                 <option value="percent">Phần trăm (%)</option>
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#6D877A]">Giá trị giảm</label>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-sidebar-muted">Giá trị giảm</label>
               <input
                 required
                 type="number"
                 min={0}
                 value={formData.value}
                 onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
-                className="w-full rounded-xl border border-[#DFF0E5] bg-[#F7FCF8] px-4 py-3 text-sm font-semibold text-[#103B2D] outline-none focus:border-[#2F855A] focus:bg-white"
+                className="w-full rounded-xl border border-border-light bg-bg-light px-4 py-3 text-sm font-semibold text-secondary outline-none focus:border-primary focus:bg-white"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#6D877A]">Đơn tối thiểu</label>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-sidebar-muted">Đơn tối thiểu</label>
               <input
                 required
                 type="number"
                 min={0}
                 value={formData.min_order_value}
                 onChange={(e) => setFormData({ ...formData, min_order_value: Number(e.target.value) })}
-                className="w-full rounded-xl border border-[#DFF0E5] bg-[#F7FCF8] px-4 py-3 text-sm font-semibold text-[#103B2D] outline-none focus:border-[#2F855A] focus:bg-white"
+                className="w-full rounded-xl border border-border-light bg-bg-light px-4 py-3 text-sm font-semibold text-secondary outline-none focus:border-primary focus:bg-white"
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#6D877A]">Tổng lượt dùng</label>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-sidebar-muted">Tổng lượt dùng</label>
               <input
                 required
                 type="number"
@@ -146,43 +146,43 @@ function CreateVoucherModal({
                     per_user_limit: formData.per_user_limit ?? usageLimit,
                   });
                 }}
-                className="w-full rounded-xl border border-[#DFF0E5] bg-[#F7FCF8] px-4 py-3 text-sm font-semibold text-[#103B2D] outline-none focus:border-[#2F855A] focus:bg-white"
+                className="w-full rounded-xl border border-border-light bg-bg-light px-4 py-3 text-sm font-semibold text-secondary outline-none focus:border-primary focus:bg-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#6D877A]">Mỗi khách tối đa</label>
+            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-sidebar-muted">Mỗi khách tối đa</label>
             <input
               required
               type="number"
               min={0}
               value={formData.per_user_limit ?? formData.usage_limit}
               onChange={(e) => setFormData({ ...formData, per_user_limit: Number(e.target.value) })}
-              className="w-full rounded-xl border border-[#DFF0E5] bg-[#F7FCF8] px-4 py-3 text-sm font-semibold text-[#103B2D] outline-none focus:border-[#2F855A] focus:bg-white"
+              className="w-full rounded-xl border border-border-light bg-bg-light px-4 py-3 text-sm font-semibold text-secondary outline-none focus:border-primary focus:bg-white"
             />
-            <p className="mt-1 text-xs font-medium text-[#789185]">Nhập 0 nếu không giới hạn theo từng khách.</p>
+            <p className="mt-1 text-xs font-medium text-form-helper">Nhập 0 nếu không giới hạn theo từng khách.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#6D877A]">Từ ngày</label>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-sidebar-muted">Từ ngày</label>
               <input
                 type="datetime-local"
                 required
                 value={formData.start_date}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                className="w-full rounded-xl border border-[#DFF0E5] bg-[#F7FCF8] px-4 py-3 text-sm font-semibold text-[#103B2D] outline-none focus:border-[#2F855A] focus:bg-white"
+                className="w-full rounded-xl border border-border-light bg-bg-light px-4 py-3 text-sm font-semibold text-secondary outline-none focus:border-primary focus:bg-white"
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#6D877A]">Đến ngày</label>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-sidebar-muted">Đến ngày</label>
               <input
                 type="datetime-local"
                 required
                 value={formData.end_date}
                 onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                className="w-full rounded-xl border border-[#DFF0E5] bg-[#F7FCF8] px-4 py-3 text-sm font-semibold text-[#103B2D] outline-none focus:border-[#2F855A] focus:bg-white"
+                className="w-full rounded-xl border border-border-light bg-bg-light px-4 py-3 text-sm font-semibold text-secondary outline-none focus:border-primary focus:bg-white"
               />
             </div>
           </div>
@@ -190,7 +190,7 @@ function CreateVoucherModal({
           <button
             type="submit"
             disabled={loading}
-            className="mt-6 w-full rounded-xl bg-[#2F855A] px-6 py-4 text-center font-bold text-white transition-all hover:bg-[#256846] disabled:opacity-50"
+            className="mt-6 w-full rounded-xl bg-primary px-6 py-4 text-center font-bold text-white transition-all hover:bg-primary-hover disabled:opacity-50"
           >
             {loading ? 'Đang tạo...' : 'Lưu và phát hành thẻ'}
           </button>
@@ -250,12 +250,12 @@ export default function AdminVouchersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#103B2D]">Quản lý Vouchers</h1>
-          <p className="mt-1 text-sm text-[#6D877A]">Tạo và kiểm soát các chiến dịch mã giảm giá</p>
+          <h1 className="text-2xl font-bold text-secondary">Quản lý Vouchers</h1>
+          <p className="mt-1 text-sm text-sidebar-muted">Tạo và kiểm soát các chiến dịch mã giảm giá</p>
         </div>
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 rounded-full bg-[#103B2D] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#2F855A] hover:shadow-lg"
+          className="flex items-center gap-2 rounded-full bg-secondary px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-primary hover:shadow-lg"
         >
           <svg className="h-5 w-5" fill="none" strokeWidth={2} stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -266,68 +266,68 @@ export default function AdminVouchersPage() {
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-[24px] bg-white p-5 shadow-[0_8px_30px_rgba(16,59,45,0.05)] border border-[#E8F5EC]">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#8AA89A]">Tổng mã hệ thống</p>
-          <p className="mt-2 text-3xl font-bold text-[#103B2D]">{vouchers.length}</p>
+        <div className="rounded-[24px] bg-white p-5 shadow-[0_8px_30px_rgba(16,59,45,0.05)] border border-border-light">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-admin-muted">Tổng mã hệ thống</p>
+          <p className="mt-2 text-3xl font-bold text-secondary">{vouchers.length}</p>
         </div>
-        <div className="rounded-[24px] bg-white p-5 shadow-[0_8px_30px_rgba(16,59,45,0.05)] border border-[#E8F5EC]">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#8AA89A]">Đang hoạt động</p>
-          <p className="mt-2 text-3xl font-bold text-[#2F855A]">{activeCount}</p>
+        <div className="rounded-[24px] bg-white p-5 shadow-[0_8px_30px_rgba(16,59,45,0.05)] border border-border-light">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-admin-muted">Đang hoạt động</p>
+          <p className="mt-2 text-3xl font-bold text-primary">{activeCount}</p>
         </div>
-        <div className="rounded-[24px] bg-white p-5 shadow-[0_8px_30px_rgba(16,59,45,0.05)] border border-[#E8F5EC]">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#8AA89A]">Đã hết hạn/tạm dừng</p>
+        <div className="rounded-[24px] bg-white p-5 shadow-[0_8px_30px_rgba(16,59,45,0.05)] border border-border-light">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-admin-muted">Đã hết hạn/tạm dừng</p>
           <p className="mt-2 text-3xl font-bold text-amber-500">{expiredCount}</p>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="rounded-[24px] border border-[#DFF0E5] bg-white py-12 text-center shadow-[0_8px_30px_rgba(16,59,45,0.05)]">
-          <p className="text-sm font-semibold text-[#8AA89A]">Đang tải dữ liệu voucher...</p>
+        <div className="rounded-[24px] border border-border-light bg-white py-12 text-center shadow-[0_8px_30px_rgba(16,59,45,0.05)]">
+          <p className="text-sm font-semibold text-admin-muted">Đang tải dữ liệu voucher...</p>
         </div>
       ) : error ? (
         <div className="rounded-[24px] border border-red-200 bg-red-50 p-6 text-red-600 font-semibold text-center">
           {error}
         </div>
       ) : (
-        <div className="rounded-[24px] border border-[#DFF0E5] bg-white shadow-[0_8px_30px_rgba(16,59,45,0.05)]">
+        <div className="rounded-[24px] border border-border-light bg-white shadow-[0_8px_30px_rgba(16,59,45,0.05)]">
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
-                <tr className="border-b border-[#EEF8F1]">
-                  <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-[#8AA89A]">Bản ghi</th>
-                  <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-[#8AA89A]">Giảm giá</th>
-                  <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-[#8AA89A]">Hiệu lực</th>
-                  <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-[#8AA89A]">Giới hạn sử dụng</th>
-                  <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-[#8AA89A]">Trạng thái</th>
+                <tr className="border-b border-border-light">
+                  <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-admin-muted">Bản ghi</th>
+                  <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-admin-muted">Giảm giá</th>
+                  <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-admin-muted">Hiệu lực</th>
+                  <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-admin-muted">Giới hạn sử dụng</th>
+                  <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-admin-muted">Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
                 {vouchers.map((v, i) => (
-                  <tr key={v.id} className={cn('border-b border-[#F0F7F2] transition-colors', i % 2 === 1 && 'bg-[#FAFCFB]')}>
+                  <tr key={v.id} className={cn('border-b border-border-light transition-colors', i % 2 === 1 && 'bg-sidebar-hover-bg')}>
                     <td className="px-5 py-4">
-                      <p className="text-base font-bold text-[#103B2D] uppercase tracking-wide bg-[#EBF7F0] w-auto inline-block px-3 py-1 rounded-[10px]">{v.code}</p>
+                      <p className="text-base font-bold text-secondary uppercase tracking-wide bg-sidebar-bubble-bg w-auto inline-block px-3 py-1 rounded-[10px]">{v.code}</p>
                     </td>
                     <td className="px-5 py-4">
-                      <p className="font-semibold text-[#103B2D]">
+                      <p className="font-semibold text-secondary">
                         {v.type === 'percent' ? `${v.value}%` : currency.format(v.value)}
                       </p>
-                      <p className="text-[11px] text-[#8AA89A]">
+                      <p className="text-[11px] text-admin-muted">
                         Đơn từ {currency.format(v.min_order_value)}
                       </p>
                     </td>
                     <td className="px-5 py-4">
-                      <p className="text-xs text-[#476458]">Bắt đầu: {new Date(v.start_date).toLocaleDateString('vi-VN')}</p>
-                      <p className="text-xs text-[#476458]">Kết thúc: {new Date(v.end_date).toLocaleDateString('vi-VN')}</p>
+                      <p className="text-xs text-sidebar-text">Bắt đầu: {new Date(v.start_date).toLocaleDateString('vi-VN')}</p>
+                      <p className="text-xs text-sidebar-text">Kết thúc: {new Date(v.end_date).toLocaleDateString('vi-VN')}</p>
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
-                        <div className="h-2 w-24 bg-[#E0F5E6] rounded-full overflow-hidden">
+                        <div className="h-2 w-24 bg-sidebar-bubble-hover rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-[#2F855A] rounded-full"
+                            className="h-full bg-primary rounded-full"
                             style={{ width: `${Math.min(100, (v.used_count / v.usage_limit) * 100)}%` }}
                           />
                         </div>
-                        <span className="text-xs font-semibold text-[#103B2D]">{v.used_count} / {v.usage_limit}</span>
+                        <span className="text-xs font-semibold text-secondary">{v.used_count} / {v.usage_limit}</span>
                       </div>
                     </td>
                     <td className="px-5 py-4">
@@ -336,7 +336,7 @@ export default function AdminVouchersPage() {
                         onClick={() => handleToggleActive(v.id, v.active)}
                         className={cn(
                           'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                          v.active ? 'bg-[#2F855A]' : 'bg-[#DFF0E5]'
+                          v.active ? 'bg-primary' : 'bg-sidebar-bubble-hover'
                         )}
                       >
                         <span
@@ -351,7 +351,7 @@ export default function AdminVouchersPage() {
                 ))}
                 {vouchers.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-5 py-8 text-center text-sm font-semibold text-[#8AA89A]">
+                    <td colSpan={5} className="px-5 py-8 text-center text-sm font-semibold text-admin-muted">
                       Chưa có mã khuyến mãi nào được tạo.
                     </td>
                   </tr>

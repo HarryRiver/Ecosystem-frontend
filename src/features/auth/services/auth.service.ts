@@ -7,6 +7,7 @@
  */
 
 import apiClient, { saveToken, removeToken } from '@/shared/lib/apiClient';
+import { withRetry } from '@/shared/utils/retry';
 import {
   type LoginPayload,
   type RegisterPayload,
@@ -109,10 +110,13 @@ export async function logout(): Promise<void> {
 
 /**
  * Lấy thông tin user hiện tại từ token.
+ * Tích hợp tự động thử lại với Exponential Backoff & Jitter khi mạng chập chờn.
  */
 export async function getMe(): Promise<ApiUser> {
-  const response = await apiClient.get<ApiUser>('/me');
-  return response.data;
+  return withRetry(async () => {
+    const response = await apiClient.get<ApiUser>('/me');
+    return response.data;
+  });
 }
 
 // ─── PATCH /me ───────────────────────────────────────────────────────────────

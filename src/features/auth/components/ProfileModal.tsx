@@ -182,7 +182,7 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
         <div className="shrink-0 bg-[linear-gradient(135deg,#103B2D_0%,#18543F_55%,#1D6B4E_100%)] p-6 text-white text-center sm:text-left">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#8DE0A6] text-[#103B2D] text-xl font-bold">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#8DE0A6] text-secondary text-xl font-bold">
                 {name.charAt(0).toUpperCase()}
               </div>
               <div className="text-left">
@@ -218,7 +218,7 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
                 <span className="text-xl">👤</span>
                 <div className="flex-1">
                   <label className="block text-[10px] font-bold text-[#24483A]/40 uppercase tracking-widest">{t('booking.labels.name')}</label>
-                  <p className="text-base font-semibold text-[#103B2D]">{name}</p>
+                  <p className="text-base font-semibold text-secondary">{name}</p>
                 </div>
               </div>
             </div>
@@ -229,7 +229,7 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
                 <span className="text-xl">📧</span>
                 <div className="flex-1">
                   <label className="block text-[10px] font-bold text-[#24483A]/40 uppercase tracking-widest">Email</label>
-                  <p className="text-base font-semibold text-[#103B2D]">{email}</p>
+                  <p className="text-base font-semibold text-secondary">{email}</p>
                 </div>
               </div>
             </div>
@@ -245,11 +245,11 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
                       type="text" 
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full bg-transparent text-base font-semibold text-[#103B2D] outline-none"
+                      className="w-full bg-transparent text-base font-semibold text-secondary outline-none"
                       placeholder="VD: 078XXXXXXX"
                     />
                   ) : (
-                    <p className="text-base font-semibold text-[#103B2D]">{phone || 'Chưa cập nhật'}</p>
+                    <p className="text-base font-semibold text-secondary">{phone || 'Chưa cập nhật'}</p>
                   )}
                 </div>
               </div>
@@ -271,7 +271,7 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
                       type="text"
                       value={streetAddress}
                       onChange={(e) => setStreetAddress(e.target.value)}
-                      className="w-full rounded-xl border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-sm font-medium text-[#103B2D] outline-none focus:border-[#22C55E]"
+                      className="w-full rounded-xl border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-sm font-medium text-secondary outline-none focus:border-[#22C55E]"
                       placeholder="Số nhà, tên đường..."
                     />
                   </div>
@@ -286,7 +286,7 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
                           setCity(e.target.value);
                           setDistrict('');
                         }}
-                        className="w-full rounded-xl border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-sm font-medium text-[#103B2D] outline-none focus:border-[#22C55E] appearance-none"
+                        className="w-full rounded-xl border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-sm font-medium text-secondary outline-none focus:border-[#22C55E] appearance-none"
                       >
                         <option value="">{isLoadingProvinces ? 'Đang tải...' : '--- Chọn Tỉnh ---'}</option>
                         {provinces.map((p) => (
@@ -302,7 +302,7 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
                         value={district}
                         onChange={(e) => setDistrict(e.target.value)}
                         disabled={!city || isLoadingDistricts}
-                        className="w-full rounded-xl border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-sm font-medium text-[#103B2D] outline-none focus:border-[#22C55E] appearance-none disabled:opacity-50"
+                        className="w-full rounded-xl border border-[#D6EEDD] bg-[#F7FCF8] px-4 py-3 text-sm font-medium text-secondary outline-none focus:border-[#22C55E] appearance-none disabled:opacity-50"
                       >
                         <option value="">{isLoadingDistricts ? 'Đang tải...' : '--- Chọn Quận ---'}</option>
                         {districts.map((d) => (
@@ -313,7 +313,7 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
                   </div>
                 </div>
               ) : (
-                <p className="text-base font-semibold text-[#103B2D]">
+                <p className="text-base font-semibold text-secondary">
                   {(!streetAddress && !district && !city) ? (currentLang === 'vi' ? 'Chưa cập nhật địa chỉ' : 'Address not updated') : `${streetAddress}${district ? `, ${district}` : ''}${city ? `, ${city}` : ''}`}
                 </p>
               )}
@@ -324,7 +324,7 @@ export default function ProfileModal({ isOpen, onClose, currentUser, onUpdateUse
             {!isEditing ? (
               <button 
                 onClick={() => setIsEditing(true)}
-                className="w-full rounded-2xl bg-[#103B2D] px-6 py-4 text-base font-bold text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:scale-95"
+                className="w-full rounded-2xl bg-secondary px-6 py-4 text-base font-bold text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:scale-95"
               >
                 Chỉnh sửa hồ sơ
               </button>

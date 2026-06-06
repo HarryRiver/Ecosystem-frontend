@@ -144,6 +144,7 @@ export interface CreateServiceBody {
   pricing_type: ApiService['pricing_type'];
   base_price: number;
   default_unit: string;
+  description?: string;
 }
 
 export async function createAdminService(
@@ -189,8 +190,11 @@ export async function getServiceVariants(
 
 export interface CreateVariantBody {
   label: string;
+  code?: string;
+  size?: string;
   price: number;
   unit: string;
+  active?: boolean;
 }
 
 export async function createServiceVariant(

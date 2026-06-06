@@ -128,10 +128,10 @@ export default function AdminUsersPage() {
             key={card.label}
             className="rounded-[28px] border border-[#D7ECDD] bg-white p-5 shadow-[0_18px_45px_rgba(16,59,45,0.06)]"
           >
-            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#2F855A]">
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
               {card.label}
             </p>
-            <div className="mt-3 text-3xl font-bold text-[#103B2D]">
+            <div className="mt-3 text-3xl font-bold text-secondary">
               {card.value}
             </div>
             <p className="mt-2 text-sm text-[#5D776A]">{card.note}</p>
@@ -148,7 +148,7 @@ export default function AdminUsersPage() {
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2F855A]">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">
               {t('admin.users.listTitle', 'Danh sách người dùng')}
             </p>
             <h2 className="mt-2 text-2xl font-bold">
@@ -160,7 +160,7 @@ export default function AdminUsersPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t('admin.users.searchPlaceholder', 'Tìm theo tên, email hoặc số điện thoại')}
-              className="h-12 rounded-full border border-[#CFE4D5] bg-[#F9FCFA] px-5 text-sm outline-none transition-colors placeholder:text-[#6D877A] focus:border-[#2F855A]"
+              className="h-12 rounded-full border border-[#CFE4D5] bg-[#F9FCFA] px-5 text-sm outline-none transition-colors placeholder:text-[#6D877A] focus:border-primary"
             />
             <div className="flex flex-wrap gap-2">
               {statusFilters.map((filter) => (
@@ -171,7 +171,7 @@ export default function AdminUsersPage() {
                   className={cn(
                     'rounded-full px-4 py-3 text-sm font-semibold transition-colors',
                     statusFilter === filter.id
-                      ? 'bg-[#103B2D] text-white'
+                      ? 'bg-secondary text-white'
                       : 'bg-[#F3FBF5] text-[#476458] hover:bg-[#E6FFEE]',
                   )}
                 >
@@ -206,7 +206,7 @@ export default function AdminUsersPage() {
                     className="rounded-[24px] bg-[#F9FCFA] text-sm text-[#476458]"
                   >
                     <td className="rounded-l-[24px] px-4 py-4">
-                      <div className="font-semibold text-[#103B2D]">
+                      <div className="font-semibold text-secondary">
                         {customer.name}
                       </div>
                       <p className="mt-1">{customer.email}</p>
@@ -217,7 +217,7 @@ export default function AdminUsersPage() {
                         className={cn(
                           'rounded-full px-3 py-1 text-xs font-semibold',
                           customer.accountType === 'member'
-                            ? 'bg-[#E6FFEE] text-[#2F855A]'
+                            ? 'bg-[#E6FFEE] text-primary'
                             : 'bg-[#FFF4E6] text-[#C05621]',
                         )}
                       >
@@ -232,7 +232,7 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-4">
                       {customer.latestOrder ? (
                         <>
-                          <div className="font-semibold text-[#103B2D]">
+                          <div className="font-semibold text-secondary">
                             {customer.latestOrder.code}
                           </div>
                           <p className="mt-1">{customer.latestOrder.itemSummary}</p>
@@ -272,7 +272,7 @@ export default function AdminUsersPage() {
                         <span>-</span>
                       )}
                     </td>
-                    <td className="rounded-r-[24px] px-4 py-4 font-semibold text-[#103B2D]">
+                    <td className="rounded-r-[24px] px-4 py-4 font-semibold text-secondary">
                       {currency.format(customer.totalSpent)}
                     </td>
                   </tr>
